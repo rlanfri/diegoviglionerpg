@@ -1372,50 +1372,102 @@ function selRole(el, r) {
   el.classList.add('on');
 }
 
-function doLogin() {
-  var u = document.getElementById('li-user').value.trim();
-  var p = document.getElementById('li-pass').value.trim();
-  if (!u || !p) { toast('Ingresá usuario y contraseña'); return; }
+// ── NUEVO FLUJO DE LOGIN INTELIGENTE Y SEGURO ──
+async function doLogin() {
+  const btn = document.querySelector('.btn-login');
+  if (btn) {
+    btn.innerHTML = 'Cargando...';
+    btn.disabled = true;
+  }
 
-  // Hide login, show app — no overlap
-  document.getElementById('s-login').classList.add('hidden');
-  document.getElementById('app').classList.add('visible');
+  // Limpiar mensajes de error previos si existen
+  const errPrevio = document.querySelector('.login-card div[style*="background:#fee2e2"]');
+  if (errPrevio) errPrevio.remove();
 
-  var ini = u.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || u[0].toUpperCase();
-  document.getElementById('av-btn').textContent = ini;
-
-  // Simulate Google profile data
-  var parts = u.trim().split(' ');
-  profileData = {
-    nombre: parts[0] || u,
-    apellido: parts.slice(1).join(' ') || '',
-    email: u.includes('@') ? u : u.toLowerCase().replace(/ /g,'.')+'@gmail.com',
-    tel: '',
-    initials: ini,
-    photoURL: '',
-  };
-
-  if (role === 'paciente') {
-    document.getElementById('nav-p').style.display = 'flex';
-    document.getElementById('nav-d').style.display = 'none';
-    document.getElementById('bar-sub').textContent = 'Paciente';
-    document.getElementById('p-greeting').textContent = 'Hola, ' + u.split(' ')[0];
-    renderAccordion();
-    updateStats();
-    showPage('p-home');
-    setActiveNav('nav-p', 0);
-  } else {
-    document.getElementById('nav-d').style.display = 'flex';
-    document.getElementById('nav-p').style.display = 'none';
-    document.getElementById('bar-sub').textContent = role === 'admin' ? 'Admin' : 'Profesional';
-    renderDocVideos();
-    renderPacientesList();
-    renderUsuariosList();
-    showPage('d-home');
-    setActiveNav('nav-d', 0);
+  try {
+    const { auth, provider, signInWithRedirect } = window._fb;
+    // Usamos redirección para evitar bloqueos de ventanas emergentes (COOP/Cross-Origin)
+    await signInWithRedirect(auth, provider);
+  } catch (error) {
+    console.error("Error al iniciar redirección:", error);
+    toast("Error al conectar con Google");
+    if (btn) {
+      btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google';
+      btn.disabled = false;
+    }
   }
 }
 
+// Escuchar de manera automática cuando el usuario vuelve de la redirección de Google
+window.addEventListener('DOMContentLoaded', async () => {
+  // Esperar un momento a que Firebase se inicialice en la ventana
+  const checkFirebase = setInterval(async () => {
+    if (window._fb && window._fb.auth) {
+      clearInterval(checkFirebase);
+      
+      try {
+        const { auth, getRedirectResult, db, doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, signOut } = window._fb;
+        const result = await getRedirectResult(auth);
+        
+        // Si hay un resultado de login válido por redirección
+        if (result && result.user) {
+          const firebaseUser = result.user;
+          // Forzamos el email a minúsculas y limpio de espacios por seguridad
+          const emailLogin = firebaseUser.email.toLowerCase().trim();
+
+          // 1. Intentar buscar directo por el UID de Google
+          const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+          let perfil = null;
+
+          if (snap.exists()) {
+            perfil = snap.data();
+          } else {
+            // 2. RESCATE: Si no existe por ID de documento, buscamos dentro de la colección por el campo 'email'
+            // Traemos todos los usuarios para comparar de forma segura sin problemas de mayúsculas
+            const querySnap = await getDocs(collection(db, 'usuarios'));
+            let docViejo = null;
+            
+            querySnap.forEach((uDoc) => {
+              const uData = uDoc.data();
+              if (uData.email && uData.email.toLowerCase().trim() === emailLogin) {
+                perfil = uData;
+                docViejo = uDoc;
+              }
+            });
+            
+            if (perfil && docViejo) {
+              const idViejo = docViejo.id;
+              
+              // Clonamos el usuario creando el documento definitivo con el UID real de Google
+              await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+                ...perfil,
+                email: emailLogin,
+                uid: firebaseUser.uid
+              });
+
+              // Borramos el documento viejo con ID aleatorio para limpiar la base de datos
+              if (idViejo !== firebaseUser.uid) {
+                await deleteDoc(doc(db, 'usuarios', idViejo));
+              }
+            }
+          }
+
+          // 3. Validar si encontramos el perfil y si está activo
+          if (!perfil || perfil.estado !== 'activo') {
+            await signOut(auth);
+            window._showAccessError(!perfil ? 'no-registrado' : 'sin-acceso');
+            return;
+          }
+
+          // 4. Entrar a la app con los datos reales
+          window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
+        }
+      } catch (error) {
+        console.error("Error procesando el retorno de Google:", error);
+      }
+    }
+  }, 500);
+});
 function logout() {
   if (!confirm('¿Salir de la sesión?')) return;
   document.getElementById('app').classList.remove('visible');
