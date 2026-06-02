@@ -1373,6 +1373,7 @@ function selRole(el, r) {
 }
 
 // ── NUEVO FLUJO DE LOGIN INTELIGENTE Y SEGURO ──
+// ── NUEVO FLUJO DE LOGIN INTELIGENTE Y SEGURO ──
 async function doLogin() {
   const btn = document.querySelector('.btn-login');
   if (btn) {
@@ -1468,6 +1469,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   }, 500);
 });
+
+
 function logout() {
   if (!confirm('¿Salir de la sesión?')) return;
   document.getElementById('app').classList.remove('visible');
