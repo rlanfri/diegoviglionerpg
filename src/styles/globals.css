@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@100;200;300;400;500;600;700;800;900&display=swap');
+body { font-family: 'Barlow', sans-serif; }
+nav a { color: black !important; text-decoration: none; position: relative; transition: color 0.3s; }
+nav a::after { content: ''; position: absolute; bottom: 0; right: 0; width: 0; height: 2px; background-color: #1A8BCD; transition: width 0.3s ease-out; }
+nav a:hover { color: #1A8BCD !important; }
+nav a:hover::after { width: 100%; }
+.btn { transition: background-color 0.3s, color 0.3s; font-weight: bold; text-decoration: none !important; }
+.btn:hover { background-color: #1a8bcdca !important; color: #fff !important; }
+.hero { position: relative; background: #E1EEFF; min-height: 85vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.hero::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('/hero-image.png'); background-size: cover; background-position: center; background-repeat: no-repeat; z-index: 0; }
+.hero .row { position: relative; z-index: 2; margin: 0 auto; max-width: 90%; }
+.hero h1 { font-weight: bold; }
+.hero p { font-size: 18px; line-height: 1.5; }
+@media (max-width: 768px) {
+  .hero h1 { font-size: 28px !important; }
+  .hero h1 span { display: inline-block; white-space: nowrap; }
+  .hero .hero-image { object-fit: cover; margin-left: -100px; width: 100%; height: auto; }
+  .hero { min-height: 80vh; }
+  .hero .col-lg-6 img { width: 100%; max-width: 400px; }
+  .hero h1 { font-size: 50px !important; margin-top: -40px; }
+  .hero p { font-size: 20px; text-align: left; }
+  .hero .btn { margin-left: 0; margin-right: 0; text-align: left; display: inline-block; max-width: 200px; color: #1A8BCD !important; }
+}
+.footer { background-color: #1A8BCD; }
+.footer h5 { margin-bottom: 10px; }
+.footer p, .footer a, .footer small { color: white; }
+.footer a:hover { text-decoration: underline; }
+a, button { text-decoration: none !important; -webkit-tap-highlight-color: transparent; }
+a:active, a:focus, button:active, button:focus { outline: none !important; box-shadow: none !important; background-color: inherit !important; }
