@@ -1372,8 +1372,7 @@ function selRole(el, r) {
   el.classList.add('on');
 }
 
-// ── NUEVO FLUJO DE LOGIN INTELIGENTE Y SEGURO ──
-// ── NUEVO FLUJO DE LOGIN INTELIGENTE Y SEGURO ──
+// 1. FUNCIÓN DE LOGIN (Dispara la redirección de Google)
 async function doLogin() {
   const btn = document.querySelector('.btn-login');
   if (btn) {
@@ -1387,7 +1386,7 @@ async function doLogin() {
 
   try {
     const { auth, provider, signInWithRedirect } = window._fb;
-    // Usamos redirección para evitar bloqueos de ventanas emergentes (COOP/Cross-Origin)
+    // Redireccionamos de forma segura sin ventanas emergentes molestando
     await signInWithRedirect(auth, provider);
   } catch (error) {
     console.error("Error al iniciar redirección:", error);
@@ -1399,75 +1398,79 @@ async function doLogin() {
   }
 }
 
-// Escuchar de manera automática cuando el usuario vuelve de la redirección de Google
-window.addEventListener('DOMContentLoaded', async () => {
-  // Esperar un momento a que Firebase se inicialice en la ventana
-  const checkFirebase = setInterval(async () => {
-    if (window._fb && window._fb.auth) {
-      clearInterval(checkFirebase);
+// 2. DETECTOR AUTOMÁTICO AL VOLVER DE GOOGLE
+// Usamos window.onload para asegurarnos de que toda la estructura de Firebase ya está montada en memoria
+window.addEventListener('load', () => {
+  // Esperamos un instante a que Firebase asiente sus credenciales
+  setTimeout(async () => {
+    if (!window._fb || !window._fb.auth) return;
+
+    try {
+      const { auth, getRedirectResult, db, doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, signOut } = window._fb;
       
-      try {
-        const { auth, getRedirectResult, db, doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, signOut } = window._fb;
-        const result = await getRedirectResult(auth);
-        
-        // Si hay un resultado de login válido por redirección
-        if (result && result.user) {
-          const firebaseUser = result.user;
-          // Forzamos el email a minúsculas y limpio de espacios por seguridad
-          const emailLogin = firebaseUser.email.toLowerCase().trim();
+      // Consultamos a Firebase si venimos regresando de un login exitoso
+      const result = await getRedirectResult(auth);
+      
+      if (result && result.user) {
+        const firebaseUser = result.user;
+        const emailLogin = firebaseUser.email.toLowerCase().trim();
 
-          // 1. Intentar buscar directo por el UID de Google
-          const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
-          let perfil = null;
+        // Ponemos el botón en carga mientras procesamos los datos en segundo plano
+        const btn = document.querySelector('.btn-login');
+        if (btn) { btn.innerHTML = 'Verificando cuenta...'; btn.disabled = true; }
 
-          if (snap.exists()) {
-            perfil = snap.data();
-          } else {
-            // 2. RESCATE: Si no existe por ID de documento, buscamos dentro de la colección por el campo 'email'
-            // Traemos todos los usuarios para comparar de forma segura sin problemas de mayúsculas
-            const querySnap = await getDocs(collection(db, 'usuarios'));
-            let docViejo = null;
+        // Paso A: Intentar buscar directo por el UID de Google
+        const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+        let perfil = null;
+
+        if (snap.exists()) {
+          perfil = snap.data();
+        } else {
+          // Paso B: Si no existe por documento UID, hacemos un barrido por el campo email
+          const querySnap = await getDocs(collection(db, 'usuarios'));
+          let docViejo = null;
+          
+          querySnap.forEach((uDoc) => {
+            const uData = uDoc.data();
+            if (uData.email && uData.email.toLowerCase().trim() === emailLogin) {
+              perfil = uData;
+              docViejo = uDoc;
+            }
+          });
+          
+          // Si lo encontramos por mail, migramos el documento al UID definitivo de Google
+          if (perfil && docViejo) {
+            const idViejo = docViejo.id;
             
-            querySnap.forEach((uDoc) => {
-              const uData = uDoc.data();
-              if (uData.email && uData.email.toLowerCase().trim() === emailLogin) {
-                perfil = uData;
-                docViejo = uDoc;
-              }
+            await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
+              ...perfil,
+              email: emailLogin,
+              uid: firebaseUser.uid
             });
-            
-            if (perfil && docViejo) {
-              const idViejo = docViejo.id;
-              
-              // Clonamos el usuario creando el documento definitivo con el UID real de Google
-              await setDoc(doc(db, 'usuarios', firebaseUser.uid), {
-                ...perfil,
-                email: emailLogin,
-                uid: firebaseUser.uid
-              });
 
-              // Borramos el documento viejo con ID aleatorio para limpiar la base de datos
-              if (idViejo !== firebaseUser.uid) {
-                await deleteDoc(doc(db, 'usuarios', idViejo));
-              }
+            if (idViejo !== firebaseUser.uid) {
+              await deleteDoc(doc(db, 'usuarios', idViejo));
             }
           }
-
-          // 3. Validar si encontramos el perfil y si está activo
-          if (!perfil || perfil.estado !== 'activo') {
-            await signOut(auth);
-            window._showAccessError(!perfil ? 'no-registrado' : 'sin-acceso');
-            return;
-          }
-
-          // 4. Entrar a la app con los datos reales
-          window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
         }
-      } catch (error) {
-        console.error("Error procesando el retorno de Google:", error);
+
+        // Paso C: Validar si el usuario fue encontrado y si está activo
+        if (!perfil || perfil.estado !== 'activo') {
+          await signOut(auth);
+          window._showAccessError(!perfil ? 'no-registrado' : 'sin-acceso');
+          return;
+        }
+
+        // Paso D: Inicializar la aplicación con el rol correspondiente
+        window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
       }
+    } catch (error) {
+      console.error("Error procesando el retorno de Google:", error);
+      // Si tira error de credenciales caducadas o similar, restauramos el botón
+      const btn = document.querySelector('.btn-login');
+      if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
     }
-  }, 500);
+  }, 800); // 800ms de gracia para que cargue el estado de autenticación de fondo
 });
 
 
