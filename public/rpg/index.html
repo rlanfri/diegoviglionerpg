@@ -1398,35 +1398,43 @@ async function doLogin() {
   }
 }
 
-// 2. DETECTOR AUTOMÁTICO AL VOLVER DE GOOGLE
-// Usamos window.onload para asegurarnos de que toda la estructura de Firebase ya está montada en memoria
+// 2. DETECTOR AUTOMÁTICO AL VOLVER DE GOOGLE (VERSIÓN INMUNE A ERRORES)
 window.addEventListener('load', () => {
-  // Esperamos un instante a que Firebase asiente sus credenciales
+  // Esperamos un instante a que Firebase asiente sus credenciales de fondo
   setTimeout(async () => {
     if (!window._fb || !window._fb.auth) return;
 
     try {
-      const { auth, getRedirectResult, db, doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, signOut } = window._fb;
+      const { auth, getRedirectResult, db, doc, getDoc, collection, getDocs, setDoc, deleteDoc, signOut } = window._fb;
       
-      // Consultamos a Firebase si venimos regresando de un login exitoso
+      // Consultamos si venimos regresando de la redirección de Google
       const result = await getRedirectResult(auth);
       
       if (result && result.user) {
         const firebaseUser = result.user;
-        const emailLogin = firebaseUser.email.toLowerCase().trim();
+        
+        // SALVAVIDAS: Buscamos el email de forma ultra segura para que jamás tire "undefined"
+        let emailRaw = firebaseUser.email;
+        if (!emailRaw && firebaseUser.providerData && firebaseUser.providerData.length > 0) {
+          emailRaw = firebaseUser.providerData[0].email;
+        }
 
-        // Ponemos el botón en carga mientras procesamos los datos en segundo plano
+        // Si encontramos un email, lo limpiamos, sino lo dejamos como string vacío
+        const emailLogin = emailRaw ? emailRaw.toLowerCase().trim() : "";
+
+        // Cambiamos el texto del botón para que sepa que está validando
         const btn = document.querySelector('.btn-login');
         if (btn) { btn.innerHTML = 'Verificando cuenta...'; btn.disabled = true; }
 
+        let perfil = null;
+
         // Paso A: Intentar buscar directo por el UID de Google
         const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
-        let perfil = null;
 
         if (snap.exists()) {
           perfil = snap.data();
-        } else {
-          // Paso B: Si no existe por documento UID, hacemos un barrido por el campo email
+        } else if (emailLogin !== "") {
+          // Paso B: Si no existe por UID, barremos la colección buscando coincidencia por el campo 'email'
           const querySnap = await getDocs(collection(db, 'usuarios'));
           let docViejo = null;
           
@@ -1438,7 +1446,7 @@ window.addEventListener('load', () => {
             }
           });
           
-          // Si lo encontramos por mail, migramos el documento al UID definitivo de Google
+          // Si lo encontramos por mail, clonamos el documento usando el UID real de Google
           if (perfil && docViejo) {
             const idViejo = docViejo.id;
             
@@ -1448,31 +1456,30 @@ window.addEventListener('load', () => {
               uid: firebaseUser.uid
             });
 
+            // Borramos el registro viejo con ID aleatorio para que quede limpia la BD
             if (idViejo !== firebaseUser.uid) {
               await deleteDoc(doc(db, 'usuarios', idViejo));
             }
           }
         }
 
-        // Paso C: Validar si el usuario fue encontrado y si está activo
+        // Paso C: Validar si encontramos el perfil y si está activo
         if (!perfil || perfil.estado !== 'activo') {
           await signOut(auth);
           window._showAccessError(!perfil ? 'no-registrado' : 'sin-acceso');
           return;
         }
 
-        // Paso D: Inicializar la aplicación con el rol correspondiente
+        // Paso D: Inicializar la aplicación con los datos correctos
         window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
       }
     } catch (error) {
       console.error("Error procesando el retorno de Google:", error);
-      // Si tira error de credenciales caducadas o similar, restauramos el botón
       const btn = document.querySelector('.btn-login');
       if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
     }
-  }, 800); // 800ms de gracia para que cargue el estado de autenticación de fondo
+  }, 800); // Margen de gracia para la carga de Firebase
 });
-
 
 function logout() {
   if (!confirm('¿Salir de la sesión?')) return;
