@@ -354,6 +354,19 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     // Expose globally for the main script
     window._fb = { auth, db, provider, signInWithPopup, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, GoogleAuthProvider };
 
+// Función para borrar usuarios de Firebase
+    window.eliminarUsuario = async function(id, nombre) {
+      if (!confirm(`¿Estás seguro de que quieres eliminar a ${nombre}?`)) return;
+      try {
+        const { db, doc, deleteDoc } = window._fb;
+        await deleteDoc(doc(db, 'usuarios', id));
+        alert('Eliminado con éxito.');
+        location.reload(); // Esto recarga la página para que la lista se vea limpia
+      } catch (e) {
+        console.error(e);
+        alert('Error al borrar: ' + e.message);
+      }
+    };
     // Read URL params (when loaded from Next.js iframe)
     const params = new URLSearchParams(window.location.search);
     const uidParam  = params.get('uid');
@@ -1045,16 +1058,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 </div>
 
 
-  <div class="estado-menu-item" onclick="setEstado('inactivo')">
-    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
-    Inactivo
-  </div>
-  <div class="estado-menu-item danger" id="menu-eliminar-btn" onclick="setEstado('eliminar')" style="display:none">
-    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-    Eliminar usuario
-  </div>
-</div>
-
+  
 <!-- MODAL AGREGAR FOTO PROGRESO -->
 <div class="mwrap" id="m-add-foto">
   <div class="msheet">
@@ -2193,36 +2197,6 @@ function renderUsuariosList() {
   list.innerHTML = html;
 }
 
-function cambiarEstado(sel, tipo, id) {
-  var val = sel.value;
-  if (tipo === 'pac') {
-    var p = pacientesData.find(x => x.id === id);
-    if (p) p.estado = val;
-  } else {
-    var p = profesionalesData.find(x => x.id === id);
-    if (p) p.estado = val;
-  }
-  renderUsuariosList();
-  renderPacientesList();
-  toast(val === 'activo' ? 'Acceso habilitado ✓' : 'Acceso suspendido');
-}
-
-function confirmarEliminar(tipo, id, nombre) {
-  var msg1 = 'Primera confirmacion: eliminar a ' + nombre + '?';
-  var msg2 = 'Confirma: esta accion es permanente. Seguro que queres eliminar a ' + nombre + '?';
-  if (!confirm(msg1)) return;
-  if (!confirm(msg2)) return;
-  if (tipo === 'pac') {
-    var px = pacientesData.find(function(x) { return x.id === id; });
-    if (px) px.estado = 'eliminado';
-  } else {
-    var idx2 = profesionalesData.findIndex(function(x) { return x.id === id; });
-    if (idx2 > -1) profesionalesData.splice(idx2, 1);
-  }
-  renderUsuariosList();
-  renderPacientesList();
-  toast(nombre + ' eliminado');
-}
 
 
 function sendNota() {
@@ -2700,7 +2674,6 @@ var FICHAS = {
 function buildEvolPanel() {
   return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">' +
     '<div class="sec-label" style="margin:0">Registros de evolución</div>' +
-x
     '<button class="btn-prim" style="width:auto;padding:.4rem .9rem;font-size:.78rem" onclick="openNuevaEvolucion()">+ Nuevo registro</button>' +
     '</div>' +
     '<div id="fc-evol-list">' +
