@@ -1376,7 +1376,7 @@ function selRole(el, r) {
 async function doLogin() {
   const btn = document.querySelector('.btn-login');
   if (btn) {
-    btn.innerHTML = 'Cargando...';
+    btn.innerHTML = 'Redirigiendo a Google...';
     btn.disabled = true;
   }
 
@@ -1386,8 +1386,11 @@ async function doLogin() {
 
   try {
     const { auth, provider, signInWithRedirect } = window._fb;
-    // Redireccionamos de forma segura sin ventanas emergentes molestando
+    
+    // FORZAMOS REDIRECCIÓN: Esto evita que Firebase intente abrir un popup
+    // y elimina por completo el error de "pollUserCancellation"
     await signInWithRedirect(auth, provider);
+    
   } catch (error) {
     console.error("Error al iniciar redirección:", error);
     toast("Error al conectar con Google");
