@@ -34,6 +34,9 @@ export default function LoginButton() {
       if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); return; }
       router.push('/dashboard');
     } catch(e) {
+      console.error('LOGIN ERROR completo:', e);
+      console.error('codigo:', e.code);
+      console.error('mensaje:', e.message);
       if (e.code !== 'auth/popup-closed-by-user') setError('error');
     }
   }
