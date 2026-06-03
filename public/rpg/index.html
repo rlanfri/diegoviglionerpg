@@ -1,172 +1,211 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>RPG Diego Viglione</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{
-  --acc:#3a8fc4;
-  --acc-d:#1f6a96;
-  --acc-l:#e3f1fa;
-  --acc-m:#2878aa;
-  --yellow:#f5c518;
-  --yellow-l:#fef9e0;
-  --red:#ef4444;
-  --red-l:#fee2e2;
-  --cream:#f5f6f7;
-  --warm:#f0f0f0;
-  --t:#1a1a1a;
-  --mu:#6b7280;
-  --bd:rgba(0,0,0,0.09);
-  --r:12px;
-}
-html,body{height:100%;overflow:hidden;background:#fff}
-body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:400}
-
-/* SCREENS */
-.screen{position:fixed;inset:0;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:20}
-.screen.hidden{display:none!important}
-
-/* LOGIN */
-#s-login{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:2rem 1.5rem;background:#fff}
-.login-logo-wrap{margin-bottom:1.5rem;display:flex;flex-direction:column;align-items:center}
-.login-logo-img{width:110px;height:auto;display:block}
-#s-login h1{font-family:'Barlow Condensed',sans-serif;color:var(--t);font-size:1.9rem;font-weight:400;margin-bottom:.2rem;text-align:center;letter-spacing:.1em;text-transform:uppercase}
-#s-login .lic-sub{color:var(--mu);font-size:.78rem;margin-bottom:2rem;text-align:center;font-weight:300;letter-spacing:.05em;text-transform:uppercase}
-.login-card{background:#fff;border-radius:16px;padding:1.75rem;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.07)}
-.login-card h3{font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:400;margin-bottom:1.2rem;color:var(--t);letter-spacing:.07em;text-transform:uppercase}
-.lf{margin-bottom:.85rem}
-.lf label{display:block;font-size:.65rem;color:var(--mu);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.28rem}
-.lf input{width:100%;border:1.5px solid var(--bd);border-radius:9px;padding:.68rem .9rem;font-size:.92rem;font-family:'Barlow',sans-serif;outline:none;background:#f8f9fa;color:var(--t);-webkit-appearance:none}
-.lf input:focus{border-color:var(--acc)}
-.role-label{font-size:.63rem;color:var(--mu);font-weight:500;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
-.role-pills{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-bottom:1rem}
-.role-pill{padding:.6rem;border-radius:9px;text-align:center;cursor:pointer;font-size:.875rem;border:1.5px solid var(--bd);color:var(--mu);background:#f8f9fa;transition:all .2s;font-family:'Barlow',sans-serif;font-weight:400}
-.role-pill.on{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:500}
-.btn-login{width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;background:var(--t);color:#fff;border:none;padding:.875rem;border-radius:9px;font-size:.9rem;font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;letter-spacing:.02em}
-.btn-login:active{opacity:.85}
-.g-dot{width:20px;height:20px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--t);flex-shrink:0}
-.demo-tip{margin-top:.85rem;background:var(--acc-l);border-radius:8px;padding:.6rem .85rem;font-size:.72rem;color:var(--acc-d);line-height:1.55}
-
-/* APP SHELL */
-#app{position:fixed;inset:0;flex-direction:column;z-index:5;background:var(--cream);display:none}
-#app.visible{display:flex}
-.app-bar{background:#fff;border-bottom:1px solid var(--bd);padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;height:52px;position:relative;z-index:201}
-.bar-left{display:flex;align-items:center;gap:9px}
-.back-btn{width:30px;height:30px;border-radius:50%;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;color:var(--acc);font-size:18px;line-height:1;flex-shrink:0;font-family:'Barlow',sans-serif}
-.av-btn{width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:600;cursor:pointer;border:none;font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em}
-.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:74px;width:100%}
-
-/* HEADER LOGO */
-.brand-logo{display:flex;align-items:center;gap:8px}
-.brand-logo-img{width:28px;height:auto;flex-shrink:0}
-.brand-text{line-height:1}
-.brand-name{font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:400;color:var(--t);letter-spacing:.08em;text-transform:uppercase;line-height:1}
-.brand-sub{font-family:'Barlow',sans-serif;font-size:.57rem;color:var(--mu);font-weight:300;letter-spacing:.04em;text-transform:uppercase;line-height:1;margin-top:1px}
-
-/* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom,0)}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.52rem .25rem .42rem;cursor:pointer;color:#bbb;border:none;background:none;font-family:'Barlow',sans-serif;transition:color .15s}
-.ni.on{color:var(--t)}
-.ni-icon{margin-bottom:3px;line-height:1;display:flex;align-items:center;justify-content:center}
-.ni-icon svg{width:20px;height:20px;fill:currentColor}
-.ni-label{font-size:.59rem;font-weight:500;letter-spacing:.03em;text-transform:uppercase}
-
-/* PAGES */
-.page{display:none;padding:.9rem;width:100%;max-width:100%}
-.page.active{display:block}
-.pg-title{font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;color:var(--t);font-weight:400;margin-bottom:.15rem;letter-spacing:.1em;text-transform:uppercase}
-.pg-sub{font-size:.78rem;color:var(--mu);margin-bottom:1rem;font-weight:300}
-
-/* STAT STRIP */
-.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
-.sbox{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:.75rem .4rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.sn{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;color:var(--acc);font-weight:600;line-height:1}
-.sl{font-size:.63rem;color:var(--mu);margin-top:2px;line-height:1.2;font-weight:400}
-
-/* SECTION LABEL */
-.sec-label{font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.45rem;margin-top:.9rem}
-
-/* ACCORDION */
-.acc-month{background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:.6rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.acc-month-head{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1rem;cursor:pointer}
-.acc-month-head:active{background:var(--acc-l)}
-.acc-month-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;color:var(--acc);font-weight:400;letter-spacing:.06em;text-transform:uppercase}
-.acc-month-meta{font-size:.7rem;color:var(--mu);margin-top:2px;font-weight:300}
-.acc-chevron{font-size:13px;color:var(--mu);transition:transform .22s;flex-shrink:0;line-height:1}
-.acc-chevron.open{transform:rotate(180deg)}
-.acc-month-body{display:none;padding:0 .75rem .75rem}
-.acc-month-body.open{display:block}
-.acc-week{border:1.5px solid var(--bd);border-radius:10px;margin-bottom:.45rem;overflow:hidden;background:var(--cream)}
-.acc-week-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem .85rem;cursor:pointer}
-.acc-week-head:active{background:var(--acc-l)}
-.acc-week-title{font-size:.88rem;font-weight:500;color:var(--t)}
-.acc-week-meta{font-size:.68rem;color:var(--mu);margin-top:1px;font-weight:300}
-.acc-week-body{display:none;padding:0 .65rem .65rem}
-.acc-week-body.open{display:block}
-
-/* EXERCISE CARD */
-.ex-card{background:#fff;border:1px solid var(--bd);border-radius:9px;margin-bottom:.45rem;overflow:hidden}
-.ex-card-head{display:flex;align-items:center;justify-content:space-between;padding:.65rem .8rem;cursor:pointer;gap:8px}
-.ex-card-head:active{background:var(--acc-l)}
-.ex-title{font-size:.85rem;font-weight:500;color:var(--t);flex:1;line-height:1.3}
-.seen-badge{display:flex;align-items:center;gap:3px;background:var(--acc-l);color:var(--acc);font-size:.63rem;padding:.17rem .5rem;border-radius:100px;white-space:nowrap;flex-shrink:0;font-weight:600}
-.unseen-badge{display:flex;align-items:center;gap:3px;background:var(--yellow-l);color:#7a6000;font-size:.63rem;padding:.17rem .5rem;border-radius:100px;white-space:nowrap;flex-shrink:0;font-weight:500}
-.ex-body{display:none;padding:0 .8rem .8rem}
-.ex-body.open{display:block}
-.video-wrap{position:relative;width:100%;padding-top:56.25%;background:#111;border-radius:8px;overflow:hidden;margin-bottom:.7rem}
-.video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
-.foto-wrap{background:#f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:.7rem;cursor:pointer}
-.foto-wrap img{width:100%;height:auto;max-height:300px;object-fit:cover;display:block}
-.foto-wrap:hover{opacity:.95}
-.vid-overlay{position:absolute;inset:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:.6rem}
-.play-ring{width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:22px;padding-left:3px;color:#fff}
-.vid-title-overlay{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;color:rgba(255,255,255,.6);letter-spacing:.04em;text-transform:uppercase;font-weight:400}
-.ex-pills{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.55rem}
-.pill{display:inline-flex;align-items:center;font-size:.68rem;padding:.17rem .55rem;border-radius:100px;font-weight:500}
-.pill-g{background:var(--acc-l);color:var(--acc)}
-.pill-y{background:var(--yellow-l);color:#7a6000}
-.pill-b{background:var(--acc-l);color:var(--acc-d)}
-.ex-desc{font-size:.8rem;color:var(--mu);line-height:1.6;margin-bottom:.7rem;font-weight:300}
-.ex-actions{display:flex;gap:.45rem}
-.btn-seen{flex:1;background:var(--acc);color:#fff;border:none;padding:.58rem;border-radius:8px;font-size:.8rem;font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500}
-.btn-seen.done{background:var(--acc-l);color:var(--acc)}
-.btn-seen:active{opacity:.8}
-.btn-cmt{background:var(--warm);border:1px solid var(--bd);color:var(--t);padding:.58rem .8rem;border-radius:8px;font-size:.8rem;font-family:'Barlow',sans-serif;cursor:pointer}
-
-/* PROGRESS */
-.prog-row{display:flex;align-items:center;gap:.55rem;margin-bottom:.45rem}
-.prog-name{font-size:.78rem;color:var(--t);min-width:86px;max-width:86px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:400}
-.prog-track{flex:1;background:#e5e7eb;border-radius:100px;height:7px}
-.prog-fill{height:100%;border-radius:100px;background:var(--acc);transition:width .4s}
-.prog-fill.low{background:var(--yellow)}
-.prog-pct{font-size:.75rem;font-weight:600;color:var(--acc);min-width:32px;text-align:right}
-
-/* PATIENT CHIPS */
-.pac-chip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:.75rem .9rem;margin-bottom:.5rem;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-.pac-chip:active{background:var(--acc-l)}
-.pac-chip.sel{border-color:var(--acc);background:var(--acc-l)}
-.pac-av{border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:600;flex-shrink:0}
-.pac-name{font-size:.85rem;font-weight:500;color:var(--t)}
-.pac-meta{font-size:.7rem;color:var(--mu);font-weight:300}
-
-/* BADGES */
-.badge{display:inline-flex;align-items:center;padding:.15rem .5rem;border-radius:100px;font-size:.65rem;font-weight:600}
-.bg-g{background:var(--acc-l);color:var(--acc)}
-.bg-y{background:var(--yellow-l);color:#7a6000}
-.bg-r{background:var(--red-l);color:#991b1b}
-.bg-b{background:var(--acc-l);color:var(--acc-d)}
-.bg-gray{background:#f1f5f9;color:var(--mu)}
-
-/* SECTION CARD */
-.sc{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:.9rem .95rem;margin-bottom:.7rem;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.sc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
-.sc-head h3{font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:400;color:var(--t);letter-spacing:.07em;text-transform:uppercase}
-
-/* VIDEO ROW */
-.vrow{display:flex;align-items:flex-start;gap:9px;padding:.6rem 0;border-bottom:1px solid var(--bd)}
-.vrow:last-child{border-bottom:none;padding-bottom:0}
-.vrow-thumb{width:46px;height:36px;background:var(--acc);border-radius:6px;display:flex;align-items:center;justify-content:center;font-
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title>RPG Diego Viglione</title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="1894.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 15.0px Barlow; color: #141414; -webkit-text-stroke: #141414}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 15.0px Barlow; color: #141414; -webkit-text-stroke: #141414; min-height: 18.0px}
+    span.s1 {font-kerning: none}
+    span.s2 {font: 15.0px 'PingFang SC'; font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="es"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;title&gt;RPG Diego Viglione&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1">&lt;link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&amp;family=Barlow+Condensed:wght@400;500;600;700&amp;display=swap" rel="stylesheet"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;style&gt;</span></p>
+<p class="p1"><span class="s1">*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}</span></p>
+<p class="p1"><span class="s1">:root{\n<span class="Apple-converted-space">  </span>--acc:#3a8fc4;\n<span class="Apple-converted-space">  </span>--acc-d:#1f6a96;\n<span class="Apple-converted-space">  </span>--acc-l:#e3f1fa;\n<span class="Apple-converted-space">  </span>--acc-m:#2878aa;\n<span class="Apple-converted-space">  </span>--yellow:#f5c518;\n<span class="Apple-converted-space">  </span>--yellow-l:#fef9e0;\n<span class="Apple-converted-space">  </span>--red:#ef4444;\n<span class="Apple-converted-space">  </span>--red-l:#fee2e2;\n<span class="Apple-converted-space">  </span>--cream:#f5f6f7;\n<span class="Apple-converted-space">  </span>--warm:#f0f0f0;\n<span class="Apple-converted-space">  </span>--t:#1a1a1a;\n<span class="Apple-converted-space">  </span>--mu:#6b7280;\n<span class="Apple-converted-space">  </span>--bd:rgba(0,0,0,0.09);\n<span class="Apple-converted-space">  </span>--r:12px;\n}</span></p>
+<p class="p1"><span class="s1">html,body{height:100%;font-family:'Barlow',sans-serif;color:var(--t);background:#fff;overflow:hidden;-webkit-text-size-adjust:100%}</span></p>
+<p class="p1"><span class="s1">body.login-view{background:var(--cream);overflow:auto}</span></p>
+<p class="p1"><span class="s1">#app{display:none;height:100%;grid-template-rows:1fr auto}</span></p>
+<p class="p1"><span class="s1">#app.active{display:grid}</span></p>
+<p class="p1"><span class="s1">.login-screen{display:none;min-height:100vh;padding:2rem 1rem;flex-direction:column;align-items:center;justify-content:center}</span></p>
+<p class="p1"><span class="s1">.login-screen.active{display:flex}</span></p>
+<p class="p1"><span class="s1">.logo-c{width:72px;height:72px;background:var(--acc);color:#fff;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:700;margin-bottom:1rem;box-shadow:0 8px 16px rgba(58,143,196,0.25)}</span></p>
+<p class="p1"><span class="s1">h1{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:700;letter-spacing:0.5px;margin-bottom:2px;text-align:center}</span></p>
+<p class="p1"><span class="s1">.lic-sub{font-size:0.88rem;color:var(--mu);margin-bottom:2rem;font-weight:400;text-align:center}</span></p>
+<p class="p1"><span class="s1">.login-card{background:#fff;width:100%;max-width:340px;border-radius:20px;padding:2rem 1.5rem;box-shadow:0 4px 20px rgba(0,0,0,0.04);border:1px solid var(--bd)}</span></p>
+<p class="p1"><span class="s1">.login-card h3{font-size:1.15rem;font-weight:600;margin-bottom:1.25rem;text-align:center}</span></p>
+<p class="p1"><span class="s1">.lf{margin-bottom:1rem}.lf label{display:block;font-size:0.78rem;font-weight:500;color:var(--mu);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}</span></p>
+<p class="p1"><span class="s1">.lf input{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:0.92rem;font-family:inherit;outline:none;transition:border-color 0.2s}</span></p>
+<p class="p1"><span class="s1">.lf input:focus{border-color:var(--acc)}</span></p>
+<p class="p1"><span class="s1">.role-label{font-size:0.78rem;font-weight:500;color:var(--mu);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}</span></p>
+<p class="p1"><span class="s1">.role-pills{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem}</span></p>
+<p class="p1"><span class="s1">.role-pill{background:var(--cream);border:1px solid var(--bd);padding:8px;border-radius:8px;font-size:0.88rem;font-weight:500;text-align:center;cursor:pointer;transition:all 0.2s}</span></p>
+<p class="p1"><span class="s1">.role-pill.on{background:var(--acc-l);border-color:var(--acc);color:var(--acc-d)}</span></p>
+<p class="p1"><span class="s1">.btn-login{width:100%;background:var(--t);color:#fff;border:none;padding:11px;border-radius:8px;font-size:0.95rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.2s}</span></p>
+<p class="p1"><span class="s1">.btn-login:hover{background:#000}</span></p>
+<p class="p1"><span class="s1">.g-dot{width:18px;height:18px;background:#fff;color:var(--t);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700}</span></p>
+<p class="p1"><span class="s1">.demo-tip{margin-top:1.25rem;font-size:0.78rem;color:var(--mu);text-align:center;line-height:1.4}</span></p>
+<p class="p1"><span class="s1">&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body class="login-view"&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="login-screen active"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="logo-c"&gt;R&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h1&gt;RPG &amp; NEURO&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;p class="lic-sub"&gt;Lic. Diego Viglione · Kinesiología&lt;/p&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div class="login-card"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;h3&gt;Ingresá a tu cuenta&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="lf" style="display:none;"&gt;&lt;label&gt;Nombre / Email&lt;/label&gt;&lt;input type="text" id="li-user" placeholder="Tu nombre o email" autocomplete="off"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="lf" style="display:none;"&gt;&lt;label&gt;Contraseña&lt;/label&gt;&lt;input type="password" id="li-pass" placeholder="••••••••"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="role-label" style="display:none;"&gt;Ingresás como&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="role-pills" style="display:none; grid-template-columns:1fr 1fr 1fr"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="role-pill on" onclick="selRole(this,'paciente')"&gt;Paciente&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="role-pill" onclick="selRole(this,'profesional')"&gt;Profesional&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="role-pill" onclick="selRole(this,'admin')"&gt;Admin&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;button class="btn-login" onclick="doLogin()" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: rgb(26, 139, 205); color: rgb(255, 255, 255); border: none; border-radius: 8px; padding: 9px 18px; font-size: 0.9rem; font-weight: 500; cursor: pointer; font-family: inherit; width: 100%;"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;svg width="16" height="16" viewBox="0 0 24 24" fill="white"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"&gt;&lt;/path&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"&gt;&lt;/path&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"&gt;&lt;/path&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"&gt;&lt;/path&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/svg&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>Ingresar con Google</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/button&gt;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="demo-tip"&gt;&lt;strong&gt;Nota:&lt;/strong&gt; Tu administrador debe darte de alta previamente en el sistema.&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="app"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div style="padding:20px;"&gt;Cargando Panel...&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">&lt;script&gt;</span></p>
+<p class="p1"><span class="s1">// Simulacion basica de las funciones requeridas por la UI para evitar congelamientos</span></p>
+<p class="p1"><span class="s1">let selectedRole = 'paciente';</span></p>
+<p class="p1"><span class="s1">function selRole(el, role) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.querySelectorAll('.role-pill').forEach(p =&gt; p.classList.remove('on'));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>el.classList.add('on');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>selectedRole = role;</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p1"><span class="s1">function toast(msg) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>alert(msg);</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// </span><span class="s2">──</span><span class="s1"> CONFIGURACIÓN DE LOGIN POR REDIRECCIÓN </span><span class="s2">──</span></p>
+<p class="p1"><span class="s1">async function doLogin() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const btn = document.querySelector('.btn-login');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (btn) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>btn.innerHTML = 'Redirigiendo a Google...';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>btn.disabled = true;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>try {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const { auth, provider, signInWithRedirect } = window._fb;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>await signInWithRedirect(auth, provider);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>} catch (error) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>console.error("Error al redirigir:", error);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>toast("Error al conectar con Google");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (btn) { btn.innerHTML = 'Ingresar con Google'; btn.disabled = false; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1">}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">// </span><span class="s2">──</span><span class="s1"> DETECTOR INTELIGENTE DE RETORNO CON RESCATE POR EMAIL </span><span class="s2">──</span></p>
+<p class="p1"><span class="s1">window.addEventListener('load', () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>setTimeout(async () =&gt; {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (!window._fb || !window._fb.auth) return;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>try {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const { auth, getRedirectResult, db, doc, getDoc, collection, query, where, getDocs, setDoc, deleteDoc, signOut } = window._fb;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const result = await getRedirectResult(auth);</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">      </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (result &amp;&amp; result.user) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const firebaseUser = result.user;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const emailLogin = firebaseUser.email.toLowerCase().trim();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const btn = document.querySelector('.btn-login');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (btn) { btn.innerHTML = 'Verificando...'; btn.disabled = true; }</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// PASO 1: Buscar directo por el UID real de Google (Logins sucesivos)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const userDocRef = doc(db, 'usuarios', firebaseUser.uid);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let snap = await getDoc(userDocRef);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let perfil = null;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (snap.exists()) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>perfil = snap.data();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>// PASO 2: RESCATE por Email (Primer login de cuentas creadas con ID aleatorio)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const q = query(collection(db, 'usuarios'), where('email', '==', emailLogin));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const querySnap = await getDocs(q);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>if (!querySnap.empty) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const docViejo = querySnap.docs[0];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>perfil = docViejo.data();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const idViejo = docViejo.id;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Clonamos los datos usando el UID real de Google como ID de documento definitivo</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>await setDoc(doc(db, 'usuarios', firebaseUser.uid), {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>...perfil,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>uid: firebaseUser.uid</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>// Borramos el documento viejo con ID aleatorio de la base de datos</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (idViejo !== firebaseUser.uid) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>await deleteDoc(doc(db, 'usuarios', idViejo));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// PASO 3: Validar estado activo</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (!perfil || perfil.estado !== 'activo') {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>await signOut(auth);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>window._showAccessError(!perfil ? 'no-registrado' : 'sin-acceso');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// PASO 4: Inicializar la interfaz real de la aplicación</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>} catch (error) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>console.error("Error al procesar el retorno de autenticación:", error);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const btn = document.querySelector('.btn-login');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (btn) { btn.innerHTML = '&lt;div class="g-dot"&gt;G&lt;/div&gt;Ingresar con Google'; btn.disabled = false; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}, 600);</span></p>
+<p class="p1"><span class="s1">});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">window._showAccessError = function(tipo) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const msgs = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>'no-registrado': 'Tu cuenta no está registrada en el sistema. Contactá al consultorio.',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>'sin-acceso': 'Tu acceso está suspendido. Contactá al consultorio.',</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>};</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const card = document.querySelector('.login-card');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (card) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Evitamos duplicar carteles de error</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const viejoErr = card.querySelector('.err-msg');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>if (viejoErr) viejoErr.remove();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const err = document.createElement('div');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>err.className = 'err-msg';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>err.style.cssText = 'background:#fee2e2;color:#991b1b;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;margin-top:.75rem;line-height:1.5;text-align:center;';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>err.textContent = msgs[tipo] || 'Error de acceso.';</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>card.appendChild(err);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>const btn = document.querySelector('.btn-login');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>if (btn) { btn.innerHTML = 'Ingresar con Google'; btn.disabled = false; }</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">window._initAppWithUser = function(uid, rol, nombre) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.querySelector('.login-screen').classList.remove('active');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.body.classList.remove('login-view');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>document.getElementById('app').classList.add('active');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>// Aquí corre la lógica nativa del dashboard que tenías implementada</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>console.log("App cargada para:", nombre, "con rol:", rol);</span></p>
+<p class="p1"><span class="s1">};</span></p>
+<p class="p1"><span class="s1">&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
