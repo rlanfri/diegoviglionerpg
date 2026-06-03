@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { auth, db, googleProvider } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,8 +15,21 @@ export default function LoginButton() {
     setError(null);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const snap = await getDoc(doc(db, 'usuarios', result.user.uid));
-      if (!snap.exists()) { await signOut(auth); setError('no-registrado'); return; }
+      const uid = result.user.uid;
+      const email = result.user.email;
+      // Buscar por UID primero
+      let snap = await getDoc(doc(db, 'usuarios', uid));
+      let docRef = null;
+      if (!snap.exists()) {
+        // Buscar por email
+        const q = query(collection(db, 'usuarios'), where('email', '==', email));
+        const qsnap = await getDocs(q);
+        if (qsnap.empty) { await signOut(auth); setError('no-registrado'); return; }
+        snap = qsnap.docs[0];
+        docRef = qsnap.docs[0].ref;
+        // Actualizar el doc con el UID real para la próxima vez
+        await updateDoc(docRef, { uid });
+      }
       const data = snap.data();
       if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); return; }
       router.push('/dashboard');
