@@ -1432,10 +1432,10 @@ const titles = {'p-home':'RPG Viglione','p-progreso':'Mi progreso','d-home':'Res
 function showPage(id) {
   document.querySelectorAll('.page').forEach(function(p){
     p.classList.remove('active');
-    p.style.display='none';
+    p.style.setProperty('display','none','important');
   });
   var el = document.getElementById(id);
-  if(el) { el.classList.add('active'); el.style.display='block'; }
+  if(el) { el.classList.add('active'); el.style.setProperty('display','block','important'); }
   document.getElementById('bar-title').textContent = titles[id] || 'RPG';
   var ac = document.querySelector('.app-content');
   if(ac) ac.scrollTop=0;
