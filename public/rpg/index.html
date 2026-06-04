@@ -1430,17 +1430,15 @@ function logout() {
 const titles = {'p-home':'RPG Viglione','p-progreso':'Mi progreso','d-home':'Resumen','d-pacientes':'Pacientes','d-videos':'Ejercicios','d-usuarios':'Usuarios','d-ficha':'Ficha Clínica','d-ficha':'Ficha Clínica','p-perfil':'Mi perfil'};
 
 function showPage(id) {
-  var ac = document.querySelector(".app-content"); if(ac) ac.scrollTop=0;
   document.querySelectorAll('.page').forEach(function(p){
     p.classList.remove('active');
-    if(p.id==='p-perfil') p.style.display='none';
+    p.style.display='none';
   });
   var el = document.getElementById(id);
-  if(el) {
-    el.classList.add('active');
-    if(id==='p-perfil') { el.style.display='block'; el.scrollTop=0; var ac=document.querySelector('.app-content'); if(ac) ac.scrollTop=0; }
-  }
+  if(el) { el.classList.add('active'); el.style.display='block'; }
   document.getElementById('bar-title').textContent = titles[id] || 'RPG';
+  var ac = document.querySelector('.app-content');
+  if(ac) ac.scrollTop=0;
 }
 
 function setActiveNav(navId, idx) {
