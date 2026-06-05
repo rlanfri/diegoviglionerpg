@@ -580,8 +580,6 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
             <label>Profesional asignado</label>
             <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
               <option value="">Sin asignar</option>
-              <option value="p1">Dr. Gonzalo Vera</option>
-              <option value="p2">Lic. Diego Viglione</option>
             </select>
           </div>
           <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
@@ -644,7 +642,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
         <!-- FOTO panel -->
         <div class="tipo-panel" id="nt-foto">
-          <div class="ff"><label>URL de imagen</label><input type="text" id="nv-foto-url" placeholder="https://... link a la imagen"></div>
+          <div class="ff"><label>URL de imagen</label><input type="text" id="nv-foto-url" placeholder="https://drive.google.com/file/d/..."></div>
         </div>
 
         <!-- INDICACIÓN panel (sin campo extra) -->
@@ -786,46 +784,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
 
 
-    <!-- PERFIL (ambos roles) -->
-    <div class="page" id="p-perfil">
-      <div class="pg-title">Mi perfil</div>
-      <div class="pg-sub">Datos de tu cuenta</div>
-      <div style="display:flex;flex-direction:column;align-items:center;padding:1.25rem 1rem;background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:.75rem">
-        <div style="position:relative;margin-bottom:.75rem">
-          <div id="prof-avatar" style="width:76px;height:76px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:700;color:#fff;overflow:hidden;position:relative">
-            <span id="prof-initials">?</span>
-            <img id="prof-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%">
-          </div>
-          <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;cursor:pointer" onclick="toast('Cambio de foto disponible con Firebase Storage')">
-            <svg viewBox="0 0 24 24" fill="white" width="13" height="13"><path d="M12 15.2A3.2 3.2 0 0 1 8.8 12 3.2 3.2 0 0 1 12 8.8 3.2 3.2 0 0 1 15.2 12 3.2 3.2 0 0 1 12 15.2M4 4H7L9 2H15L17 4H20A2 2 0 0 1 22 6V18A2 2 0 0 1 20 20H4A2 2 0 0 1 2 18V6A2 2 0 0 1 4 4Z"/></svg>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:5px;background:var(--green-l);border-radius:100px;padding:.22rem .7rem;font-size:.68rem;color:var(--green);font-weight:600">
-          <span style="font-weight:800">G</span> Conectado con Google
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-head"><h3>Datos personales</h3></div>
-        <div class="f2">
-          <div class="ff"><label>Nombre</label><input type="text" id="prof-nombre" placeholder="Tu nombre"></div>
-          <div class="ff"><label>Apellido</label><input type="text" id="prof-apellido" placeholder="Tu apellido"></div>
-        </div>
-        <div class="ff"><label>Teléfono</label><input type="tel" id="prof-tel" placeholder="+54 351 000 0000"></div>
-        <div class="ff">
-          <label>Email <span style="font-size:.62rem;color:var(--mu);font-weight:400;text-transform:none;letter-spacing:0">(viene de Google, no editable)</span></label>
-          <input type="email" id="prof-email" disabled style="opacity:.5;cursor:not-allowed;background:#f1f5f9">
-        </div>
-        <button class="btn-prim" onclick="saveProfile()">Guardar cambios</button>
-      </div>
-      <div class="sc" id="prof-diag-sc" style="display:none">
-        <div class="sc-head"><h3>Información clínica</h3></div>
-        <div class="ff"><label>Diagnóstico</label>
-          <input type="text" id="prof-diag" disabled style="opacity:.5;cursor:not-allowed;background:#f1f5f9" placeholder="Asignado por el licenciado">
-        </div>
-        <div style="font-size:.72rem;color:var(--mu);font-weight:300;margin-top:.25rem">Solo el licenciado puede modificar el diagnóstico.</div>
-      </div>
-      <button class="btn-prim" style="background:transparent;color:#ef4444;border:1.5px solid #ef4444;margin-top:.5rem" onclick="logout()">Cerrar sesión</button>
-    </div>
+    <!-- PERFIL eliminado como .page - ahora es overlay -->
 
   </div>
 
@@ -944,7 +903,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
     <!-- TIPO FOTO -->
     <div id="tipo-foto" class="tipo-panel">
-      <div class="ff"><label>URL de imagen</label><input type="text" id="as-foto-url" placeholder="https://... (link a imagen)"></div>
+      <div class="ff"><label>URL de imagen</label><input type="text" id="as-foto-url" placeholder="https://drive.google.com/file/d/..."></div>
       <div class="ff"><label>Descripción</label><textarea id="as-foto-desc" placeholder="Explicá la foto, posición, puntos clave..." rows="2"></textarea></div>
       <div class="f2">
         <div class="ff"><label>Series</label><input type="text" id="as-foto-series" placeholder="Ej: 3 series"></div>
@@ -1097,6 +1056,36 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 <div class="toast" id="toast"></div>
 
 <script>
+
+// ── URL CONVERTERS ──
+function convertYouTubeUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  if (url.includes('watch?v=')) return 'https://www.youtube.com/embed/' + url.split('watch?v=')[1].split('&')[0];
+  if (url.includes('youtu.be/')) return 'https://www.youtube.com/embed/' + url.split('youtu.be/')[1].split('?')[0];
+  if (url.includes('/embed/')) return url;
+  return url;
+}
+
+function convertDriveUrl(url) {
+  if (!url) return '';
+  url = url.trim();
+  // https://drive.google.com/file/d/FILE_ID/view?...
+  var match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (match) return 'https://drive.google.com/uc?export=view&id=' + match[1];
+  // Ya es una URL directa de drive
+  if (url.includes('drive.google.com/uc')) return url;
+  return url;
+}
+
+function isValidYouTubeUrl(url) {
+  return url && (url.includes('youtube.com') || url.includes('youtu.be'));
+}
+
+function isValidDriveUrl(url) {
+  return url && url.includes('drive.google.com');
+}
+
 // ── DATA ──
 let role = 'paciente';
 let currentCommentVideo = '';
@@ -1161,15 +1150,38 @@ async function guardarVisto(uid, itemId) {
 // ── OVERRIDE addUser → escribe en Firestore ──
 async function addUser() {
   const n = document.getElementById('nu-nombre').value.trim();
-  const e = document.getElementById('nu-email').value.trim();
-  if (!n || !e) { toast('Completá nombre y email'); return; }
-  const ini = n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  const rolVal = document.getElementById('nu-rol').value.toLowerCase();
+  const e = document.getElementById('nu-email').value.trim().toLowerCase();
   const diag = document.getElementById('nu-diag').value.trim();
-  const { db, collection, addDoc } = fb();
+  const rolVal = document.getElementById('nu-rol').value.toLowerCase();
+
+  // Validaciones
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!n || n.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(n)) { toast('El nombre solo puede contener letras'); return; }
+  if (!e) { toast('El email es obligatorio'); return; }
+  if (!emailRegex.test(e)) { toast('El formato del email no es válido'); return; }
+  if (rolVal === 'paciente' && (!diag || diag.length < 3)) { toast('El diagnóstico debe tener al menos 3 caracteres'); return; }
+
+  // Verificar email duplicado en Firestore
+  const { db, collection, addDoc, query, where, getDocs } = fb();
   try {
-    const newDoc = await addDoc(collection(db, 'usuarios'), {
-      nombre: n,
+    const q = query(collection(db, 'usuarios'), where('email', '==', e));
+    const snap = await getDocs(q);
+    if (!snap.empty) { toast('Ya existe un usuario con ese email'); return; }
+  } catch(err) {
+    console.error('Error verificando email:', err);
+  }
+
+  // Separar nombre y apellido
+  const partes = n.split(' ').filter(Boolean);
+  const nombre = partes[0];
+  const apellido = partes.slice(1).join(' ') || '';
+  const ini = (nombre[0] + (apellido ? apellido[0] : '')).toUpperCase();
+
+  try {
+    await addDoc(collection(db, 'usuarios'), {
+      nombre,
+      apellido,
       email: e,
       rol: rolVal,
       diag: diag || '',
@@ -1194,11 +1206,26 @@ async function addUser() {
 // ── OVERRIDE addVideo → escribe en Firestore ──
 async function addVideo() {
   const titulo = document.getElementById('nv-titulo').value.trim();
-  if (!titulo) { toast('Ingresá un título'); return; }
-  const url = nuevoTipo === 'video' ? document.getElementById('nv-url').value.trim() : '';
-  const fotoUrl = nuevoTipo === 'foto' ? document.getElementById('nv-foto-url').value.trim() : '';
-  if (nuevoTipo === 'video' && !url) { toast('Ingresá la URL de YouTube'); return; }
-  if (nuevoTipo === 'foto' && !fotoUrl) { toast('Ingresá la URL de la imagen'); return; }
+  if (!titulo || titulo.length < 3) { toast('El título debe tener al menos 3 caracteres'); return; }
+
+  let url = nuevoTipo === 'video' ? document.getElementById('nv-url').value.trim() : '';
+  let fotoUrl = nuevoTipo === 'foto' ? document.getElementById('nv-foto-url').value.trim() : '';
+
+  // Validaciones
+  if (nuevoTipo === 'video') {
+    if (!url) { toast('Ingresá la URL de YouTube'); return; }
+    if (!isValidYouTubeUrl(url)) { toast('La URL no parece ser de YouTube'); return; }
+    url = convertYouTubeUrl(url);
+  }
+  if (nuevoTipo === 'foto') {
+    if (!fotoUrl) { toast('Ingresá la URL de Google Drive'); return; }
+    if (!isValidDriveUrl(fotoUrl)) { toast('La URL debe ser de Google Drive'); return; }
+    fotoUrl = convertDriveUrl(fotoUrl);
+  }
+
+  const desc = document.getElementById('nv-desc').value.trim();
+  if (nuevoTipo === 'indicacion' && (!desc || desc.length < 5)) { toast('La indicación debe tener al menos 5 caracteres'); return; }
+
   const { db, collection, addDoc } = fb();
   try {
     await addDoc(collection(db, 'ejercicios'), {
@@ -1210,7 +1237,7 @@ async function addVideo() {
       series: document.getElementById('nv-series').value,
       reps: document.getElementById('nv-reps').value,
       dur: document.getElementById('nv-dur').value,
-      desc: document.getElementById('nv-desc').value,
+      desc: desc,
     });
     ['nv-titulo','nv-url','nv-foto-url','nv-series','nv-reps','nv-dur','nv-desc'].forEach(id => {
       const el = document.getElementById(id); if(el) el.value = '';
@@ -1242,12 +1269,17 @@ async function doAssign() {
     reps=document.getElementById('as-ind-reps').value;
     dur=document.getElementById('as-ind-dur').value;
   } else if (tipo==='foto') {
-    fotoUrl=document.getElementById('as-foto-url').value;
+    fotoUrl = convertDriveUrl(document.getElementById('as-foto-url').value.trim());
+    if (!fotoUrl) { toast('Ingresá la URL de Google Drive'); return; }
+    if (!isValidDriveUrl(document.getElementById('as-foto-url').value.trim())) { toast('La URL debe ser de Google Drive'); return; }
     desc=document.getElementById('as-foto-desc').value;
     series=document.getElementById('as-foto-series').value;
     reps=document.getElementById('as-foto-reps').value;
   } else {
-    url=document.getElementById('as-vid-url').value;
+    url = document.getElementById('as-vid-url').value.trim();
+    if (!url) { toast('Ingresá la URL de YouTube'); return; }
+    if (!isValidYouTubeUrl(url)) { toast('La URL no parece ser de YouTube'); return; }
+    url = convertYouTubeUrl(url);
     desc=document.getElementById('as-vid-desc').value;
     series=document.getElementById('as-vid-series').value;
     dur=document.getElementById('as-vid-dur').value;
@@ -1964,7 +1996,16 @@ function openPacById(id) {
   var wrap = document.getElementById('dpd-asignar-prof-wrap');
   if (role === 'admin') {
     wrap.style.display = 'block';
-    document.getElementById('dpd-prof-sel').value = p.profId || '';
+    // Llenar selector con profesionales reales de Firestore
+    var sel = document.getElementById('dpd-prof-sel');
+    sel.innerHTML = '<option value="">Sin asignar</option>';
+    profesionalesData.forEach(function(prof) {
+      var opt = document.createElement('option');
+      opt.value = prof.id;
+      opt.textContent = (prof.nombre || '') + (prof.apellido ? ' ' + prof.apellido : '');
+      sel.appendChild(opt);
+    });
+    sel.value = p.profId || '';
   } else {
     wrap.style.display = 'none';
   }
@@ -1987,17 +2028,7 @@ function openPac(el, name, av, diag, pct) {
   document.getElementById('d-pac-detail').style.display = 'block';
 }
 
-function asignarProfesional() {
-  var profId = document.getElementById('dpd-prof-sel').value;
-  var p = pacientesData.find(x => x.id === currentPacId);
-  if (!p) return;
-  var prof = profesionalesData.find(x => x.id === profId);
-  p.profId = profId;
-  p.profNombre = prof ? prof.nombre : 'Sin asignar';
-  renderPacientesList();
-  renderUsuariosList();
-  toast('Profesional asignado ✓');
-}
+// asignarProfesional local reemplazada por versión Firestore
 
 function renderPacVideos() {
   var list = document.getElementById('dpd-video-list');
@@ -2239,34 +2270,43 @@ function sendReply(id, patientName) {
 
 // ── PROFILE ──
 function openProfile() {
-  prevPage = document.querySelector('.page.active')?.id || '';
-  var ac = document.querySelector('.app-content'); if(ac){ ac.scrollTop=0; }
-  // Populate from current session
+  // Poblar datos
   document.getElementById('prof-nombre').value = profileData.nombre || '';
   document.getElementById('prof-apellido').value = profileData.apellido || '';
   document.getElementById('prof-tel').value = profileData.tel || '';
   document.getElementById('prof-email').value = profileData.email || '';
   document.getElementById('prof-initials').textContent = profileData.initials || '?';
-  // Show/hide diagnosis for patients
+  document.getElementById('perfil-sub').textContent = profileData.email || '';
+  // Diagnóstico solo para pacientes
   document.getElementById('prof-diag-sc').style.display = role==='paciente' ? 'block' : 'none';
-  if (role==='paciente') document.getElementById('prof-diag').value = 'Lumbalgia crónica';
-  // Show photo if available
+  if (role==='paciente') document.getElementById('prof-diag').value = profileData.diag || '';
+  // Foto de Google
   if (profileData.photoURL) {
     document.getElementById('prof-photo').src = profileData.photoURL;
-    document.getElementById('prof-photo').style.display='block';
-    document.getElementById('prof-initials').style.display='none';
+    document.getElementById('prof-photo').style.display = 'block';
+    document.getElementById('prof-initials').style.display = 'none';
+  } else {
+    document.getElementById('prof-photo').style.display = 'none';
+    document.getElementById('prof-initials').style.display = 'block';
   }
-  document.getElementById('back-btn').style.display='flex';
-  document.getElementById('bar-title').textContent = 'Mi perfil';
-  document.getElementById('bar-sub').textContent = profileData.email || '';
-  showPage('p-perfil');
+  // Mostrar overlay
+  document.getElementById('perfil-overlay').style.display = 'block';
+  document.getElementById('perfil-overlay').scrollTop = 0;
+}
+
+function closeProfile() {
+  document.getElementById('perfil-overlay').style.display = 'none';
 }
 
 async function saveProfile() {
   var nombre = document.getElementById('prof-nombre').value.trim();
   var apellido = document.getElementById('prof-apellido').value.trim();
   var tel = document.getElementById('prof-tel').value.trim();
-  if (!nombre) { toast('Ingresá tu nombre'); return; }
+  // Validaciones
+  if (!nombre || nombre.length < 2) { toast('El nombre debe tener al menos 2 caracteres'); return; }
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$/.test(nombre)) { toast('El nombre solo puede contener letras'); return; }
+  if (apellido && apellido.length < 2) { toast('El apellido debe tener al menos 2 caracteres'); return; }
+  if (tel && !/^[+0-9\s\-]{8,}$/.test(tel)) { toast('El teléfono no tiene un formato válido'); return; }
   profileData.nombre = nombre;
   profileData.apellido = apellido;
   profileData.tel = tel;
@@ -2870,5 +2910,57 @@ window.logout = function() {
 };
 
 </script>
+
+<!-- ═══ PERFIL OVERLAY ═══ -->
+<div id="perfil-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:400;overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <!-- Header -->
+  <div style="background:#fff;border-bottom:1px solid var(--bd);padding:.7rem 1rem;display:flex;align-items:center;gap:9px;height:52px;position:sticky;top:0;z-index:1">
+    <button onclick="closeProfile()" style="width:30px;height:30px;border-radius:50%;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;color:var(--acc);font-size:18px;line-height:1;flex-shrink:0;font-family:'Barlow',sans-serif">‹</button>
+    <div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:.92rem;font-weight:400;color:var(--t);letter-spacing:.08em;text-transform:uppercase">Mi perfil</div>
+      <div style="font-size:.57rem;color:var(--mu);font-weight:300;letter-spacing:.04em;text-transform:uppercase" id="perfil-sub"></div>
+    </div>
+  </div>
+  <!-- Contenido -->
+  <div style="padding:.9rem">
+    <!-- Avatar -->
+    <div style="display:flex;flex-direction:column;align-items:center;padding:1.25rem 1rem;background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:.75rem">
+      <div style="position:relative;margin-bottom:.75rem">
+        <div id="prof-avatar" style="width:76px;height:76px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:700;color:#fff;overflow:hidden;position:relative">
+          <span id="prof-initials">?</span>
+          <img id="prof-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;background:#e3f1fa;border-radius:100px;padding:.22rem .7rem;font-size:.68rem;color:var(--acc-d);font-weight:600">
+        <span style="font-weight:800">G</span> Conectado con Google
+      </div>
+    </div>
+    <!-- Datos -->
+    <div class="sc">
+      <div class="sc-head"><h3>Datos personales</h3></div>
+      <div class="f2">
+        <div class="ff"><label>Nombre</label><input type="text" id="prof-nombre" placeholder="Tu nombre"></div>
+        <div class="ff"><label>Apellido</label><input type="text" id="prof-apellido" placeholder="Tu apellido"></div>
+      </div>
+      <div class="ff"><label>Teléfono</label><input type="tel" id="prof-tel" placeholder="+54 351 000 0000"></div>
+      <div class="ff">
+        <label>Email <span style="font-size:.62rem;color:var(--mu);font-weight:400;text-transform:none;letter-spacing:0">(viene de Google, no editable)</span></label>
+        <input type="email" id="prof-email" disabled style="opacity:.5;cursor:not-allowed;background:#f1f5f9">
+      </div>
+      <button class="btn-prim" onclick="saveProfile()">Guardar cambios</button>
+    </div>
+    <!-- Diagnóstico (solo paciente) -->
+    <div class="sc" id="prof-diag-sc" style="display:none">
+      <div class="sc-head"><h3>Información clínica</h3></div>
+      <div class="ff"><label>Diagnóstico</label>
+        <input type="text" id="prof-diag" disabled style="opacity:.5;cursor:not-allowed;background:#f1f5f9" placeholder="Asignado por el licenciado">
+      </div>
+      <div style="font-size:.72rem;color:var(--mu);font-weight:300;margin-top:.25rem">Solo el licenciado puede modificar el diagnóstico.</div>
+    </div>
+    <!-- Cerrar sesión -->
+    <button class="btn-prim" style="background:transparent;color:#ef4444;border:1.5px solid #ef4444;margin-top:.5rem" onclick="logout()">Cerrar sesión</button>
+  </div>
+</div>
+
 </body>
 </html>
