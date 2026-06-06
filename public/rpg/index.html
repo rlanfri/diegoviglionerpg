@@ -1239,7 +1239,7 @@ function selRole(el, r) {
   el.classList.add('on');
 }
 
-function doLogin() {
+async function doLogin() {
   var u = document.getElementById('li-user').value.trim();
   var p = document.getElementById('li-pass').value.trim();
   if (!u || !p) { toast('Ingresá usuario y contraseña'); return; }
@@ -1279,8 +1279,8 @@ function doLogin() {
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
-    try { await cargarProgresoPacientes(); } catch(e) { console.error('progreso:', e); }
-    try { await renderComentariosProfesional(); } catch(e) { console.error('comentarios:', e); }
+    await cargarProgresoPacientes();
+    await renderComentariosProfesional();
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
