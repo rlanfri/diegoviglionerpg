@@ -872,7 +872,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       </select>
     </div>
 
-    <!-- Ubicación (siempre visible) -->
+    <!-- Mes y Semana -->
     <div class="f2" style="margin-bottom:.2rem">
       <div class="ff"><label>Mes</label>
         <select id="as-mes"><option>Abril 2025</option><option>Mayo 2025</option><option>Junio 2025</option><option>Julio 2025</option></select>
@@ -881,37 +881,19 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <select id="as-sem"><option>Semana 1</option><option>Semana 2</option><option>Semana 3</option><option>Semana 4</option></select>
       </div>
     </div>
-    <div class="ff"><label>Título</label><input type="text" id="as-titulo" placeholder="Nombre del ejercicio o indicación"></div>
-
-    <!-- TIPO INDICACIÓN -->
-    <div id="tipo-indicacion" class="tipo-panel active">
-      <div class="ff"><label>Indicación / Descripción</label><textarea id="as-ind-texto" placeholder="Escribí la indicación, ejercicio o instrucción..." rows="3"></textarea></div>
-      <div class="f2">
-        <div class="ff"><label>Series</label><input type="text" id="as-ind-series" placeholder="Ej: 3 series"></div>
-        <div class="ff"><label>Repeticiones</label><input type="text" id="as-ind-reps" placeholder="Ej: 10 reps"></div>
-      </div>
-      <div class="ff"><label>Duración</label><input type="text" id="as-ind-dur" placeholder="Ej: 45 seg"></div>
+    <div class="ff"><label>Título (editable)</label><input type="text" id="as-titulo" placeholder="Nombre del ejercicio"></div>
+    <!-- Parámetros específicos para este paciente -->
+    <div class="ff"><label>Indicación / Nota para este paciente</label><textarea id="as-ind-texto" placeholder="Instrucción específica, corrección, aliento..." rows="2"></textarea></div>
+    <div class="f2">
+      <div class="ff"><label>Series</label><input type="text" id="as-ind-series" placeholder="Ej: 3 series"></div>
+      <div class="ff"><label>Repeticiones</label><input type="text" id="as-ind-reps" placeholder="Ej: 10 reps"></div>
     </div>
-
-    <!-- TIPO FOTO -->
-    <div id="tipo-foto" class="tipo-panel">
-      <div class="ff"><label>URL de imagen</label><input type="text" id="as-foto-url" placeholder="https://drive.google.com/file/d/..."></div>
-      <div class="ff"><label>Descripción</label><textarea id="as-foto-desc" placeholder="Explicá la foto, posición, puntos clave..." rows="2"></textarea></div>
-      <div class="f2">
-        <div class="ff"><label>Series</label><input type="text" id="as-foto-series" placeholder="Ej: 3 series"></div>
-        <div class="ff"><label>Repeticiones</label><input type="text" id="as-foto-reps" placeholder="Ej: 10 reps"></div>
-      </div>
-    </div>
-
-    <!-- TIPO VIDEO -->
-    <div id="tipo-video" class="tipo-panel">
-      <div class="ff"><label>URL de YouTube</label><input type="text" id="as-vid-url" placeholder="https://youtube.com/watch?v=..."></div>
-      <div class="ff"><label>Indicaciones adicionales</label><textarea id="as-vid-desc" placeholder="Puntos a prestar atención, correcciones..." rows="2"></textarea></div>
-      <div class="f2">
-        <div class="ff"><label>Series</label><input type="text" id="as-vid-series" placeholder="Ej: 3 series"></div>
-        <div class="ff"><label>Duración</label><input type="text" id="as-vid-dur" placeholder="Ej: 45 seg"></div>
-      </div>
-    </div>
+    <div class="ff"><label>Duración</label><input type="text" id="as-ind-dur" placeholder="Ej: 45 seg"></div>
+    <!-- Campos ocultos para compatibilidad -->
+    <input type="hidden" id="as-foto-url"><input type="hidden" id="as-foto-desc">
+    <input type="hidden" id="as-foto-series"><input type="hidden" id="as-foto-reps">
+    <input type="hidden" id="as-vid-url"><input type="hidden" id="as-vid-desc">
+    <input type="hidden" id="as-vid-series"><input type="hidden" id="as-vid-dur">
 
     <div class="m-actions">
       <button class="btn-cancel" onclick="closeM('m-assign')">Cancelar</button>
@@ -1252,46 +1234,34 @@ async function doAssign() {
   const vidSelId = document.getElementById('as-biblioteca-sel').value;
   if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
   if (!titulo) { toast('Ingresá un título'); return; }
-  // Obtener tipo del ejercicio seleccionado
+
+  // Usar datos del ejercicio de la biblioteca
   const vidSel = videos.find(v => v.id === vidSelId);
-  const tipo = vidSel ? (vidSel.tipo || 'video') : 'indicacion';
-  let series='', reps='', dur='', desc='', url='', fotoUrl='';
-  if (tipo==='indicacion') {
-    desc=document.getElementById('as-ind-texto').value;
-    series=document.getElementById('as-ind-series').value;
-    reps=document.getElementById('as-ind-reps').value;
-    dur=document.getElementById('as-ind-dur').value;
-  } else if (tipo==='foto') {
-    fotoUrl = convertDriveUrl(document.getElementById('as-foto-url').value.trim());
-    if (!fotoUrl) { toast('Ingresá la URL de Google Drive'); return; }
-    if (!isValidDriveUrl(document.getElementById('as-foto-url').value.trim())) { toast('La URL debe ser de Google Drive'); return; }
-    desc=document.getElementById('as-foto-desc').value;
-    series=document.getElementById('as-foto-series').value;
-    reps=document.getElementById('as-foto-reps').value;
-  } else {
-    url = document.getElementById('as-vid-url').value.trim();
-    if (!url) { toast('Ingresá la URL de YouTube'); return; }
-    if (!isValidYouTubeUrl(url)) { toast('La URL no parece ser de YouTube'); return; }
-    url = convertYouTubeUrl(url);
-    desc=document.getElementById('as-vid-desc').value;
-    series=document.getElementById('as-vid-series').value;
-    dur=document.getElementById('as-vid-dur').value;
-  }
+  if (!vidSel) { toast('Ejercicio no encontrado'); return; }
+
+  const tipo = vidSel.tipo || 'video';
+  // Parámetros customizados para este paciente
+  const series = document.getElementById('as-ind-series').value.trim();
+  const reps   = document.getElementById('as-ind-reps').value.trim();
+  const dur    = document.getElementById('as-ind-dur').value.trim();
+  const desc   = document.getElementById('as-ind-texto').value.trim() || vidSel.desc || '';
+
   const { db, collection, addDoc } = fb();
   try {
     await addDoc(collection(db, `planes/${currentPacId}/items`), {
-      mes, sem, tipo, title: titulo, series, reps, dur, desc,
-      url: vidSel ? vidSel.url : url,
-      fotoUrl: vidSel ? vidSel.fotoUrl : fotoUrl,
+      mes, sem, tipo,
+      title: titulo,
+      series, reps, dur, desc,
+      url: vidSel.url || '',
+      fotoUrl: vidSel.fotoUrl || '',
       ejercicioId: vidSelId,
     });
     closeM('m-assign');
-    await cargarEjercicios();
     renderPacVideos();
     toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
   } catch(err) {
-    console.error(err);
-    toast('Error al asignar');
+    console.error('Error asignando:', err);
+    toast('Error al asignar: ' + err.message);
   }
 }
 
