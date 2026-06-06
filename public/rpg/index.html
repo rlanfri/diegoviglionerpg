@@ -862,22 +862,14 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
   <div class="msheet">
     <div class="mhandle"></div>
     <div class="m-title">Asignar ejercicio / indicación</div>
-    <div class="m-sub">Elegí el tipo de contenido a asignar</div>
+    <div class="m-sub">Elegí un ejercicio de la biblioteca</div>
 
-    <!-- Tipo selector -->
-    <div class="tipo-pills">
-      <div class="tipo-pill on" onclick="selTipo(this,'tipo-indicacion')">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-        Indicación
-      </div>
-      <div class="tipo-pill" onclick="selTipo(this,'tipo-foto')">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-        Foto
-      </div>
-      <div class="tipo-pill" onclick="selTipo(this,'tipo-video')">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-        Video
-      </div>
+    <!-- Selector de biblioteca -->
+    <div class="ff" style="margin-bottom:.85rem">
+      <label>Ejercicio de la biblioteca</label>
+      <select id="as-biblioteca-sel" onchange="onBibliotecaSel(this)" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.6rem .82rem;font-size:.87rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
+        <option value="">— Seleccioná un ejercicio —</option>
+      </select>
     </div>
 
     <!-- Ubicación (siempre visible) -->
@@ -1257,11 +1249,12 @@ async function doAssign() {
   const mes = document.getElementById('as-mes').value;
   const sem = document.getElementById('as-sem').value;
   const titulo = document.getElementById('as-titulo').value.trim();
+  const vidSelId = document.getElementById('as-biblioteca-sel').value;
+  if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
   if (!titulo) { toast('Ingresá un título'); return; }
-  const activeTipo = document.querySelector('.tipo-pill.on');
-  const tipoIdx = [...document.querySelectorAll('.tipo-pill')].indexOf(activeTipo);
-  const tipos = ['indicacion','foto','video'];
-  const tipo = tipos[tipoIdx] || 'indicacion';
+  // Obtener tipo del ejercicio seleccionado
+  const vidSel = videos.find(v => v.id === vidSelId);
+  const tipo = vidSel ? (vidSel.tipo || 'video') : 'indicacion';
   let series='', reps='', dur='', desc='', url='', fotoUrl='';
   if (tipo==='indicacion') {
     desc=document.getElementById('as-ind-texto').value;
@@ -1287,7 +1280,10 @@ async function doAssign() {
   const { db, collection, addDoc } = fb();
   try {
     await addDoc(collection(db, `planes/${currentPacId}/items`), {
-      mes, sem, tipo, title: titulo, series, reps, dur, desc, url, fotoUrl,
+      mes, sem, tipo, title: titulo, series, reps, dur, desc,
+      url: vidSel ? vidSel.url : url,
+      fotoUrl: vidSel ? vidSel.fotoUrl : fotoUrl,
+      ejercicioId: vidSelId,
     });
     closeM('m-assign');
     await cargarEjercicios();
@@ -1727,31 +1723,7 @@ function selNuevoTipo(el, panelId) {
   nuevoTipo = panelId === 'nt-video' ? 'video' : panelId === 'nt-foto' ? 'foto' : 'indicacion';
 }
 
-function addVideo() {
-  var titulo = document.getElementById('nv-titulo').value.trim();
-  if (!titulo) { toast('Ingresá un título'); return; }
-  var url      = nuevoTipo === 'video' ? document.getElementById('nv-url').value.trim() : '';
-  var fotoUrl  = nuevoTipo === 'foto'  ? document.getElementById('nv-foto-url').value.trim() : '';
-  if (nuevoTipo === 'video' && !url)     { toast('Ingresá la URL de YouTube'); return; }
-  if (nuevoTipo === 'foto'  && !fotoUrl) { toast('Ingresá la URL de la imagen'); return; }
-  videos.unshift({
-    id:'v'+Date.now(),
-    tipo: nuevoTipo,
-    title: titulo,
-    url,
-    fotoUrl,
-    cat:    document.getElementById('nv-cat').value,
-    series: document.getElementById('nv-series').value,
-    reps:   document.getElementById('nv-reps').value,
-    dur:    document.getElementById('nv-dur').value,
-    desc:   document.getElementById('nv-desc').value
-  });
-  ['nv-titulo','nv-url','nv-foto-url','nv-series','nv-reps','nv-dur','nv-desc'].forEach(id=>{
-    var el = document.getElementById(id); if(el) el.value='';
-  });
-  renderDocVideos();
-  toast('Ejercicio guardado ✓');
-}
+// addVideo local eliminada — usa versión Firestore
 
 function editDocVideo(id) {
   var v = videos.find(dv=>dv.id===id);
@@ -1775,13 +1747,7 @@ function editDocVideo(id) {
   toast('Editando — guardá para confirmar');
 }
 
-function deleteDocVideo(id) {
-  if (!confirm('¿Eliminar este ejercicio?')) return;
-  var i = videos.findIndex(v=>v.id===id);
-  if (i>-1) videos.splice(i,1);
-  renderDocVideos();
-  toast('Ejercicio eliminado');
-}
+// deleteDocVideo local eliminada — usa versión Firestore
 
 // ── PACIENTES ──
 
@@ -2080,72 +2046,39 @@ function renderPacVideos() {
   if(!patientPlan.length) list.innerHTML='<div class="empty" style="padding:.75rem 0">Sin ejercicios asignados</div>';
 }
 
-function removePacVid(vid) {
-  var i=patientPlan.findIndex(p=>p.vid===vid);
-  if(i>-1) patientPlan.splice(i,1);
-  renderPacVideos();
-  toast('Video removido');
-}
+// removePacVid local eliminada — usa versión Firestore
 
 function updateAssignSelect() {} // no longer needed
 function openAssignModal() {
-  // reset form
+  // Llenar selector con biblioteca de ejercicios
+  var sel = document.getElementById('as-biblioteca-sel');
+  sel.innerHTML = '<option value="">— Seleccioná un ejercicio —</option>';
+  videos.forEach(function(v) {
+    var opt = document.createElement('option');
+    opt.value = v.id;
+    opt.textContent = v.title + (v.cat ? ' [' + v.cat + ']' : '');
+    sel.appendChild(opt);
+  });
+  // reset campos
   document.getElementById('as-titulo').value='';
-  document.getElementById('as-ind-texto').value='';
   document.getElementById('as-ind-series').value='';
   document.getElementById('as-ind-reps').value='';
   document.getElementById('as-ind-dur').value='';
-  document.getElementById('as-foto-url').value='';
-  document.getElementById('as-foto-desc').value='';
-  document.getElementById('as-foto-series').value='';
-  document.getElementById('as-foto-reps').value='';
-  document.getElementById('as-vid-url').value='';
-  document.getElementById('as-vid-desc').value='';
-  document.getElementById('as-vid-series').value='';
-  document.getElementById('as-vid-dur').value='';
-  // reset to first tipo
-  document.querySelectorAll('.tipo-pill').forEach((p,i)=>p.classList.toggle('on',i===0));
-  document.querySelectorAll('.tipo-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
+  document.getElementById('as-ind-texto').value='';
   document.getElementById('m-assign').classList.add('open');
 }
-function doAssign() {
-  var mes = document.getElementById('as-mes').value;
-  var sem = document.getElementById('as-sem').value;
-  var titulo = document.getElementById('as-titulo').value.trim();
-  var activeTipo = document.querySelector('.tipo-pill.on');
-  var tipoIdx = [...document.querySelectorAll('.tipo-pill')].indexOf(activeTipo);
-  var tipos = ['indicacion','foto','video'];
-  var tipo = tipos[tipoIdx] || 'indicacion';
-  if (!titulo) { toast('Ingresá un título'); return; }
 
-  var series='', reps='', dur='', desc='', url='', fotoUrl='';
-  if (tipo==='indicacion') {
-    desc    = document.getElementById('as-ind-texto').value;
-    series  = document.getElementById('as-ind-series').value;
-    reps    = document.getElementById('as-ind-reps').value;
-    dur     = document.getElementById('as-ind-dur').value;
-  } else if (tipo==='foto') {
-    fotoUrl = document.getElementById('as-foto-url').value;
-    desc    = document.getElementById('as-foto-desc').value;
-    series  = document.getElementById('as-foto-series').value;
-    reps    = document.getElementById('as-foto-reps').value;
-  } else {
-    url     = document.getElementById('as-vid-url').value;
-    desc    = document.getElementById('as-vid-desc').value;
-    series  = document.getElementById('as-vid-series').value;
-    dur     = document.getElementById('as-vid-dur').value;
-  }
-
-  var newId = 'custom-'+Date.now();
-  // Add to videos lib if video type so accordion can render it
-  if (tipo==='video') {
-    videos.push({id:newId, title:titulo, url, cat:'General', series, reps, dur, desc});
-  }
-  patientPlan.push({mes, sem, vid:newId, tipo, title:titulo, series, reps, dur, desc, url, fotoUrl});
-  closeM('m-assign');
-  renderPacVideos();
-  toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
+function onBibliotecaSel(sel) {
+  var vid = videos.find(v => v.id === sel.value);
+  if (!vid) return;
+  // Pre-llenar título y campos con datos del ejercicio
+  document.getElementById('as-titulo').value = vid.title || '';
+  document.getElementById('as-ind-series').value = vid.series || '';
+  document.getElementById('as-ind-reps').value = vid.reps || '';
+  document.getElementById('as-ind-dur').value = vid.dur || '';
+  document.getElementById('as-ind-texto').value = vid.desc || '';
 }
+// doAssign local eliminada — usa versión Firestore
 
 function openEditModal(vid) {
   var item=patientPlan.find(p=>p.vid===vid);
