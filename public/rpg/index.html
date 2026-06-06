@@ -1279,8 +1279,8 @@ function doLogin() {
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
-    await cargarProgresoPacientes();
-    await renderComentariosProfesional();
+    try { await cargarProgresoPacientes(); } catch(e) { console.error('progreso:', e); }
+    try { await renderComentariosProfesional(); } catch(e) { console.error('comentarios:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
