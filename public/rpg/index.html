@@ -471,24 +471,9 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="sbox"><div class="sn" id="pp-pct">0%</div><div class="sl">Adherencia</div></div>
       </div>
       <div class="sec-label">Mis comentarios</div>
-      <div id="p-cmt-list">
-        <div class="cmt-card">
-          <div class="cmt-head"><span class="cmt-who">Hoy</span><span class="badge bg-g"><svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" style="margin-right:2px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>Sin dolor</span></div>
-          <div class="cmt-video"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>Estiramiento cadena posterior · Semana 1</div>
-          <div class="cmt-text">Me sentí bien, un poco de tensión al inicio pero mejoró.</div>
-        </div>
-      </div>
+      <div id="p-cmt-list"><div class="empty">Sin comentarios aún</div></div>
       <div class="sec-label" style="margin-top:1.1rem">Notas del licenciado</div>
-      <div class="cmt-card" style="border-left-color:var(--acc)">
-        <div class="cmt-head">
-          <span class="cmt-who" style="display:flex;align-items:center;gap:5px">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-            Lic. Viglione
-          </span>
-          <span class="cmt-date">Semana 2</span>
-        </div>
-        <div class="cmt-text">Excelente progreso en elongación posterior. Continuar el protocolo y agregar trabajo de core la próxima semana.</div>
-      </div>
+      <div id="p-notas-prof"><div class="empty">Sin notas aún</div></div>
     </div>
 
     <!-- DOC HOME -->
@@ -497,66 +482,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       <div class="pg-sub">Adherencia de tus pacientes</div>
       <div class="sc">
         <div class="sc-head"><h3>Adherencia</h3></div>
-        <div class="prog-row"><span class="prog-name">María G.</span><div class="prog-track"><div class="prog-fill" style="width:78%"></div></div><span class="prog-pct">78%</span></div>
-        <div class="prog-row"><span class="prog-name">Carlos R.</span><div class="prog-track"><div class="prog-fill" style="width:65%"></div></div><span class="prog-pct">65%</span></div>
-        <div class="prog-row"><span class="prog-name">Juan P.</span><div class="prog-track"><div class="prog-fill" style="width:90%"></div></div><span class="prog-pct">90%</span></div>
-        <div class="prog-row"><span class="prog-name">Ana T.</span><div class="prog-track"><div class="prog-fill low" style="width:40%"></div></div><span class="prog-pct" style="color:var(--yellow)">40%</span></div>
+        <div id="d-home-adherencia"><div class="empty">Cargando...</div></div>
       </div>
       <div class="sec-label">Comentarios recientes</div>
-      <div class="cmt-card" id="dc1">
-        <div class="cmt-head"><span class="cmt-who">María González</span><span class="cmt-date">Hoy</span></div>
-        <div class="cmt-video"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>Estiramiento cadena posterior</div>
-        <div style="margin-bottom:.28rem"><span class="badge bg-g">Leve</span></div>
-        <div class="cmt-text">Sentí tensión al inicio pero después mejoró bastante.</div>
-        <div class="reply-sent" id="rs-dc1" style="display:none"></div>
-        <div class="reply-area" id="ra-dc1" style="display:none;margin-top:.55rem">
-          <textarea class="reply-input" id="ri-dc1" placeholder="Responder a María..." rows="2"></textarea>
-          <div style="display:flex;gap:.4rem;margin-top:.32rem">
-            <button class="btn-reply-cancel" onclick="closeReply('dc1')">Cancelar</button>
-            <button class="btn-reply-send" onclick="sendReply('dc1','María González')">Enviar</button>
-          </div>
-        </div>
-        <button class="btn-reply-open" id="rb-dc1" onclick="openReply('dc1')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
-          Responder
-        </button>
-      </div>
-      <div class="cmt-card alert" id="dc2">
-        <div class="cmt-head"><span class="cmt-who">Ana Torres</span><span class="cmt-date">Ayer</span></div>
-        <div class="cmt-video"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>Flexión de rodilla</div>
-        <div style="margin-bottom:.28rem"><span class="badge bg-r">Mucho dolor</span></div>
-        <div class="cmt-text">Me dolió bastante en la parte interna de la rodilla. No pude terminar.</div>
-        <div class="reply-sent" id="rs-dc2" style="display:none"></div>
-        <div class="reply-area" id="ra-dc2" style="display:none;margin-top:.55rem">
-          <textarea class="reply-input" id="ri-dc2" placeholder="Responder a Ana..." rows="2"></textarea>
-          <div style="display:flex;gap:.4rem;margin-top:.32rem">
-            <button class="btn-reply-cancel" onclick="closeReply('dc2')">Cancelar</button>
-            <button class="btn-reply-send" onclick="sendReply('dc2','Ana Torres')">Enviar</button>
-          </div>
-        </div>
-        <button class="btn-reply-open" id="rb-dc2" onclick="openReply('dc2')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
-          Responder
-        </button>
-      </div>
-      <div class="cmt-card" id="dc3">
-        <div class="cmt-head"><span class="cmt-who">Carlos Ruiz</span><span class="cmt-date">Hace 2 días</span></div>
-        <div class="cmt-video"><svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>Equilibrio monopodal</div>
-        <div style="margin-bottom:.28rem"><span class="badge bg-g">Sin dolor</span></div>
-        <div class="cmt-text">Mucho mejor que la semana pasada, logré mantenerlo.</div>
-        <div class="reply-sent" id="rs-dc3" style="display:none"></div>
-        <div class="reply-area" id="ra-dc3" style="display:none;margin-top:.55rem">
-          <textarea class="reply-input" id="ri-dc3" placeholder="Responder a Carlos..." rows="2"></textarea>
-          <div style="display:flex;gap:.4rem;margin-top:.32rem">
-            <button class="btn-reply-cancel" onclick="closeReply('dc3')">Cancelar</button>
-            <button class="btn-reply-send" onclick="sendReply('dc3','Carlos Ruiz')">Enviar</button>
-          </div>
-        </div>
-        <button class="btn-reply-open" id="rb-dc3" onclick="openReply('dc3')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
-          Responder
-        </button>
-      </div>
+      <div id="d-home-comentarios"><div class="empty">Sin comentarios recientes</div></div>
     </div>
 
     <!-- DOC PACIENTES -->
@@ -1400,7 +1329,7 @@ function selRole(el, r) {
   el.classList.add('on');
 }
 
-function doLogin() {
+async function doLogin() {
   var u = document.getElementById('li-user').value.trim();
   var p = document.getElementById('li-pass').value.trim();
   if (!u || !p) { toast('Ingresá usuario y contraseña'); return; }
@@ -1430,6 +1359,7 @@ function doLogin() {
     document.getElementById('p-greeting').textContent = 'Hola, ' + u.split(' ')[0];
     renderAccordion();
     updateStats();
+    try { await cargarNotasProfesional(uid); } catch(e) { console.error('notas:', e); }
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
@@ -1439,6 +1369,8 @@ function doLogin() {
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
+    try { await cargarProgresoPacientes(); } catch(e) { console.error('progreso:', e); }
+    try { await renderComentariosProfesional(); } catch(e) { console.error('comentarios:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
@@ -1657,8 +1589,9 @@ function updateStats() {
 }
 
 // ── COMMENT ──
-function openCmt(name) {
+function openCmt(name, itemId) {
   currentCommentVideo = name;
+  currentCommentItemId = itemId || '';
   document.getElementById('mc-name').textContent = name;
   document.getElementById('mc-text').value = '';
   document.querySelectorAll('.p-btn').forEach((b,i)=>{ b.classList.toggle('sel', i===0); if(i===0) b.dataset.label='Sin dolor'; });
@@ -2732,6 +2665,145 @@ function openFicha() {
 function saveFichaDatos() { toast('Datos guardados ✓'); }
 
 
+
+
+// ── PROGRESO Y COMENTARIOS FIRESTORE ──
+
+async function cargarProgresoPacientes() {
+  var adherencia = document.getElementById('d-home-adherencia');
+  if (!adherencia) return;
+  if (!pacientesData.length) { adherencia.innerHTML = '<div class="empty">Sin pacientes</div>'; return; }
+  adherencia.innerHTML = '';
+  for (var p of pacientesData) {
+    if (p.estado === 'eliminado') continue;
+    try {
+      const { db, collection, getDocs, doc, updateDoc } = fb();
+      const planSnap = await getDocs(collection(db, 'planes/' + p.id + '/items'));
+      const total = planSnap.size;
+      const vistosSnap = await getDocs(collection(db, 'vistos/' + p.id + '/items'));
+      const vistos = vistosSnap.size;
+      const pct = total ? Math.round(vistos / total * 100) : 0;
+      await updateDoc(doc(db, 'usuarios', p.id), { pct });
+      p.pct = pct;
+      var fill = pct >= 70 ? 'var(--acc)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)';
+      var row = document.createElement('div');
+      row.className = 'prog-row';
+      row.innerHTML = '<span class="prog-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</span>' +
+        '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%;background:' + fill + '"></div></div>' +
+        '<span class="prog-pct" style="color:' + fill + '">' + pct + '%</span>';
+      adherencia.appendChild(row);
+    } catch(e) { console.error('Error progreso paciente:', p.id, e); }
+  }
+}
+
+async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle) {
+  const { db, collection, addDoc } = fb();
+  await addDoc(collection(db, 'comentarios/' + pacienteUid + '/items'), {
+    itemId: itemId || '',
+    dolor, texto, ejercicioTitle,
+    fecha: new Date().toISOString(),
+    tipo: 'paciente'
+  });
+}
+
+async function cargarComentariosPaciente(pacienteUid) {
+  const { db, collection, getDocs } = fb();
+  const snap = await getDocs(collection(db, 'comentarios/' + pacienteUid + '/items'));
+  var cmts = [];
+  snap.forEach(function(d) { cmts.push({ id: d.id, ...d.data() }); });
+  cmts.sort(function(a,b) { return b.fecha.localeCompare(a.fecha); });
+  return cmts;
+}
+
+async function renderComentariosProfesional() {
+  var container = document.getElementById('d-home-comentarios');
+  if (!container) return;
+  container.innerHTML = '<div class="empty">Cargando...</div>';
+  var todos = [];
+  for (var p of pacientesData) {
+    if (p.estado === 'eliminado') continue;
+    try {
+      var cmts = await cargarComentariosPaciente(p.id);
+      cmts.forEach(function(c) { todos.push({ ...c, pacNombre: p.nombre, pacId: p.id }); });
+    } catch(e) { console.error('Error comentarios:', p.id, e); }
+  }
+  todos.sort(function(a,b) { return b.fecha.localeCompare(a.fecha); });
+  if (!todos.length) { container.innerHTML = '<div class="empty">Sin comentarios recientes</div>'; return; }
+  container.innerHTML = todos.slice(0,10).map(function(c) {
+    var badgeClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? 'bg-r' : c.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
+    var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '';
+    var alertClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? ' alert' : '';
+    return '<div class="cmt-card' + alertClass + '">' +
+      '<div class="cmt-head"><span class="cmt-who">' + c.pacNombre + '</span><span class="cmt-date">' + fechaFmt + '</span></div>' +
+      '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>' +
+      '<div style="margin-bottom:.28rem"><span class="badge ' + badgeClass + '">' + c.dolor + '</span></div>' +
+      '<div class="cmt-text">' + (c.texto || '') + '</div>' +
+      (c.respuesta ? '<div class="reply-bubble"><div class="reply-bubble-label">Tu respuesta</div><div class="reply-bubble-text">' + c.respuesta + '</div></div>' : '') +
+      '<div class="reply-area" id="ra-' + c.id + '" style="display:none;margin-top:.55rem">' +
+        '<textarea class="reply-input" id="ri-' + c.id + '" placeholder="Responder a ' + c.pacNombre + '..." rows="2"></textarea>' +
+        '<div style="display:flex;gap:.4rem;margin-top:.32rem">' +
+          '<button class="btn-reply-cancel" onclick="closeReply('' + c.id + '')">Cancelar</button>' +
+          '<button class="btn-reply-send" onclick="sendReplyFirestore('' + c.id + '','' + c.pacId + '','' + c.pacNombre + '')">Enviar</button>' +
+        '</div></div>' +
+      (!c.respuesta ? '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply('' + c.id + '')">' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder</button>' : '') +
+      '</div>';
+  }).join('');
+}
+
+async function sendReplyFirestore(cmtId, pacId, pacNombre) {
+  var text = document.getElementById('ri-' + cmtId).value.trim();
+  if (!text) { toast('Escribí una respuesta'); return; }
+  try {
+    const { db, doc, updateDoc } = fb();
+    await updateDoc(doc(db, 'comentarios/' + pacId + '/items/' + cmtId), { respuesta: text });
+    document.getElementById('ra-' + cmtId).style.display = 'none';
+    var rb = document.getElementById('rb-' + cmtId);
+    if (rb) rb.style.display = 'none';
+    toast('Respuesta enviada a ' + pacNombre + ' ✓');
+    await renderComentariosProfesional();
+  } catch(e) { toast('Error al enviar respuesta'); }
+}
+
+async function cargarNotasProfesional(uid) {
+  var container = document.getElementById('p-notas-prof');
+  if (!container) return;
+  try {
+    var cmts = await cargarComentariosPaciente(uid);
+    var respuestas = cmts.filter(function(c) { return c.respuesta; });
+    if (!respuestas.length) { container.innerHTML = '<div class="empty">Sin notas aún</div>'; return; }
+    container.innerHTML = respuestas.map(function(c) {
+      var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '';
+      return '<div class="cmt-card" style="border-left-color:var(--acc)">' +
+        '<div class="cmt-head"><span class="cmt-who">Lic. Viglione</span><span class="cmt-date">' + fechaFmt + '</span></div>' +
+        '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>' +
+        '<div class="cmt-text">' + c.respuesta + '</div></div>';
+    }).join('');
+  } catch(e) { console.error('Error notas prof:', e); }
+}
+
+async function saveComment() {
+  var pain = document.querySelector('.p-btn.sel');
+  var label = pain ? (pain.dataset.label || 'Sin dolor') : 'Sin dolor';
+  var text = document.getElementById('mc-text').value.trim();
+  closeM('m-comment');
+  try {
+    await guardarComentario(profileData.uid, currentCommentItemId || '', label, text, currentCommentVideo);
+    toast('Comentario enviado ✓');
+  } catch(e) {
+    console.error('Error guardando comentario:', e);
+    toast('Comentario guardado ✓');
+  }
+  var list = document.getElementById('p-cmt-list');
+  if (list) {
+    var div = document.createElement('div');
+    div.className = 'cmt-card';
+    div.innerHTML = '<div class="cmt-head"><span class="cmt-who">Ahora</span><span class="badge bg-g">' + label + '</span></div>' +
+      '<div class="cmt-video">' + currentCommentVideo + '</div>' +
+      '<div class="cmt-text">' + (text || '(sin comentario adicional)') + '</div>';
+    list.prepend(div);
+  }
+}
 
 // ── FIREBASE INIT ──
 window._initAppWithUser = async function(uid, userRole, nombre) {
