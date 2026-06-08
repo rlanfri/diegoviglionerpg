@@ -1594,7 +1594,7 @@ function openCmt(name, itemId) {
   currentCommentItemId = itemId || '';
   document.getElementById('mc-name').textContent = name;
   document.getElementById('mc-text').value = '';
-  document.querySelectorAll('.p-btn').forEach((b,i)=>{ b.classList.toggle('sel', i===0); if(i===0) b.dataset.label='Sin dolor'; });
+  var pButtons = document.querySelectorAll('.p-btn'); if (pButtons.length > 0) { pButtons.forEach((b,i)=>{ b.classList.toggle('sel', i===0); if(i===0) b.dataset.label='Sin dolor'; }); }
   document.getElementById('m-comment').classList.add('open');
 }
 function selPain(el, label) {
