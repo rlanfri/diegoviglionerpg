@@ -2724,32 +2724,39 @@ async function renderComentariosProfesional() {
     if (p.estado === 'eliminado') continue;
     try {
       var cmts = await cargarComentariosPaciente(p.id);
-      cmts.forEach(function(c) { todos.push({ ...c, pacNombre: p.nombre, pacId: p.id }); });
+      cmts.forEach(function(c) { todos.push(Object.assign({}, c, { pacNombre: p.nombre, pacId: p.id })); });
     } catch(e) { console.error('Error comentarios:', p.id, e); }
   }
   todos.sort(function(a,b) { return b.fecha.localeCompare(a.fecha); });
   if (!todos.length) { container.innerHTML = '<div class="empty">Sin comentarios recientes</div>'; return; }
-  container.innerHTML = todos.slice(0,10).map(function(c) {
+  container.innerHTML = '';
+  todos.slice(0,10).forEach(function(c) {
     var badgeClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? 'bg-r' : c.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
     var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '';
     var alertClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? ' alert' : '';
-    return '<div class="cmt-card' + alertClass + '">' +
-      '<div class="cmt-head"><span class="cmt-who">' + c.pacNombre + '</span><span class="cmt-date">' + fechaFmt + '</span></div>' +
-      '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>' +
-      '<div style="margin-bottom:.28rem"><span class="badge ' + badgeClass + '">' + c.dolor + '</span></div>' +
-      '<div class="cmt-text">' + (c.texto || '') + '</div>' +
-      (c.respuesta ? '<div class="reply-bubble"><div class="reply-bubble-label">Tu respuesta</div><div class="reply-bubble-text">' + c.respuesta + '</div></div>' : '') +
-      '<div class="reply-area" id="ra-' + c.id + '" style="display:none;margin-top:.55rem">' +
-        '<textarea class="reply-input" id="ri-' + c.id + '" placeholder="Responder a ' + c.pacNombre + '..." rows="2"></textarea>' +
-        '<div style="display:flex;gap:.4rem;margin-top:.32rem">' +
-          '<button class="btn-reply-cancel" onclick="closeReply('' + c.id + '')">Cancelar</button>' +
-          '<button class="btn-reply-send" onclick="sendReplyFirestore('' + c.id + '','' + c.pacId + '','' + c.pacNombre + '')">Enviar</button>' +
-        '</div></div>' +
-      (!c.respuesta ? '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply('' + c.id + '')">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder</button>' : '') +
-      '</div>';
-  }).join('');
+    var div = document.createElement('div');
+    div.className = 'cmt-card' + alertClass;
+    var html = '<div class="cmt-head"><span class="cmt-who">' + c.pacNombre + '</span><span class="cmt-date">' + fechaFmt + '</span></div>';
+    html += '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>';
+    html += '<div style="margin-bottom:.28rem"><span class="badge ' + badgeClass + '">' + c.dolor + '</span></div>';
+    html += '<div class="cmt-text">' + (c.texto || '') + '</div>';
+    if (c.respuesta) {
+      html += '<div class="reply-bubble"><div class="reply-bubble-label">Tu respuesta</div><div class="reply-bubble-text">' + c.respuesta + '</div></div>';
+    } else {
+      html += '<div class="reply-area" id="ra-' + c.id + '" style="display:none;margin-top:.55rem">';
+      html += '<textarea class="reply-input" id="ri-' + c.id + '" placeholder="Responder..." rows="2"></textarea>';
+      html += '<div style="display:flex;gap:.4rem;margin-top:.32rem">';
+      html += '<button class="btn-reply-cancel" onclick="closeReply(\'' + c.id + '\')">' + 'Cancelar</button>';
+      html += '<button class="btn-reply-send" onclick="sendReplyFirestore(\'' + c.id + '\',\'' + c.pacId + '\',\'' + c.pacNombre + '\')">' + 'Enviar</button>';
+      html += '</div></div>';
+      html += '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')">';
+      html += '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder</button>';
+    }
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
 }
+
 
 async function sendReplyFirestore(cmtId, pacId, pacNombre) {
   var text = document.getElementById('ri-' + cmtId).value.trim();
