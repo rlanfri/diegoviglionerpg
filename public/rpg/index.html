@@ -1053,11 +1053,11 @@ async function cargarEjercicios() {
 
 async function cargarPlanPaciente(uid) {
   const { db, collection, getDocs, query, where } = fb();
-  const snap = await getDocs(collection(db, `planes/${uid}/items`));
+  const snap = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // cargar seenSet
-  const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
+  const snapSeen = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
 }
