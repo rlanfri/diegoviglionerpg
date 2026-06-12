@@ -329,6 +329,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pac-chip-wrap{position:relative}
 .pac-chip-del{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);display:none;z-index:2}
 .pac-chip-wrap.admin-mode .pac-chip-del{display:flex}
+/* TIPO PACIENTE SELECTOR */
+.p-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.6rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2}
+.p-tipo-btn:active{transform:scale(.97)}
+.p-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
 </style>
 
   <!-- Firebase SDK -->
@@ -453,6 +457,24 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <div class="page" id="p-home">
       <div class="pg-title" id="p-greeting">Hola</div>
       <div class="pg-sub">Tu programa de ejercicios</div>
+      <!-- Selector tipo paciente -->
+      <div id="p-tipo-wrap" style="display:none;margin-bottom:.85rem">
+        <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.45rem">Tipo de programa</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
+          <button class="p-tipo-btn" id="ptb-rpg" onclick="selTipoPaciente('rpg')">
+            <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
+            <span style="font-size:.72rem;font-weight:600">RPG</span>
+          </button>
+          <button class="p-tipo-btn" id="ptb-neuro" onclick="selTipoPaciente('neuro')">
+            <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
+            <span style="font-size:.72rem;font-weight:600">Neurológico</span>
+          </button>
+          <button class="p-tipo-btn" id="ptb-general" onclick="selTipoPaciente('general')">
+            <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
+            <span style="font-size:.72rem;font-weight:600">General</span>
+          </button>
+        </div>
+      </div>
       <div class="stat-strip">
         <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
         <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
@@ -1005,7 +1027,6 @@ async function cargarPlanPaciente(uid) {
 
 async function guardarVisto(uid, itemId) {
   const { db, doc, setDoc } = fb();
-  // itemId es el ID del doc en planes/{uid}/items
   await setDoc(doc(db, `vistos/${uid}/items/${itemId}`), { fecha: new Date().toISOString() });
   seenSet.add(itemId);
 }
@@ -1115,52 +1136,55 @@ async function addVideo() {
 }
 
 async function doAssign() {
-    if (!currentPacId) {
-        toast('Seleccioná un paciente primero');
-        return;
+    if (!currentPacId) { 
+        toast('Seleccioná un paciente primero'); 
+        return; 
     }
 
     const mes = document.getElementById('as-mes').value;
     const sem = document.getElementById('as-sem').value;
+    const titulo = document.getElementById('as-titulo').value.trim();
     const vidSelId = document.getElementById('as-biblioteca-sel').value;
 
-    if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
+    if (!vidSelId) { toast('Seleccioná un ejercicio'); return; }
+    if (!titulo) { toast('Ingresá un título'); return; }
 
     const { db, doc, getDoc, collection, addDoc } = fb();
-
+    
     try {
-        // Traer datos del ejercicio desde Firestore
+        // 1. Buscamos el ejercicio directo en Firestore
         const docSnap = await getDoc(doc(db, 'ejercicios', vidSelId));
-        const ex = docSnap.exists() ? docSnap.data() : videos.find(v=>v.id===vidSelId) || {};
+        const ex = docSnap.exists() ? docSnap.data() : {};
 
-        // Armar item con overrides del formulario
-        const titulo = document.getElementById('as-titulo').value.trim() || ex.title || 'Ejercicio';
+        // 2. Preparamos el objeto con datos de Firestore o del modal
         const item = {
-            mes,
-            sem,
+            mes: mes,
+            sem: sem,
             tipo: ex.tipo || 'video',
             title: titulo,
-            url: ex.url || '',
+            url: ex.url || document.getElementById('as-vid-url')?.value || '',
             fotoUrl: ex.fotoUrl || '',
-            desc: document.getElementById('as-ind-texto')?.value.trim() || document.getElementById('as-vid-desc')?.value.trim() || ex.desc || '',
-            series: document.getElementById('as-ind-series')?.value.trim() || document.getElementById('as-vid-series')?.value.trim() || ex.series || '',
-            reps: document.getElementById('as-ind-reps')?.value.trim() || ex.reps || '',
-            dur: document.getElementById('as-ind-dur')?.value.trim() || document.getElementById('as-vid-dur')?.value.trim() || ex.dur || '',
+            desc: ex.desc || document.getElementById('as-vid-desc')?.value || '',
+            series: document.getElementById('as-vid-series')?.value || ex.series || '',
+            reps: document.getElementById('as-vid-reps')?.value || ex.reps || '',
+            dur: document.getElementById('as-vid-dur')?.value || ex.dur || '',
             ejercicioId: vidSelId,
             fechaAsignado: new Date().toISOString()
         };
 
-        const newDoc = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
-
-        // Actualizar local para no necesitar reload
-        patientPlan.push({ id: newDoc.id, ...item });
-
-        closeM('m-assign');
-        renderPacVideos();
-        toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
-
+        // 3. Guardamos
+        await addDoc(collection(db, `planes/${currentPacId}/items`), item);
+        
+        // 4. Limpieza y cierre
+        toast('¡Asignado con éxito! ✓');
+        var m = document.getElementById('m-assign');
+        if(m) m.style.display = 'none';
+        
+        if (typeof cargarEjercicios === 'function') await cargarEjercicios();
+        if (typeof renderPacVideos === 'function') renderPacVideos();
+        
     } catch(err) {
-        console.error('Error al asignar:', err);
+        console.error("Error crítico:", err);
         toast('Error al guardar');
     }
 }
@@ -1249,14 +1273,13 @@ async function deleteDocVideo(id) {
 // ── OVERRIDE removePacVid → borra en Firestore ──
 async function removePacVid(itemId) {
   if (!currentPacId) return;
-  if (!confirm('¿Quitar este ejercicio del plan del paciente?')) return;
   const { db, doc, deleteDoc } = fb();
   try {
     await deleteDoc(doc(db, `planes/${currentPacId}/items/${itemId}`));
-    // Actualizar local inmediatamente
-    patientPlan = patientPlan.filter(p => (p.id||p.vid) !== itemId);
+    await cargarEjercicios();
+    patientPlan = patientPlan.filter(p => p.id !== itemId);
     renderPacVideos();
-    toast('Ejercicio removido ✓');
+    toast('Ejercicio removido');
   } catch(err) {
     console.error(err);
     toast('Error al remover ejercicio');
@@ -1506,23 +1529,21 @@ function openFotoModal(fotoUrl, title) {
   document.getElementById('m-foto').classList.add('open');
 }
 
-function markSeen(itemId, uid) {
-  if (seenSet.has(itemId)) return;
-  seenSet.add(itemId);
+function markSeen(vid, uid) {
+  if (seenSet.has(vid)) return;
+  seenSet.add(vid);
   var sb = document.getElementById('sb-'+uid);
   if (sb) { sb.className='seen-badge'; sb.textContent='✓ Visto'; }
   var btn = document.getElementById('bseen-'+uid);
   if (btn) { btn.textContent='✓ Visto'; btn.classList.add('done'); }
-  // Guardar en Firestore
-  var currentUid = profileData && profileData.uid;
-  if (currentUid) guardarVisto(currentUid, itemId).catch(e=>console.error('Error guardando visto:', e));
   updateStats();
+  renderAccordion();
   toast('¡Marcado como visto!');
 }
 
 function updateStats() {
   var total = patientPlan.length;
-  var seen = patientPlan.filter(i=>seenSet.has(i.id||i.vid)).length;
+  var seen = patientPlan.filter(i=>seenSet.has(i.vid)).length;
   var pct = total ? Math.round(seen/total*100) : 0;
   document.getElementById('ph-total').textContent = total;
   document.getElementById('ph-seen').textContent = seen;
@@ -1823,19 +1844,22 @@ function eliminarPaciente(id) {
   toast('Paciente eliminado');
 }
 
-async function openPacById(id) {
+function openPacById(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
   currentPacId = id;
   document.querySelectorAll('.pac-chip').forEach(c=>c.classList.remove('sel'));
+  // highlight
+  document.querySelectorAll('.pac-chip').forEach(c => { if(c.onclick && c.onclick.toString().includes(id)) c.classList.add('sel'); });
   document.getElementById('dpd-av').textContent = p.ini;
   document.getElementById('dpd-name').textContent = p.nombre;
-  document.getElementById('dpd-diag').textContent = p.diag || '—';
+  document.getElementById('dpd-diag').textContent = p.diag;
   document.getElementById('dpd-pct').textContent = p.pct + '%';
   // Admin: show profesional assignment
   var wrap = document.getElementById('dpd-asignar-prof-wrap');
   if (role === 'admin') {
     wrap.style.display = 'block';
+    // Llenar selector con profesionales reales de Firestore
     var sel = document.getElementById('dpd-prof-sel');
     sel.innerHTML = '<option value="">Sin asignar</option>';
     profesionalesData.forEach(function(prof) {
@@ -1848,13 +1872,9 @@ async function openPacById(id) {
   } else {
     wrap.style.display = 'none';
   }
-  // Cargar plan del paciente desde Firestore antes de renderizar
-  try {
-    document.getElementById('dpd-video-list').innerHTML = '<div class="empty">Cargando...</div>';
-    await cargarPlanPaciente(id);
-  } catch(e) { console.error('Error cargando plan:', e); }
   renderPacVideos();
   document.getElementById('d-pac-detail').style.display = 'block';
+  // Render inline ficha based on patient tipo
   renderInlineFicha(p.tipo || 'rpg');
   setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
 }
@@ -1878,7 +1898,7 @@ function renderPacVideos() {
   list.innerHTML='';
   var byKey={};
   patientPlan.forEach(item=>{
-    var k=(item.mes||'Sin mes')+' · '+(item.sem||'Sin semana');
+    var k=item.mes+' · '+item.sem;
     if(!byKey[k]) byKey[k]=[];
     byKey[k].push(item);
   });
@@ -1896,25 +1916,24 @@ function renderPacVideos() {
     lbl.textContent=key;
     list.appendChild(lbl);
     items.forEach(item=>{
-      var itemId = item.id || item.vid || '';
       var tipo = item.tipo || 'video';
-      var title = item.title || '—';
+      var v = videos.find(dv=>dv.id===item.vid);
+      var title = item.title || (v?.title) || '—';
       var meta=[item.series,item.reps,item.dur].filter(Boolean).join(' · ');
-      var bg = tipo==='video' ? 'var(--acc)' : tipo==='foto' ? '#555' : '#444';
       var row=document.createElement('div');
       row.className='vrow';
       row.innerHTML=`
-        <div class="vrow-thumb" style="background:${bg}">${typeIcon[tipo]||typeIcon.indicacion}</div>
+        <div class="vrow-thumb" style="background:${tipo==='video'?'var(--acc)':tipo==='foto'?'#555':'#333'}">${typeIcon[tipo]||typeIcon.indicacion}</div>
         <div class="vrow-info">
           <div class="vrow-title">${title}</div>
           <div class="vrow-meta">${meta||'Sin datos de carga'}</div>
           ${item.desc?`<div class="vrow-meta" style="font-style:italic;margin-top:1px">${item.desc.slice(0,55)}…</div>`:''}
         </div>
         <div class="vrow-acts">
-          <div class="ico-btn" onclick="openEditModal('${itemId}')">
+          <div class="ico-btn" onclick="openEditModal('${item.vid}')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           </div>
-          <div class="ico-btn" onclick="removePacVid('${itemId}')">
+          <div class="ico-btn" onclick="removePacVid('${item.vid}')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           </div>
         </div>`;
@@ -1958,34 +1977,25 @@ function onBibliotecaSel(sel) {
 }
 // doAssign local eliminada — usa versión Firestore
 
-function openEditModal(itemId) {
-  // Busca por id (Firestore) o vid (legacy)
-  var item = patientPlan.find(p => (p.id||p.vid) === itemId);
-  if (!item) return;
-  editingVidId = itemId;
-  document.getElementById('me-title').textContent = item.title || 'Ejercicio';
-  document.getElementById('me-series').value = item.series || '';
-  document.getElementById('me-reps').value = item.reps || '';
-  document.getElementById('me-dur').value = item.dur || '';
-  document.getElementById('me-desc').value = item.desc || '';
+function openEditModal(vid) {
+  var item=patientPlan.find(p=>p.vid===vid);
+  var v=videos.find(dv=>dv.id===vid);
+  if(!item||!v) return;
+  editingVidId=vid;
+  document.getElementById('me-title').textContent=v.title;
+  document.getElementById('me-series').value=item.series||'';
+  document.getElementById('me-reps').value=item.reps||'';
+  document.getElementById('me-dur').value=item.dur||'';
+  document.getElementById('me-desc').value=item.desc||'';
   document.getElementById('m-edit').classList.add('open');
 }
-async function saveEdit() {
-  var item = patientPlan.find(p => (p.id||p.vid) === editingVidId);
-  if (!item) return;
-  item.series = document.getElementById('me-series').value;
-  item.reps = document.getElementById('me-reps').value;
-  item.dur = document.getElementById('me-dur').value;
-  item.desc = document.getElementById('me-desc').value;
-  // Guardar en Firestore si tiene id real
-  if (item.id && currentPacId) {
-    try {
-      const { db, doc, updateDoc } = fb();
-      await updateDoc(doc(db, `planes/${currentPacId}/items/${item.id}`), {
-        series: item.series, reps: item.reps, dur: item.dur, desc: item.desc
-      });
-    } catch(e) { console.error('Error guardando edición:', e); }
-  }
+function saveEdit() {
+  var item=patientPlan.find(p=>p.vid===editingVidId);
+  if(!item) return;
+  item.series=document.getElementById('me-series').value;
+  item.reps=document.getElementById('me-reps').value;
+  item.dur=document.getElementById('me-dur').value;
+  item.desc=document.getElementById('me-desc').value;
   closeM('m-edit');
   renderPacVideos();
   toast('Datos actualizados ✓');
@@ -2805,6 +2815,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
       profileData.email = d.email || '';
       profileData.tel = d.tel || '';
       profileData.diag = d.diag || '';
+      profileData.tipo = d.tipo || 'rpg';
       const ini2 = ((profileData.nombre[0]||'')+(profileData.apellido[0]||'')).toUpperCase() || ini;
       profileData.initials = ini2;
       document.getElementById('av-btn').textContent = ini2;
@@ -2829,6 +2840,8 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     updateStats();
     showPage('p-home');
     setActiveNav('nav-p', 0);
+    // Mostrar tipo de programa del paciente
+    iniciarTipoPaciente(profileData.tipo || 'rpg');
   } else {
     document.getElementById('nav-d').style.display = 'flex';
     document.getElementById('nav-p').style.display = 'none';
@@ -2855,6 +2868,58 @@ window._showAccessError = function(tipo) {
   const btn = document.querySelector('.btn-login');
   if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
 };
+
+// ── TIPO DE PACIENTE ──
+var tipoPacienteActual = 'rpg';
+
+var TIPO_LABELS = {
+  rpg:     { emoji: '🏃', nombre: 'RPG Postural',  sub: 'Reeducación postural global' },
+  neuro:   { emoji: '🧠', nombre: 'Neurológico',    sub: 'Rehabilitación neurológica' },
+  general: { emoji: '💪', nombre: 'General',        sub: 'Entrenamiento y rehabilitación' },
+};
+
+function iniciarTipoPaciente(tipo) {
+  tipoPacienteActual = tipo || 'rpg';
+  // Mostrar/ocultar el selector según si el paciente puede cambiarlo
+  // Solo se muestra si no hay tipo asignado (tipo = 'sin_asignar') o siempre visible
+  var wrap = document.getElementById('p-tipo-wrap');
+  if (wrap) wrap.style.display = 'block';
+  // Marcar el activo
+  _actualizarBotonesTipo(tipoPacienteActual);
+  // Actualizar el subtítulo de la página
+  var info = TIPO_LABELS[tipoPacienteActual] || TIPO_LABELS.rpg;
+  var sub = document.querySelector('#p-home .pg-sub');
+  if (sub) sub.textContent = info.emoji + ' ' + info.sub;
+}
+
+function _actualizarBotonesTipo(tipo) {
+  ['rpg','neuro','general'].forEach(function(t) {
+    var btn = document.getElementById('ptb-' + t);
+    if (btn) btn.classList.toggle('on', t === tipo);
+  });
+}
+
+async function selTipoPaciente(tipo) {
+  if (tipoPacienteActual === tipo) return;
+  tipoPacienteActual = tipo;
+  _actualizarBotonesTipo(tipo);
+  var info = TIPO_LABELS[tipo] || TIPO_LABELS.rpg;
+  var sub = document.querySelector('#p-home .pg-sub');
+  if (sub) sub.textContent = info.emoji + ' ' + info.sub;
+  // Guardar en Firestore
+  var uid = profileData && profileData.uid;
+  if (uid) {
+    try {
+      const { db, doc, updateDoc } = fb();
+      await updateDoc(doc(db, 'usuarios', uid), { tipo: tipo });
+      profileData.tipo = tipo;
+      toast(info.emoji + ' Programa cambiado a ' + info.nombre);
+    } catch(e) {
+      console.error('Error guardando tipo:', e);
+      toast('Tipo actualizado localmente');
+    }
+  }
+}
 
 // Override logout to use Firebase signOut
 const _origLogout = window.logout;
@@ -2944,10 +3009,52 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 2. Función de asignación prioritaria
-// doAssign — versión unificada arriba
-;
-// Redirigir el clic del botón al nuevo doAssign
+window.doAssign = async function() {
+    if (!currentPacId) { toast('Seleccioná un paciente'); return; }
 
+    // Obtenemos los valores del modal
+    var idEx = document.getElementById('as-biblioteca')?.value;
+    var titEx = document.getElementById('as-vid-titulo')?.value || 'Ejercicio';
+    var urlEx = document.getElementById('as-vid-url')?.value || '';
+    
+    // Si NO hay ejercicio de biblioteca, obligamos a validar los campos necesarios
+    if (!idEx && !urlEx) { 
+        toast('Seleccioná un ejercicio de la biblioteca o una URL'); 
+        return; 
+    }
+
+    try {
+        const { db, doc, setDoc } = fb();
+        const asigId = idEx || 'asig_' + Date.now();
+        
+        await setDoc(doc(db, 'usuarios', currentPacId, 'ejercicios', asigId), {
+            id: asigId,
+            title: titEx,
+            url: urlEx,
+            desc: document.getElementById('as-vid-desc')?.value || '',
+            series: document.getElementById('as-vid-series')?.value || '',
+            reps: document.getElementById('as-vid-reps')?.value || '',
+            dur: document.getElementById('as-vid-dur')?.value || '',
+            visto: false,
+            fechaAsignado: new Date().toISOString()
+        });
+
+        toast('¡Ejercicio asignado con éxito! ✓');
+        
+        // Cerrar modal y refrescar UI
+        let m = document.getElementById('m-asignar'); 
+        if(m) m.style.display = 'none';
+        
+        if(typeof cargarEjerciciosAsignadosDoc === 'function') await cargarEjerciciosAsignadosDoc();
+        if(typeof mostrarDetallePaciente === 'function') mostrarDetallePaciente(currentPacId);
+        
+    } catch(e) {
+        console.error(e);
+        toast('Error al guardar en base de datos');
+    }
+};
+// Redirigir el clic del botón al nuevo doAssign
+document.querySelector('button[onclick*="Assign"]')?.setAttribute('onclick', 'doAssign()');
 </script>
 </body>
 </html>
