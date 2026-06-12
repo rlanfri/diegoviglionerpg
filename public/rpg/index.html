@@ -620,67 +620,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
             </div>
           </div>
         </div>
-        <!-- Pacientes -->
         <div class="u-section-lbl" style="margin-top:.6rem">Pacientes</div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u1">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">MG</div>
-          <div style="flex:1">
-            <div class="u-name">María González</div>
-            <div class="u-meta">maria@gmail.com · <span class="u-prof-asig">Sin asignar</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u2">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">CR</div>
-          <div style="flex:1">
-            <div class="u-name">Carlos Ruiz</div>
-            <div class="u-meta">carlos@gmail.com · <span class="u-prof-asig">Dr. Gonzalo Vera</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="inactivo" data-id="u3">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;opacity:.5">AT</div>
-          <div style="flex:1">
-            <div class="u-name" style="opacity:.5">Ana Torres</div>
-            <div class="u-meta">ana@gmail.com · <span class="u-prof-asig">Sin asignar</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge inactivo">Inactivo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u4">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">JP</div>
-          <div style="flex:1">
-            <div class="u-name">Juan Pérez</div>
-            <div class="u-meta">juan@gmail.com · <span class="u-prof-asig">Dr. Gonzalo Vera</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="sc" style="margin-top:.6rem;background:var(--acc-l);border-color:rgba(58,143,196,.25)">
-        <div style="font-size:.76rem;color:var(--acc-d);line-height:1.65;font-weight:300">
-          <strong style="font-weight:600">Sobre el acceso:</strong> Los usuarios ingresan con su cuenta Google. El Admin es el único que puede eliminar usuarios. Activo/Inactivo habilita o revoca el acceso sin borrar datos.
-        </div>
-      </div>
-    </div>
+<div id="contenedor-pacientes"></div>
 
     <!-- FICHA CLÍNICA -->
     <div class="page" id="d-ficha">
@@ -701,10 +642,6 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="tipo-pill" id="ficha-tipo-neuro" onclick="selFichaTipo(this,'neuro')">
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 3C9 3 6.5 5.5 6.5 9c0 2 1 3.7 2.6 4.6L9.5 18h5l.4-4.4C16.5 12.7 17.5 11 17.5 9 17.5 5.5 15 3 12 3z"/><rect x="9" y="18" width="6" height="2" rx="1"/></svg>
           Neurológica
-        </div>
-        <div class="tipo-pill" id="ficha-tipo-general" onclick="selFichaTipo(this,'general')">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.81 6-4.72 7.28L13 17v5h5l-1.52-1.52C19.12 19.23 21 16.45 21 13.25c0-5.18-3.95-9.45-9-9.2H13zM11 2.05C5.95 2.3 2 6.57 2 11.75c0 3.2 1.88 5.98 4.52 7.23L5 20.5l5 5v-5h-2l2.28-2.28C7.81 17 6 14.21 6 11c0-4.08 3.05-7.44 7-7.93V2.05h-2z"/></svg>
-          General
         </div>
       </div>
 
@@ -1057,17 +994,18 @@ async function cargarEjercicios() {
 
 async function cargarPlanPaciente(uid) {
   const { db, collection, getDocs, query, where } = fb();
-  const snap = await getDocs(collection(db, `planes/${uid}/items`));
+  const snap = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // cargar seenSet
-  const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
+  const snapSeen = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
 }
 
 async function guardarVisto(uid, itemId) {
   const { db, doc, setDoc } = fb();
+  // itemId es el ID del doc en planes/{uid}/items
   await setDoc(doc(db, `vistos/${uid}/items/${itemId}`), { fecha: new Date().toISOString() });
   seenSet.add(itemId);
 }
@@ -1176,58 +1114,56 @@ async function addVideo() {
   }
 }
 
-// ── OVERRIDE doAssign → escribe en Firestore ──
 async function doAssign() {
-  if (!currentPacId) { toast('Seleccioná un paciente primero'); return; }
-  const mes = document.getElementById('as-mes').value;
-  const sem = document.getElementById('as-sem').value;
-  const titulo = document.getElementById('as-titulo').value.trim();
-  const vidSelId = document.getElementById('as-biblioteca-sel').value;
-  if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
-  if (!titulo) { toast('Ingresá un título'); return; }
-  // Obtener tipo del ejercicio seleccionado
-  const vidSel = videos.find(v => v.id === vidSelId);
-  const tipo = vidSel ? (vidSel.tipo || 'video') : 'indicacion';
-  let series='', reps='', dur='', desc='', url='', fotoUrl='';
-  if (tipo==='indicacion') {
-    desc=document.getElementById('as-ind-texto').value;
-    series=document.getElementById('as-ind-series').value;
-    reps=document.getElementById('as-ind-reps').value;
-    dur=document.getElementById('as-ind-dur').value;
-  } else if (tipo==='foto') {
-    fotoUrl = convertDriveUrl(document.getElementById('as-foto-url').value.trim());
-    if (!fotoUrl) { toast('Ingresá la URL de Google Drive'); return; }
-    if (!isValidDriveUrl(document.getElementById('as-foto-url').value.trim())) { toast('La URL debe ser de Google Drive'); return; }
-    desc=document.getElementById('as-foto-desc').value;
-    series=document.getElementById('as-foto-series').value;
-    reps=document.getElementById('as-foto-reps').value;
-  } else {
-    url = document.getElementById('as-vid-url').value.trim();
-    if (!url) { toast('Ingresá la URL de YouTube'); return; }
-    if (!isValidYouTubeUrl(url)) { toast('La URL no parece ser de YouTube'); return; }
-    url = convertYouTubeUrl(url);
-    desc=document.getElementById('as-vid-desc').value;
-    series=document.getElementById('as-vid-series').value;
-    dur=document.getElementById('as-vid-dur').value;
-  }
-  const { db, collection, addDoc } = fb();
-  try {
-    await addDoc(collection(db, `planes/${currentPacId}/items`), {
-      mes, sem, tipo, title: titulo, series, reps, dur, desc,
-      url: vidSel ? vidSel.url : url,
-      fotoUrl: vidSel ? vidSel.fotoUrl : fotoUrl,
-      ejercicioId: vidSelId,
-    });
-    closeM('m-assign');
-    await cargarEjercicios();
-    renderPacVideos();
-    toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
-  } catch(err) {
-    console.error(err);
-    toast('Error al asignar');
-  }
-}
+    if (!currentPacId) {
+        toast('Seleccioná un paciente primero');
+        return;
+    }
 
+    const mes = document.getElementById('as-mes').value;
+    const sem = document.getElementById('as-sem').value;
+    const vidSelId = document.getElementById('as-biblioteca-sel').value;
+
+    if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
+
+    const { db, doc, getDoc, collection, addDoc } = fb();
+
+    try {
+        // Traer datos del ejercicio desde Firestore
+        const docSnap = await getDoc(doc(db, 'ejercicios', vidSelId));
+        const ex = docSnap.exists() ? docSnap.data() : videos.find(v=>v.id===vidSelId) || {};
+
+        // Armar item con overrides del formulario
+        const titulo = document.getElementById('as-titulo').value.trim() || ex.title || 'Ejercicio';
+        const item = {
+            mes,
+            sem,
+            tipo: ex.tipo || 'video',
+            title: titulo,
+            url: ex.url || '',
+            fotoUrl: ex.fotoUrl || '',
+            desc: document.getElementById('as-ind-texto')?.value.trim() || document.getElementById('as-vid-desc')?.value.trim() || ex.desc || '',
+            series: document.getElementById('as-ind-series')?.value.trim() || document.getElementById('as-vid-series')?.value.trim() || ex.series || '',
+            reps: document.getElementById('as-ind-reps')?.value.trim() || ex.reps || '',
+            dur: document.getElementById('as-ind-dur')?.value.trim() || document.getElementById('as-vid-dur')?.value.trim() || ex.dur || '',
+            ejercicioId: vidSelId,
+            fechaAsignado: new Date().toISOString()
+        };
+
+        const newDoc = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
+
+        // Actualizar local para no necesitar reload
+        patientPlan.push({ id: newDoc.id, ...item });
+
+        closeM('m-assign');
+        renderPacVideos();
+        toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
+
+    } catch(err) {
+        console.error('Error al asignar:', err);
+        toast('Error al guardar');
+    }
+}
 // ── OVERRIDE cambiarEstado → escribe en Firestore ──
 async function cambiarEstado(sel, tipo, id) {
   const val = sel.value;
@@ -1313,13 +1249,14 @@ async function deleteDocVideo(id) {
 // ── OVERRIDE removePacVid → borra en Firestore ──
 async function removePacVid(itemId) {
   if (!currentPacId) return;
+  if (!confirm('¿Quitar este ejercicio del plan del paciente?')) return;
   const { db, doc, deleteDoc } = fb();
   try {
     await deleteDoc(doc(db, `planes/${currentPacId}/items/${itemId}`));
-    await cargarEjercicios();
-    patientPlan = patientPlan.filter(p => p.id !== itemId);
+    // Actualizar local inmediatamente
+    patientPlan = patientPlan.filter(p => (p.id||p.vid) !== itemId);
     renderPacVideos();
-    toast('Ejercicio removido');
+    toast('Ejercicio removido ✓');
   } catch(err) {
     console.error(err);
     toast('Error al remover ejercicio');
@@ -1569,21 +1506,23 @@ function openFotoModal(fotoUrl, title) {
   document.getElementById('m-foto').classList.add('open');
 }
 
-function markSeen(vid, uid) {
-  if (seenSet.has(vid)) return;
-  seenSet.add(vid);
+function markSeen(itemId, uid) {
+  if (seenSet.has(itemId)) return;
+  seenSet.add(itemId);
   var sb = document.getElementById('sb-'+uid);
   if (sb) { sb.className='seen-badge'; sb.textContent='✓ Visto'; }
   var btn = document.getElementById('bseen-'+uid);
   if (btn) { btn.textContent='✓ Visto'; btn.classList.add('done'); }
+  // Guardar en Firestore
+  var currentUid = profileData && profileData.uid;
+  if (currentUid) guardarVisto(currentUid, itemId).catch(e=>console.error('Error guardando visto:', e));
   updateStats();
-  renderAccordion();
   toast('¡Marcado como visto!');
 }
 
 function updateStats() {
   var total = patientPlan.length;
-  var seen = patientPlan.filter(i=>seenSet.has(i.vid)).length;
+  var seen = patientPlan.filter(i=>seenSet.has(i.id||i.vid)).length;
   var pct = total ? Math.round(seen/total*100) : 0;
   document.getElementById('ph-total').textContent = total;
   document.getElementById('ph-seen').textContent = seen;
@@ -1598,7 +1537,7 @@ function openCmt(name, itemId) {
   currentCommentItemId = itemId || '';
   document.getElementById('mc-name').textContent = name;
   document.getElementById('mc-text').value = '';
-  document.querySelectorAll('.p-btn').forEach((b,i)=>{ b.classList.toggle('sel', i===0); if(i===0) b.dataset.label='Sin dolor'; });
+  var pButtons = document.querySelectorAll('.p-btn'); if (pButtons.length > 0) { pButtons.forEach((b,i)=>{ b.classList.toggle('sel', i===0); if(i===0) b.dataset.label='Sin dolor'; }); }
   document.getElementById('m-comment').classList.add('open');
 }
 function selPain(el, label) {
@@ -1884,22 +1823,19 @@ function eliminarPaciente(id) {
   toast('Paciente eliminado');
 }
 
-function openPacById(id) {
+async function openPacById(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
   currentPacId = id;
   document.querySelectorAll('.pac-chip').forEach(c=>c.classList.remove('sel'));
-  // highlight
-  document.querySelectorAll('.pac-chip').forEach(c => { if(c.onclick && c.onclick.toString().includes(id)) c.classList.add('sel'); });
   document.getElementById('dpd-av').textContent = p.ini;
   document.getElementById('dpd-name').textContent = p.nombre;
-  document.getElementById('dpd-diag').textContent = p.diag;
+  document.getElementById('dpd-diag').textContent = p.diag || '—';
   document.getElementById('dpd-pct').textContent = p.pct + '%';
   // Admin: show profesional assignment
   var wrap = document.getElementById('dpd-asignar-prof-wrap');
   if (role === 'admin') {
     wrap.style.display = 'block';
-    // Llenar selector con profesionales reales de Firestore
     var sel = document.getElementById('dpd-prof-sel');
     sel.innerHTML = '<option value="">Sin asignar</option>';
     profesionalesData.forEach(function(prof) {
@@ -1912,9 +1848,13 @@ function openPacById(id) {
   } else {
     wrap.style.display = 'none';
   }
+  // Cargar plan del paciente desde Firestore antes de renderizar
+  try {
+    document.getElementById('dpd-video-list').innerHTML = '<div class="empty">Cargando...</div>';
+    await cargarPlanPaciente(id);
+  } catch(e) { console.error('Error cargando plan:', e); }
   renderPacVideos();
   document.getElementById('d-pac-detail').style.display = 'block';
-  // Render inline ficha based on patient tipo
   renderInlineFicha(p.tipo || 'rpg');
   setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
 }
@@ -1938,7 +1878,7 @@ function renderPacVideos() {
   list.innerHTML='';
   var byKey={};
   patientPlan.forEach(item=>{
-    var k=item.mes+' · '+item.sem;
+    var k=(item.mes||'Sin mes')+' · '+(item.sem||'Sin semana');
     if(!byKey[k]) byKey[k]=[];
     byKey[k].push(item);
   });
@@ -1956,24 +1896,25 @@ function renderPacVideos() {
     lbl.textContent=key;
     list.appendChild(lbl);
     items.forEach(item=>{
+      var itemId = item.id || item.vid || '';
       var tipo = item.tipo || 'video';
-      var v = videos.find(dv=>dv.id===item.vid);
-      var title = item.title || (v?.title) || '—';
+      var title = item.title || '—';
       var meta=[item.series,item.reps,item.dur].filter(Boolean).join(' · ');
+      var bg = tipo==='video' ? 'var(--acc)' : tipo==='foto' ? '#555' : '#444';
       var row=document.createElement('div');
       row.className='vrow';
       row.innerHTML=`
-        <div class="vrow-thumb" style="background:${tipo==='video'?'var(--acc)':tipo==='foto'?'#555':'#333'}">${typeIcon[tipo]||typeIcon.indicacion}</div>
+        <div class="vrow-thumb" style="background:${bg}">${typeIcon[tipo]||typeIcon.indicacion}</div>
         <div class="vrow-info">
           <div class="vrow-title">${title}</div>
           <div class="vrow-meta">${meta||'Sin datos de carga'}</div>
           ${item.desc?`<div class="vrow-meta" style="font-style:italic;margin-top:1px">${item.desc.slice(0,55)}…</div>`:''}
         </div>
         <div class="vrow-acts">
-          <div class="ico-btn" onclick="openEditModal('${item.vid}')">
+          <div class="ico-btn" onclick="openEditModal('${itemId}')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
           </div>
-          <div class="ico-btn" onclick="removePacVid('${item.vid}')">
+          <div class="ico-btn" onclick="removePacVid('${itemId}')">
             <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
           </div>
         </div>`;
@@ -2017,25 +1958,34 @@ function onBibliotecaSel(sel) {
 }
 // doAssign local eliminada — usa versión Firestore
 
-function openEditModal(vid) {
-  var item=patientPlan.find(p=>p.vid===vid);
-  var v=videos.find(dv=>dv.id===vid);
-  if(!item||!v) return;
-  editingVidId=vid;
-  document.getElementById('me-title').textContent=v.title;
-  document.getElementById('me-series').value=item.series||'';
-  document.getElementById('me-reps').value=item.reps||'';
-  document.getElementById('me-dur').value=item.dur||'';
-  document.getElementById('me-desc').value=item.desc||'';
+function openEditModal(itemId) {
+  // Busca por id (Firestore) o vid (legacy)
+  var item = patientPlan.find(p => (p.id||p.vid) === itemId);
+  if (!item) return;
+  editingVidId = itemId;
+  document.getElementById('me-title').textContent = item.title || 'Ejercicio';
+  document.getElementById('me-series').value = item.series || '';
+  document.getElementById('me-reps').value = item.reps || '';
+  document.getElementById('me-dur').value = item.dur || '';
+  document.getElementById('me-desc').value = item.desc || '';
   document.getElementById('m-edit').classList.add('open');
 }
-function saveEdit() {
-  var item=patientPlan.find(p=>p.vid===editingVidId);
-  if(!item) return;
-  item.series=document.getElementById('me-series').value;
-  item.reps=document.getElementById('me-reps').value;
-  item.dur=document.getElementById('me-dur').value;
-  item.desc=document.getElementById('me-desc').value;
+async function saveEdit() {
+  var item = patientPlan.find(p => (p.id||p.vid) === editingVidId);
+  if (!item) return;
+  item.series = document.getElementById('me-series').value;
+  item.reps = document.getElementById('me-reps').value;
+  item.dur = document.getElementById('me-dur').value;
+  item.desc = document.getElementById('me-desc').value;
+  // Guardar en Firestore si tiene id real
+  if (item.id && currentPacId) {
+    try {
+      const { db, doc, updateDoc } = fb();
+      await updateDoc(doc(db, `planes/${currentPacId}/items/${item.id}`), {
+        series: item.series, reps: item.reps, dur: item.dur, desc: item.desc
+      });
+    } catch(e) { console.error('Error guardando edición:', e); }
+  }
   closeM('m-edit');
   renderPacVideos();
   toast('Datos actualizados ✓');
@@ -2412,9 +2362,6 @@ var FICHAS = {
         </div>
         <div class="sc"><div class="sc-head"><h3>Motivo de consulta</h3></div>
           <div class="ff"><label>Diagnóstico médico</label><input type="text" id="rpg-diag-m" placeholder="Diagnóstico oficial"></div>
-          <div class="ff"><label>Diagnóstico en sistema <span style="font-size:.62rem;color:var(--acc);font-weight:500">(visible para el paciente)</span></label>
-            <input type="text" id="rpg-diag-sistema" placeholder="Ej: Lumbalgia crónica, Hernia L4-L5...">
-          </div>
           <div class="ff"><label>Motivo de consulta</label><textarea id="rpg-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo?"></textarea></div>
           <div class="f2"><div class="ff"><label>¿Cuánto tiempo tiene el dolor?</label><input type="text" id="rpg-tiempo-dolor" placeholder="Ej: 3 años"></div>
           <div class="ff"><label>¿Se irradia?</label><select id="rpg-irradia"><option>—</option><option>No</option><option>Sí</option></select></div></div>
@@ -2442,7 +2389,7 @@ var FICHAS = {
             <span class="eva-label">10</span><span class="eva-val" id="rpg-eva-val">0</span></div>
           </div>
         </div>
-        <button class="btn-prim" onclick="guardarDatosRPG()">Guardar datos</button>
+        <button class="btn-prim" onclick="toast('Datos RPG guardados ✓')">Guardar datos</button>
       `; },
       'fc-eval': function() { return `
         <div class="sc"><div class="sc-head"><h3>Evaluación postural</h3></div>
@@ -2479,66 +2426,6 @@ var FICHAS = {
       `; }
     }
   },
-  general: {
-    tabs: ['Datos','Evaluación','Evolución','Fotos','Objetivos'],
-    ids:  ['fc-datos','fc-eval-gen','fc-evol','fc-fotos','fc-obj-gen'],
-    panels: {
-      'fc-datos': function() { return `
-        <div class="sc"><div class="sc-head"><h3>Datos personales</h3></div>
-          <div class="f2"><div class="ff"><label>Fecha de nacimiento</label><input type="date" id="gen-fnac"></div>
-          <div class="ff"><label>Edad</label><input type="text" id="gen-edad" placeholder="Años"></div></div>
-          <div class="f2"><div class="ff"><label>Sexo</label><select id="gen-sexo"><option>—</option><option>Femenino</option><option>Masculino</option><option>Otro</option></select></div>
-          <div class="ff"><label>Teléfono</label><input type="tel" id="gen-tel" placeholder="+54 351..."></div></div>
-          <div class="ff"><label>Ocupación</label><input type="text" id="gen-ocup" placeholder="Empleado, estudiante..."></div>
-          <div class="f2"><div class="ff"><label>Obra social</label><input type="text" id="gen-os" placeholder="OSDE..."></div>
-          <div class="ff"><label>Médico derivante</label><input type="text" id="gen-medico" placeholder="Dr./Dra."></div></div>
-        </div>
-        <div class="sc"><div class="sc-head"><h3>Motivo de consulta</h3></div>
-          <div class="ff"><label>Objetivo principal</label><input type="text" id="gen-objetivo" placeholder="Bajar de peso, ganar fuerza, rehabilitación..."></div>
-          <div class="ff"><label>Descripción</label><textarea id="gen-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo? ¿Qué espera lograr?"></textarea></div>
-          <div class="f2"><div class="ff"><label>Nivel de actividad actual</label><select id="gen-nivel"><option>—</option><option>Sedentario</option><option>Poco activo</option><option>Moderado</option><option>Activo</option><option>Muy activo</option></select></div>
-          <div class="ff"><label>¿Hace deportes?</label><select id="gen-dep"><option>—</option><option>Sí</option><option>No</option></select></div></div>
-          <div class="ff"><label>¿Cuáles?</label><input type="text" id="gen-dep-desc" placeholder="Fútbol, natación..."></div>
-        </div>
-        <div class="sc"><div class="sc-head"><h3>Antecedentes</h3></div>
-          <div class="ff"><label>Antecedentes médicos relevantes</label><textarea id="gen-ap" placeholder="Lesiones, cirugías, patologías..."></textarea></div>
-          <div class="f2"><div class="ff"><label>Medicación</label><select id="gen-meds"><option>—</option><option>Sí</option><option>No</option></select></div>
-          <div class="ff"><label>¿Cuáles?</label><input type="text" id="gen-meds-desc"></div></div>
-          <div class="f2"><div class="ff"><label>Altura / Peso</label><input type="text" id="gen-talla" placeholder="1.70m / 75kg"></div>
-          <div class="ff"><label>Frecuencia cardíaca en reposo</label><input type="text" id="gen-fc" placeholder="Ej: 72 bpm"></div></div>
-        </div>
-        <button class="btn-prim" onclick="guardarDatosNeuro()">Guardar datos</button>
-      `; },
-      'fc-eval-gen': function() { return `
-        <div class="sc"><div class="sc-head"><h3>Evaluación física inicial</h3></div>
-          <div class="ff"><label>Postura general</label><textarea id="gen-postura" placeholder="Observaciones posturales básicas..."></textarea></div>
-          <div class="ff"><label>Flexibilidad</label><textarea id="gen-flex" placeholder="Test sit and reach, movilidad general..."></textarea></div>
-          <div class="ff"><label>Fuerza general</label><textarea id="gen-fuerza" placeholder="Push-ups, sentadillas, test básico..."></textarea></div>
-          <div class="ff"><label>Resistencia cardiovascular</label><textarea id="gen-cardio" placeholder="Test de escalón, caminata 6 min..."></textarea></div>
-          <div class="ff"><label>Zonas de dolor o molestia</label><input type="text" id="gen-dolor" placeholder="Espalda baja, rodilla derecha..."></div>
-          <div class="ff"><label>Observaciones generales</label><textarea id="gen-obs"></textarea></div>
-        </div>
-        <button class="btn-prim" onclick="toast('Evaluación guardada ✓')">Guardar evaluación</button>
-      `; },
-      'fc-evol': function() { return buildEvolPanel(); },
-      'fc-fotos': function() { return buildFotosPanel(); },
-      'fc-obj-gen': function() { return `
-        <div class="sc"><div class="sc-head"><h3>Plan de entrenamiento</h3></div>
-          <div class="ff"><label>Objetivo a corto plazo (1-4 sem)</label><textarea id="gen-obj-c" placeholder="Ej: Mejorar movilidad, activar musculatura..."></textarea></div>
-          <div class="ff"><label>Objetivo a mediano plazo (1-3 m)</label><textarea id="gen-obj-m" placeholder="Ej: Ganar fuerza en tren inferior..."></textarea></div>
-          <div class="ff"><label>Objetivo a largo plazo (3-6 m)</label><textarea id="gen-obj-l" placeholder="Ej: Correr 5km, bajar 5kg..."></textarea></div>
-          <div class="ff"><label>Frecuencia semanal</label><select id="gen-freq"><option>—</option><option>1 vez/semana</option><option>2 veces/semana</option><option>3 veces/semana</option><option>4+ veces/semana</option></select></div>
-          <div class="ff"><label>Metodología</label><textarea id="gen-metod" placeholder="Fuerza funcional, movilidad, cardio, combinado..."></textarea></div>
-        </div>
-        <div class="sc"><div class="sc-head"><h3>Alta</h3></div>
-          <div class="f2"><div class="ff"><label>Estado</label><select id="gen-estado"><option>En plan</option><option>Objetivos cumplidos</option><option>Derivado</option><option>Abandonó</option></select></div>
-          <div class="ff"><label>Fecha cierre estimada</label><input type="date" id="gen-alta"></div></div>
-          <div class="ff"><label>Resumen de resultados</label><textarea id="gen-resumen"></textarea></div>
-        </div>
-        <button class="btn-prim" onclick="toast('Plan guardado ✓')">Guardar plan</button>
-      `; }
-    }
-  },
   neuro: {
     tabs: ['Datos','Dec. Supino','Sedente','Bipedest.','Marcha','Evolución','Fotos','Objetivos'],
     ids:  ['fc-datos','fc-supino','fc-sedente','fc-bipedest','fc-marcha','fc-evol','fc-fotos','fc-obj'],
@@ -2548,9 +2435,6 @@ var FICHAS = {
           <div class="f2"><div class="ff"><label>Fecha de evaluación</label><input type="date" id="ne-fecha"></div>
           <div class="ff"><label>Edad</label><input type="text" id="ne-edad" placeholder="Años"></div></div>
           <div class="ff"><label>Diagnóstico médico</label><input type="text" id="ne-diag" placeholder="Diagnóstico oficial"></div>
-          <div class="ff"><label>Diagnóstico en sistema <span style="font-size:.62rem;color:var(--acc);font-weight:500">(visible para el paciente)</span></label>
-            <input type="text" id="ne-diag-sistema" placeholder="Ej: ACV isquémico, Esclerosis múltiple...">
-          </div>
           <div class="ff"><label>Motivo de consulta</label><textarea id="ne-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo? ¿Cómo comenzó?"></textarea></div>
           <div class="f2"><div class="ff"><label>Médico derivante</label><input type="text" id="ne-medico" placeholder="Dr./Dra."></div>
           <div class="ff"><label>Obra social</label><input type="text" id="ne-os"></div></div>
@@ -2674,7 +2558,7 @@ function buildFotosPanel() {
 
 function selFichaTipo(el, tipo) {
   fichaCurrentTipo = tipo;
-  document.querySelectorAll('#d-ficha .tipo-pill').forEach(function(p) { p.classList.remove('on'); });
+  document.querySelectorAll('.tipo-pill').forEach(function(p) { p.classList.remove('on'); });
   el.classList.add('on');
   renderFichaTabs();
 }
@@ -2685,13 +2569,14 @@ function renderFichaTabs() {
   var panelsEl = document.getElementById('fc-panels-container');
   if (!tabsEl || !panelsEl) return;
 
+  // Build tabs
   tabsEl.innerHTML = ficha.tabs.map(function(t, i) {
     return '<button class="fc-tab' + (i===0?' on':'') + '" onclick="fcTab(this,\'' + ficha.ids[i] + '\')">' + t + '</button>';
   }).join('');
 
+  // Build first panel
   var firstId = ficha.ids[0];
   panelsEl.innerHTML = '<div class="fc-panel active" id="' + firstId + '">' + ficha.panels[firstId]() + '</div>';
-  setTimeout(precargarDiagnostico, 50);
 }
 
 function fcTab(el, panelId) {
@@ -2712,22 +2597,19 @@ function openFicha() {
   document.getElementById('fc-diag').textContent = diag;
   document.getElementById('fc-av').textContent   = av;
   document.getElementById('me-evol-pac').textContent = name;
+  // Hide patient detail before switching
   document.getElementById('d-pac-detail').style.display = 'none';
   prevPage = 'd-pacientes';
+  // Navigate first
   showPage('d-ficha');
-  document.getElementById('bar-title').textContent = 'Ficha Clínica';
-  // Detectar tipo del paciente actual
-  var pac = pacientesData.find(function(x) { return x.id === currentPacId; });
-  fichaCurrentTipo = (pac && pac.tipo) ? pac.tipo : 'rpg';
-  // Actualizar pills
-  document.querySelectorAll('#d-ficha .tipo-pill').forEach(function(p) { p.classList.remove('on'); });
-  var tipoBtn = document.getElementById('ficha-tipo-' + fichaCurrentTipo);
-  if (tipoBtn) tipoBtn.classList.add('on');
-  else {
-    var rpgBtn = document.getElementById('ficha-tipo-rpg');
-    if (rpgBtn) rpgBtn.classList.add('on');
-    fichaCurrentTipo = 'rpg';
-  }
+  document.getElementById('bar-title').textContent = 'Ficha Clinica';
+  // Reset tipo selector
+  fichaCurrentTipo = 'rpg';
+  var rpgBtn = document.getElementById('ficha-tipo-rpg');
+  var neuroBtn = document.getElementById('ficha-tipo-neuro');
+  if (rpgBtn) rpgBtn.classList.add('on');
+  if (neuroBtn) neuroBtn.classList.remove('on');
+  // Render tabs after DOM settles
   setTimeout(function() {
     renderFichaTabs();
     document.getElementById('back-btn').style.display = 'flex';
@@ -2882,46 +2764,6 @@ async function saveComment() {
       '<div class="cmt-text">' + (text || '(sin comentario adicional)') + '</div>';
     list.prepend(div);
   }
-}
-
-
-// ── GUARDAR DIAGNÓSTICO DESDE FICHA ──
-async function guardarDiagnostico(campo, idInput) {
-  var val = document.getElementById(idInput);
-  if (!val) return;
-  var diag = val.value.trim();
-  if (!diag) { toast('Ingresá un diagnóstico'); return; }
-  if (!currentPacId) { toast('No hay paciente seleccionado'); return; }
-  try {
-    const { db, doc, updateDoc } = fb();
-    await updateDoc(doc(db, 'usuarios', currentPacId), { diag: diag });
-    // Actualizar local
-    var p = pacientesData.find(x => x.id === currentPacId);
-    if (p) p.diag = diag;
-    renderPacientesList();
-    toast('Diagnóstico actualizado ✓');
-  } catch(e) { console.error('Error guardando diagnóstico:', e); toast('Error al guardar'); }
-}
-
-async function guardarDatosRPG() {
-  await guardarDiagnostico('diag', 'rpg-diag-sistema');
-  toast('Datos RPG guardados ✓');
-}
-
-async function guardarDatosNeuro() {
-  await guardarDiagnostico('diag', 'ne-diag-sistema');
-  toast('Datos neurológicos guardados ✓');
-}
-
-// Pre-cargar diagnóstico actual en la ficha al abrir
-function precargarDiagnostico() {
-  var p = pacientesData.find(x => x.id === currentPacId);
-  if (!p) return;
-  var rpgEl = document.getElementById('rpg-diag-sistema');
-  var neuroEl = document.getElementById('ne-diag-sistema');
-  var genEl = document.getElementById('gen-objetivo');
-  if (rpgEl) rpgEl.value = p.diag || '';
-  if (neuroEl) neuroEl.value = p.diag || '';
 }
 
 // ── FIREBASE INIT ──
@@ -3085,6 +2927,27 @@ window.logout = function() {
     <button class="btn-prim" style="background:transparent;color:#ef4444;border:1.5px solid #ef4444;margin-top:.5rem" onclick="logout()">Cerrar sesión</button>
   </div>
 </div>
+<script>
+// 1. Limpieza total de pacientes de prueba al cargar
+document.addEventListener('DOMContentLoaded', () => {
+    // Eliminar del DOM físico
+    document.querySelectorAll('.u-row').forEach(el => {
+        let txt = el.innerHTML.toLowerCase();
+        if(txt.includes('maria@') || txt.includes('carlos@') || txt.includes('u1') || txt.includes('u2')) {
+            el.remove();
+        }
+    });
+    // Vaciar el array de datos en memoria para que no los vuelva a renderizar
+    if(typeof pacientesData !== 'undefined') {
+        pacientesData = []; 
+    }
+});
 
+// 2. Función de asignación prioritaria
+// doAssign — versión unificada arriba
+;
+// Redirigir el clic del botón al nuevo doAssign
+
+</script>
 </body>
 </html>
