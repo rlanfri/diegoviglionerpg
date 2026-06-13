@@ -329,9 +329,6 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pac-chip-wrap{position:relative}
 .pac-chip-del{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);display:none;z-index:2}
 .pac-chip-wrap.admin-mode .pac-chip-del{display:flex}
-.nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
-.nu-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
-.nu-tipo-btn:active{transform:scale(.97)}
 </style>
 
   <!-- Firebase SDK -->
@@ -455,10 +452,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- PAC HOME -->
     <div class="page" id="p-home">
       <div class="pg-title" id="p-greeting">Hola</div>
-      <div id="p-tipo-info" style="display:none;margin-bottom:.7rem">
-        <span id="p-tipo-badge" style="display:inline-flex;align-items:center;gap:5px;background:var(--acc-l);color:var(--acc-d);border-radius:100px;padding:.25rem .75rem;font-size:.72rem;font-weight:600"></span>
-      </div>
-      <div class="pg-sub" id="p-home-sub">Tu programa de ejercicios</div>
+      <div class="pg-sub">Tu programa de ejercicios</div>
       <div class="stat-strip">
         <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
         <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
@@ -612,25 +606,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="ff"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre del paciente"></div>
         <div class="ff"><label>Email Google</label><input type="email" id="nu-email" placeholder="email@gmail.com"></div>
         <div class="f2">
-          <div class="ff"><label>Rol</label><select id="nu-rol" onchange="toggleNuTipo(this.value)"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
+          <div class="ff"><label>Rol</label><select id="nu-rol"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
           <div class="ff"><label>Diagnóstico</label><input type="text" id="nu-diag" placeholder="Diagnóstico"></div>
-        </div>
-        <div id="nu-tipo-wrap" style="margin-bottom:.65rem">
-          <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">Tipo de programa</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
-            <button type="button" class="nu-tipo-btn on" id="nu-ptb-rpg" onclick="selNuTipo('rpg')">
-              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
-              <span style="font-size:.72rem;font-weight:600">RPG</span>
-            </button>
-            <button type="button" class="nu-tipo-btn" id="nu-ptb-neuro" onclick="selNuTipo('neuro')">
-              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
-              <span style="font-size:.72rem;font-weight:600">Neurológico</span>
-            </button>
-            <button type="button" class="nu-tipo-btn" id="nu-ptb-general" onclick="selNuTipo('general')">
-              <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
-              <span style="font-size:.72rem;font-weight:600">General</span>
-            </button>
-          </div>
         </div>
         <button class="btn-prim" onclick="addUser()">Crear usuario</button>
       </div>
@@ -1075,10 +1052,9 @@ async function addUser() {
       pct: 0,
       profId: '',
       profNombre: 'Sin asignar',
-      tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
+      tipo: 'rpg',
     });
     ['nu-nombre','nu-email','nu-diag'].forEach(id => document.getElementById(id).value = '');
-    selNuTipo('rpg');
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
@@ -1147,18 +1123,16 @@ async function doAssign() {
     if (!mes || !sem) { toast('Seleccioná mes y semana'); return; }
     if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
 
-    // Buscar en el array local primero (ya cargado), si no va a Firestore
-    const exLocal = videos.find(v => v.id === vidSelId);
     const { db, doc: fsDoc, getDoc, collection, addDoc } = fb();
 
     try {
-        let ex = exLocal || {};
-        if (!exLocal) {
-            const snap = await getDoc(fsDoc(db, 'ejercicios', vidSelId));
-            ex = snap.exists() ? snap.data() : {};
+        // Buscar primero en el array local (ya cargado), si no existe ir a Firestore
+        let ex = videos.find(v => v.id === vidSelId);
+        if (!ex) {
+            const docSnap = await getDoc(fsDoc(db, 'ejercicios', vidSelId));
+            ex = docSnap.exists() ? docSnap.data() : {};
         }
 
-        // Override opcionales desde el formulario
         const tituloOverride = document.getElementById('as-titulo').value.trim();
         const seriesOverride = document.getElementById('as-ind-series')?.value.trim() || document.getElementById('as-vid-series')?.value.trim() || '';
         const repsOverride   = document.getElementById('as-ind-reps')?.value.trim() || '';
@@ -1182,7 +1156,7 @@ async function doAssign() {
 
         const newRef = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
 
-        // Actualizar local inmediatamente — sin reload
+        // Actualizar local sin reload
         patientPlan.push({ id: newRef.id, ...item });
 
         closeM('m-assign');
@@ -1538,13 +1512,11 @@ function openFotoModal(fotoUrl, title) {
 function markSeen(itemId, uid) {
   if (seenSet.has(itemId)) return;
   seenSet.add(itemId);
-  // Actualizar UI del ítem sin re-renderizar todo
   var sb = document.getElementById('sb-' + uid);
   if (sb) { sb.className = 'seen-badge'; sb.textContent = '✓ Visto'; }
   var btn = document.getElementById('bseen-' + uid);
   if (btn) { btn.textContent = '✓ Visto'; btn.classList.add('done'); }
   updateStats();
-  // Guardar en Firestore
   var currentUid = profileData && profileData.uid;
   if (currentUid) {
     guardarVisto(currentUid, itemId).catch(function(e) { console.error('Error guardando visto:', e); });
@@ -1860,10 +1832,10 @@ async function openPacById(id) {
   if (!p) return;
   currentPacId = id;
 
-  document.querySelectorAll('.pac-chip').forEach(c => c.classList.remove('sel'));
-  // Highlight chip seleccionado
+  document.querySelectorAll('.pac-chip').forEach(function(c) { c.classList.remove('sel'); });
   document.querySelectorAll('.pac-chip').forEach(function(c) {
-    if (c.getAttribute('onclick') && c.getAttribute('onclick').includes(id)) c.classList.add('sel');
+    var oc = c.getAttribute('onclick');
+    if (oc && oc.indexOf(id) > -1) c.classList.add('sel');
   });
 
   document.getElementById('dpd-av').textContent   = p.ini || '?';
@@ -1871,7 +1843,6 @@ async function openPacById(id) {
   document.getElementById('dpd-diag').textContent = p.diag || '—';
   document.getElementById('dpd-pct').textContent  = (p.pct||0) + '%';
 
-  // Asignación profesional (solo admin)
   var wrap = document.getElementById('dpd-asignar-prof-wrap');
   if (role === 'admin') {
     wrap.style.display = 'block';
@@ -1888,11 +1859,9 @@ async function openPacById(id) {
     wrap.style.display = 'none';
   }
 
-  // Mostrar loading mientras carga el plan
   document.getElementById('dpd-video-list').innerHTML = '<div class="empty">Cargando plan...</div>';
   document.getElementById('d-pac-detail').style.display = 'block';
 
-  // Cargar plan del paciente desde Firestore
   try {
     await cargarPlanPaciente(id);
   } catch(e) { console.error('Error cargando plan:', e); }
@@ -1925,12 +1894,9 @@ function renderPacVideos() {
     return;
   }
 
-  // Agrupar por mes·semana
   var byKey = {};
   patientPlan.forEach(function(item) {
-    var mes = item.mes || 'Sin mes';
-    var sem = item.sem || 'Sin semana';
-    var k = mes + ' · ' + sem;
+    var k = (item.mes || 'Sin mes') + ' · ' + (item.sem || 'Sin semana');
     if (!byKey[k]) byKey[k] = [];
     byKey[k].push(item);
   });
@@ -1941,7 +1907,8 @@ function renderPacVideos() {
     indicacion: '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
   };
 
-  Object.entries(byKey).forEach(function([key, items]) {
+  Object.keys(byKey).forEach(function(key) {
+    var items = byKey[key];
     var lbl = document.createElement('div');
     lbl.className = 'sec-label';
     lbl.style.marginTop = '.4rem';
@@ -1980,31 +1947,29 @@ function renderPacVideos() {
 // removePacVid local eliminada — usa versión Firestore
 
 function updateAssignSelect() {} // no longer needed
-function _llenarSelectorBiblioteca() {
+async function openAssignModal() {
+  // Siempre recargar biblioteca desde Firestore
+  try {
+    await cargarEjercicios();
+  } catch(e) { console.error('Error cargando ejercicios:', e); }
+
+  // Llenar selector
   var sel = document.getElementById('as-biblioteca-sel');
   sel.innerHTML = '<option value="">— Elegí un ejercicio —</option>';
   videos.forEach(function(v) {
     var opt = document.createElement('option');
     opt.value = v.id;
     var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
-    opt.textContent = icon + ' ' + v.title + (v.cat ? ' [' + v.cat + ']' : '');
+    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (v.cat ? ' [' + v.cat + ']' : '');
     sel.appendChild(opt);
   });
-}
-
-async function openAssignModal() {
-  // Siempre recargar biblioteca desde Firestore para tener datos frescos
-  try {
-    await cargarEjercicios();
-  } catch(e) { console.error('Error cargando ejercicios:', e); }
-
-  _llenarSelectorBiblioteca();
 
   // Reset campos override
   ['as-titulo','as-ind-series','as-ind-reps','as-ind-dur','as-ind-texto',
-   'as-vid-series','as-vid-dur','as-vid-desc','as-foto-series','as-foto-reps'].forEach(function(id) {
+   'as-vid-series','as-vid-dur','as-vid-desc'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
+
   document.getElementById('m-assign').classList.add('open');
 }
 
@@ -2038,7 +2003,6 @@ async function saveEdit() {
   item.reps   = document.getElementById('me-reps').value;
   item.dur    = document.getElementById('me-dur').value;
   item.desc   = document.getElementById('me-desc').value;
-  // Guardar en Firestore
   if (item.id && currentPacId) {
     try {
       const { db, doc, updateDoc } = fb();
@@ -2866,7 +2830,6 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
       profileData.email = d.email || '';
       profileData.tel = d.tel || '';
       profileData.diag = d.diag || '';
-      profileData.tipo = d.tipo || 'rpg';
       const ini2 = ((profileData.nombre[0]||'')+(profileData.apellido[0]||'')).toUpperCase() || ini;
       profileData.initials = ini2;
       document.getElementById('av-btn').textContent = ini2;
@@ -2889,7 +2852,6 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     document.getElementById('p-greeting').textContent = 'Hola, ' + (nameParts[0] || nombre);
     renderAccordion();
     updateStats();
-    mostrarTipoPaciente(profileData.tipo || 'rpg');
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
@@ -2918,36 +2880,6 @@ window._showAccessError = function(tipo) {
   const btn = document.querySelector('.btn-login');
   if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
 };
-
-// ── TIPO DE PROGRAMA (nuevo usuario) ──
-function selNuTipo(tipo) {
-  ['rpg','neuro','general'].forEach(function(t) {
-    var btn = document.getElementById('nu-ptb-' + t);
-    if (btn) btn.classList.toggle('on', t === tipo);
-  });
-}
-
-function toggleNuTipo(rol) {
-  var wrap = document.getElementById('nu-tipo-wrap');
-  if (wrap) wrap.style.display = rol.toLowerCase() === 'paciente' ? 'block' : 'none';
-}
-
-// ── BADGE TIPO EN VISTA PACIENTE (solo informativo) ──
-var TIPO_INFO = {
-  rpg:     { emoji: '🏃', label: 'RPG Postural' },
-  neuro:   { emoji: '🧠', label: 'Neurológico' },
-  general: { emoji: '💪', label: 'General' },
-};
-
-function mostrarTipoPaciente(tipo) {
-  var info = TIPO_INFO[tipo] || TIPO_INFO.rpg;
-  var wrap  = document.getElementById('p-tipo-info');
-  var badge = document.getElementById('p-tipo-badge');
-  var sub   = document.getElementById('p-home-sub');
-  if (wrap)  wrap.style.display = 'block';
-  if (badge) badge.textContent  = info.emoji + ' ' + info.label;
-  if (sub)   sub.textContent    = 'Tu programa de ejercicios · ' + info.label;
-}
 
 // Override logout to use Firebase signOut
 const _origLogout = window.logout;
@@ -3037,52 +2969,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 2. Función de asignación prioritaria
-window.doAssign = async function() {
-    if (!currentPacId) { toast('Seleccioná un paciente'); return; }
-
-    // Obtenemos los valores del modal
-    var idEx = document.getElementById('as-biblioteca')?.value;
-    var titEx = document.getElementById('as-vid-titulo')?.value || 'Ejercicio';
-    var urlEx = document.getElementById('as-vid-url')?.value || '';
-    
-    // Si NO hay ejercicio de biblioteca, obligamos a validar los campos necesarios
-    if (!idEx && !urlEx) { 
-        toast('Seleccioná un ejercicio de la biblioteca o una URL'); 
-        return; 
-    }
-
-    try {
-        const { db, doc, setDoc } = fb();
-        const asigId = idEx || 'asig_' + Date.now();
-        
-        await setDoc(doc(db, 'usuarios', currentPacId, 'ejercicios', asigId), {
-            id: asigId,
-            title: titEx,
-            url: urlEx,
-            desc: document.getElementById('as-vid-desc')?.value || '',
-            series: document.getElementById('as-vid-series')?.value || '',
-            reps: document.getElementById('as-vid-reps')?.value || '',
-            dur: document.getElementById('as-vid-dur')?.value || '',
-            visto: false,
-            fechaAsignado: new Date().toISOString()
-        });
-
-        toast('¡Ejercicio asignado con éxito! ✓');
-        
-        // Cerrar modal y refrescar UI
-        let m = document.getElementById('m-asignar'); 
-        if(m) m.style.display = 'none';
-        
-        if(typeof cargarEjerciciosAsignadosDoc === 'function') await cargarEjerciciosAsignadosDoc();
-        if(typeof mostrarDetallePaciente === 'function') mostrarDetallePaciente(currentPacId);
-        
-    } catch(e) {
-        console.error(e);
-        toast('Error al guardar en base de datos');
-    }
-};
-// Redirigir el clic del botón al nuevo doAssign
-document.querySelector('button[onclick*="Assign"]')?.setAttribute('onclick', 'doAssign()');
+// doAssign unificado — definido arriba
 </script>
 </body>
 </html>
