@@ -965,6 +965,7 @@ function isValidDriveUrl(url) {
 // ── DATA ──
 let role = 'paciente';
 let currentCommentVideo = '';
+let currentCommentItemId = '';
 let editingVidId = null;
 let profileData = {};
 let prevPage = '';
@@ -1461,7 +1462,7 @@ function renderAccordion() {
             ${desc ? `<div class="ex-desc">${desc}</div>` : ''}
             <div class="ex-actions">
               <button class="btn-seen${seen?' done':''}" id="bseen-${uid}" onclick="markSeen('${itemId}','${uid}')">${seen?'✓ Visto':'Marcar como visto'}</button>
-              <button class="btn-cmt" onclick="openCmt('${title}')">
+              <button class="btn-cmt" onclick="openCmt('${title}','${itemId}')">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
                 Comentar
               </button>
@@ -2872,6 +2873,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     document.getElementById('p-greeting').textContent = 'Hola, ' + (nameParts[0] || nombre);
     renderAccordion();
     updateStats();
+    try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
@@ -2880,6 +2882,8 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
+    try { await cargarProgresoPacientes(); } catch(e) { console.error('Error cargando progreso:', e); }
+    try { await renderComentariosProfesional(); } catch(e) { console.error('Error cargando comentarios:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
