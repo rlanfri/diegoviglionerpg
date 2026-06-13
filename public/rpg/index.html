@@ -123,6 +123,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .foto-wrap img{width:100%;height:auto;max-height:300px;object-fit:cover;display:block}
 .foto-wrap:hover{opacity:.95}
 .vid-overlay{position:absolute;inset:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:.6rem}
+.vid-overlay::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.vid-overlay .play-ring,.vid-overlay .vid-title-overlay{position:relative;z-index:1}
 .play-ring{width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:22px;padding-left:3px;color:#fff}
 .vid-title-overlay{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;color:rgba(255,255,255,.6);letter-spacing:.04em;text-transform:uppercase;font-weight:400}
 .ex-pills{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.55rem}
@@ -929,6 +931,18 @@ function convertYouTubeUrl(url) {
   return url;
 }
 
+// Extrae el ID de video de cualquier formato de URL de YouTube y devuelve la URL del thumbnail
+function getYouTubeThumb(url) {
+  if (!url) return '';
+  url = url.trim();
+  var id = '';
+  if (url.includes('/embed/')) id = url.split('/embed/')[1].split('?')[0].split('&')[0];
+  else if (url.includes('watch?v=')) id = url.split('watch?v=')[1].split('&')[0];
+  else if (url.includes('youtu.be/')) id = url.split('youtu.be/')[1].split('?')[0];
+  if (!id) return '';
+  return 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg';
+}
+
 function convertDriveUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -993,12 +1007,12 @@ async function cargarEjercicios() {
 }
 
 async function cargarPlanPaciente(uid) {
-  const { db, collection, getDocs, query, where } = fb();
-  const snap = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
+  const { db, collection, getDocs } = fb();
+  const snap = await getDocs(collection(db, `planes/${uid}/items`));
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
-  // cargar seenSet
-  const snapSeen = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
+  // cargar seenSet desde vistos/{uid}/items
+  const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
 }
@@ -1405,9 +1419,13 @@ function renderAccordion() {
         // Renderizar contenido según tipo
         var contentHTML = '';
         if (tipo === 'video' && item.url) {
+          var thumbUrl = getYouTubeThumb(item.url);
+          var overlayBg = thumbUrl
+            ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center`
+            : `background:#0d0d0d`;
           contentHTML = `
             <div class="video-wrap">
-              <div class="vid-overlay" id="vto-${uid}" onclick="playVid('${uid}','${item.url}','${itemId}')">
+              <div class="vid-overlay" id="vto-${uid}" style="${overlayBg}" onclick="playVid('${uid}','${item.url}','${itemId}')">
                 <div class="play-ring">▶</div>
                 <div class="vid-title-overlay">${title}</div>
               </div>
