@@ -329,10 +329,9 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pac-chip-wrap{position:relative}
 .pac-chip-del{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);display:none;z-index:2}
 .pac-chip-wrap.admin-mode .pac-chip-del{display:flex}
-/* TIPO PACIENTE SELECTOR */
-.p-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.6rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2}
-.p-tipo-btn:active{transform:scale(.97)}
-.p-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
+.nu-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.nu-tipo-btn:active{transform:scale(.97)}
 </style>
 
   <!-- Firebase SDK -->
@@ -456,25 +455,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- PAC HOME -->
     <div class="page" id="p-home">
       <div class="pg-title" id="p-greeting">Hola</div>
-      <div class="pg-sub">Tu programa de ejercicios</div>
-      <!-- Selector tipo paciente -->
-      <div id="p-tipo-wrap" style="display:none;margin-bottom:.85rem">
-        <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.45rem">Tipo de programa</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
-          <button class="p-tipo-btn" id="ptb-rpg" onclick="selTipoPaciente('rpg')">
-            <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
-            <span style="font-size:.72rem;font-weight:600">RPG</span>
-          </button>
-          <button class="p-tipo-btn" id="ptb-neuro" onclick="selTipoPaciente('neuro')">
-            <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
-            <span style="font-size:.72rem;font-weight:600">Neurológico</span>
-          </button>
-          <button class="p-tipo-btn" id="ptb-general" onclick="selTipoPaciente('general')">
-            <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
-            <span style="font-size:.72rem;font-weight:600">General</span>
-          </button>
-        </div>
+      <div id="p-tipo-info" style="display:none;margin-bottom:.7rem">
+        <span id="p-tipo-badge" style="display:inline-flex;align-items:center;gap:5px;background:var(--acc-l);color:var(--acc-d);border-radius:100px;padding:.25rem .75rem;font-size:.72rem;font-weight:600"></span>
       </div>
+      <div class="pg-sub" id="p-home-sub">Tu programa de ejercicios</div>
       <div class="stat-strip">
         <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
         <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
@@ -628,8 +612,25 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="ff"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre del paciente"></div>
         <div class="ff"><label>Email Google</label><input type="email" id="nu-email" placeholder="email@gmail.com"></div>
         <div class="f2">
-          <div class="ff"><label>Rol</label><select id="nu-rol"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
+          <div class="ff"><label>Rol</label><select id="nu-rol" onchange="toggleNuTipo(this.value)"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
           <div class="ff"><label>Diagnóstico</label><input type="text" id="nu-diag" placeholder="Diagnóstico"></div>
+        </div>
+        <div id="nu-tipo-wrap" style="margin-bottom:.65rem">
+          <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">Tipo de programa</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
+            <button type="button" class="nu-tipo-btn on" id="nu-ptb-rpg" onclick="selNuTipo('rpg')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
+              <span style="font-size:.72rem;font-weight:600">RPG</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-neuro" onclick="selNuTipo('neuro')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
+              <span style="font-size:.72rem;font-weight:600">Neurológico</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-general" onclick="selNuTipo('general')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
+              <span style="font-size:.72rem;font-weight:600">General</span>
+            </button>
+          </div>
         </div>
         <button class="btn-prim" onclick="addUser()">Crear usuario</button>
       </div>
@@ -1074,9 +1075,10 @@ async function addUser() {
       pct: 0,
       profId: '',
       profNombre: 'Sin asignar',
-      tipo: 'rpg',
+      tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
     });
     ['nu-nombre','nu-email','nu-diag'].forEach(id => document.getElementById(id).value = '');
+    selNuTipo('rpg');
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
@@ -1136,56 +1138,60 @@ async function addVideo() {
 }
 
 async function doAssign() {
-    if (!currentPacId) { 
-        toast('Seleccioná un paciente primero'); 
-        return; 
-    }
+    if (!currentPacId) { toast('Seleccioná un paciente primero'); return; }
 
     const mes = document.getElementById('as-mes').value;
     const sem = document.getElementById('as-sem').value;
-    const titulo = document.getElementById('as-titulo').value.trim();
     const vidSelId = document.getElementById('as-biblioteca-sel').value;
 
-    if (!vidSelId) { toast('Seleccioná un ejercicio'); return; }
-    if (!titulo) { toast('Ingresá un título'); return; }
+    if (!mes || !sem) { toast('Seleccioná mes y semana'); return; }
+    if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
 
-    const { db, doc, getDoc, collection, addDoc } = fb();
-    
+    // Buscar en el array local primero (ya cargado), si no va a Firestore
+    const exLocal = videos.find(v => v.id === vidSelId);
+    const { db, doc: fsDoc, getDoc, collection, addDoc } = fb();
+
     try {
-        // 1. Buscamos el ejercicio directo en Firestore
-        const docSnap = await getDoc(doc(db, 'ejercicios', vidSelId));
-        const ex = docSnap.exists() ? docSnap.data() : {};
+        let ex = exLocal || {};
+        if (!exLocal) {
+            const snap = await getDoc(fsDoc(db, 'ejercicios', vidSelId));
+            ex = snap.exists() ? snap.data() : {};
+        }
 
-        // 2. Preparamos el objeto con datos de Firestore o del modal
+        // Override opcionales desde el formulario
+        const tituloOverride = document.getElementById('as-titulo').value.trim();
+        const seriesOverride = document.getElementById('as-ind-series')?.value.trim() || document.getElementById('as-vid-series')?.value.trim() || '';
+        const repsOverride   = document.getElementById('as-ind-reps')?.value.trim() || '';
+        const durOverride    = document.getElementById('as-ind-dur')?.value.trim() || document.getElementById('as-vid-dur')?.value.trim() || '';
+        const descOverride   = document.getElementById('as-ind-texto')?.value.trim() || document.getElementById('as-vid-desc')?.value.trim() || '';
+
         const item = {
-            mes: mes,
-            sem: sem,
-            tipo: ex.tipo || 'video',
-            title: titulo,
-            url: ex.url || document.getElementById('as-vid-url')?.value || '',
-            fotoUrl: ex.fotoUrl || '',
-            desc: ex.desc || document.getElementById('as-vid-desc')?.value || '',
-            series: document.getElementById('as-vid-series')?.value || ex.series || '',
-            reps: document.getElementById('as-vid-reps')?.value || ex.reps || '',
-            dur: document.getElementById('as-vid-dur')?.value || ex.dur || '',
+            mes,
+            sem,
+            tipo:        ex.tipo || 'video',
+            title:       tituloOverride || ex.title || 'Ejercicio',
+            url:         ex.url || '',
+            fotoUrl:     ex.fotoUrl || '',
+            desc:        descOverride || ex.desc || '',
+            series:      seriesOverride || ex.series || '',
+            reps:        repsOverride || ex.reps || '',
+            dur:         durOverride || ex.dur || '',
             ejercicioId: vidSelId,
             fechaAsignado: new Date().toISOString()
         };
 
-        // 3. Guardamos
-        await addDoc(collection(db, `planes/${currentPacId}/items`), item);
-        
-        // 4. Limpieza y cierre
-        toast('¡Asignado con éxito! ✓');
-        var m = document.getElementById('m-assign');
-        if(m) m.style.display = 'none';
-        
-        if (typeof cargarEjercicios === 'function') await cargarEjercicios();
-        if (typeof renderPacVideos === 'function') renderPacVideos();
-        
+        const newRef = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
+
+        // Actualizar local inmediatamente — sin reload
+        patientPlan.push({ id: newRef.id, ...item });
+
+        closeM('m-assign');
+        renderPacVideos();
+        toast('✓ Asignado: ' + item.title + ' → ' + sem);
+
     } catch(err) {
-        console.error("Error crítico:", err);
-        toast('Error al guardar');
+        console.error('Error al asignar:', err);
+        toast('Error al guardar la asignación');
     }
 }
 // ── OVERRIDE cambiarEstado → escribe en Firestore ──
@@ -1273,13 +1279,13 @@ async function deleteDocVideo(id) {
 // ── OVERRIDE removePacVid → borra en Firestore ──
 async function removePacVid(itemId) {
   if (!currentPacId) return;
+  if (!confirm('¿Quitar este ejercicio del plan?')) return;
   const { db, doc, deleteDoc } = fb();
   try {
-    await deleteDoc(doc(db, `planes/${currentPacId}/items/${itemId}`));
-    await cargarEjercicios();
-    patientPlan = patientPlan.filter(p => p.id !== itemId);
+    await deleteDoc(doc(db, 'planes/' + currentPacId + '/items/' + itemId));
+    patientPlan = patientPlan.filter(p => (p.id || p.vid) !== itemId);
     renderPacVideos();
-    toast('Ejercicio removido');
+    toast('Ejercicio removido ✓');
   } catch(err) {
     console.error(err);
     toast('Error al remover ejercicio');
@@ -1529,21 +1535,26 @@ function openFotoModal(fotoUrl, title) {
   document.getElementById('m-foto').classList.add('open');
 }
 
-function markSeen(vid, uid) {
-  if (seenSet.has(vid)) return;
-  seenSet.add(vid);
-  var sb = document.getElementById('sb-'+uid);
-  if (sb) { sb.className='seen-badge'; sb.textContent='✓ Visto'; }
-  var btn = document.getElementById('bseen-'+uid);
-  if (btn) { btn.textContent='✓ Visto'; btn.classList.add('done'); }
+function markSeen(itemId, uid) {
+  if (seenSet.has(itemId)) return;
+  seenSet.add(itemId);
+  // Actualizar UI del ítem sin re-renderizar todo
+  var sb = document.getElementById('sb-' + uid);
+  if (sb) { sb.className = 'seen-badge'; sb.textContent = '✓ Visto'; }
+  var btn = document.getElementById('bseen-' + uid);
+  if (btn) { btn.textContent = '✓ Visto'; btn.classList.add('done'); }
   updateStats();
-  renderAccordion();
+  // Guardar en Firestore
+  var currentUid = profileData && profileData.uid;
+  if (currentUid) {
+    guardarVisto(currentUid, itemId).catch(function(e) { console.error('Error guardando visto:', e); });
+  }
   toast('¡Marcado como visto!');
 }
 
 function updateStats() {
   var total = patientPlan.length;
-  var seen = patientPlan.filter(i=>seenSet.has(i.vid)).length;
+  var seen = patientPlan.filter(i => seenSet.has(i.id || i.vid)).length;
   var pct = total ? Math.round(seen/total*100) : 0;
   document.getElementById('ph-total').textContent = total;
   document.getElementById('ph-seen').textContent = seen;
@@ -1844,39 +1855,51 @@ function eliminarPaciente(id) {
   toast('Paciente eliminado');
 }
 
-function openPacById(id) {
+async function openPacById(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
   currentPacId = id;
-  document.querySelectorAll('.pac-chip').forEach(c=>c.classList.remove('sel'));
-  // highlight
-  document.querySelectorAll('.pac-chip').forEach(c => { if(c.onclick && c.onclick.toString().includes(id)) c.classList.add('sel'); });
-  document.getElementById('dpd-av').textContent = p.ini;
-  document.getElementById('dpd-name').textContent = p.nombre;
-  document.getElementById('dpd-diag').textContent = p.diag;
-  document.getElementById('dpd-pct').textContent = p.pct + '%';
-  // Admin: show profesional assignment
+
+  document.querySelectorAll('.pac-chip').forEach(c => c.classList.remove('sel'));
+  // Highlight chip seleccionado
+  document.querySelectorAll('.pac-chip').forEach(function(c) {
+    if (c.getAttribute('onclick') && c.getAttribute('onclick').includes(id)) c.classList.add('sel');
+  });
+
+  document.getElementById('dpd-av').textContent   = p.ini || '?';
+  document.getElementById('dpd-name').textContent = (p.nombre||'') + (p.apellido ? ' '+p.apellido : '');
+  document.getElementById('dpd-diag').textContent = p.diag || '—';
+  document.getElementById('dpd-pct').textContent  = (p.pct||0) + '%';
+
+  // Asignación profesional (solo admin)
   var wrap = document.getElementById('dpd-asignar-prof-wrap');
   if (role === 'admin') {
     wrap.style.display = 'block';
-    // Llenar selector con profesionales reales de Firestore
     var sel = document.getElementById('dpd-prof-sel');
     sel.innerHTML = '<option value="">Sin asignar</option>';
     profesionalesData.forEach(function(prof) {
       var opt = document.createElement('option');
       opt.value = prof.id;
-      opt.textContent = (prof.nombre || '') + (prof.apellido ? ' ' + prof.apellido : '');
+      opt.textContent = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
       sel.appendChild(opt);
     });
     sel.value = p.profId || '';
   } else {
     wrap.style.display = 'none';
   }
-  renderPacVideos();
+
+  // Mostrar loading mientras carga el plan
+  document.getElementById('dpd-video-list').innerHTML = '<div class="empty">Cargando plan...</div>';
   document.getElementById('d-pac-detail').style.display = 'block';
-  // Render inline ficha based on patient tipo
+
+  // Cargar plan del paciente desde Firestore
+  try {
+    await cargarPlanPaciente(id);
+  } catch(e) { console.error('Error cargando plan:', e); }
+
+  renderPacVideos();
   renderInlineFicha(p.tipo || 'rpg');
-  setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
+  setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
 }
 
 function openPac(el, name, av, diag, pct) {
@@ -1895,73 +1918,93 @@ function openPac(el, name, av, diag, pct) {
 
 function renderPacVideos() {
   var list = document.getElementById('dpd-video-list');
-  list.innerHTML='';
-  var byKey={};
-  patientPlan.forEach(item=>{
-    var k=item.mes+' · '+item.sem;
-    if(!byKey[k]) byKey[k]=[];
+  list.innerHTML = '';
+
+  if (!patientPlan.length) {
+    list.innerHTML = '<div class="empty" style="padding:.75rem 0">Sin ejercicios asignados</div>';
+    return;
+  }
+
+  // Agrupar por mes·semana
+  var byKey = {};
+  patientPlan.forEach(function(item) {
+    var mes = item.mes || 'Sin mes';
+    var sem = item.sem || 'Sin semana';
+    var k = mes + ' · ' + sem;
+    if (!byKey[k]) byKey[k] = [];
     byKey[k].push(item);
   });
 
-  var typeIcon = {
-    video: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`,
-    foto:  `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`,
-    indicacion: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>`,
+  var iconSVG = {
+    video:      '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>',
+    foto:       '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>',
+    indicacion: '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
   };
 
-  Object.entries(byKey).forEach(([key,items])=>{
-    var lbl=document.createElement('div');
-    lbl.className='sec-label';
-    lbl.style.marginTop='.4rem';
-    lbl.textContent=key;
+  Object.entries(byKey).forEach(function([key, items]) {
+    var lbl = document.createElement('div');
+    lbl.className = 'sec-label';
+    lbl.style.marginTop = '.4rem';
+    lbl.textContent = key;
     list.appendChild(lbl);
-    items.forEach(item=>{
-      var tipo = item.tipo || 'video';
-      var v = videos.find(dv=>dv.id===item.vid);
-      var title = item.title || (v?.title) || '—';
-      var meta=[item.series,item.reps,item.dur].filter(Boolean).join(' · ');
-      var row=document.createElement('div');
-      row.className='vrow';
-      row.innerHTML=`
-        <div class="vrow-thumb" style="background:${tipo==='video'?'var(--acc)':tipo==='foto'?'#555':'#333'}">${typeIcon[tipo]||typeIcon.indicacion}</div>
-        <div class="vrow-info">
-          <div class="vrow-title">${title}</div>
-          <div class="vrow-meta">${meta||'Sin datos de carga'}</div>
-          ${item.desc?`<div class="vrow-meta" style="font-style:italic;margin-top:1px">${item.desc.slice(0,55)}…</div>`:''}
-        </div>
-        <div class="vrow-acts">
-          <div class="ico-btn" onclick="openEditModal('${item.vid}')">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          </div>
-          <div class="ico-btn" onclick="removePacVid('${item.vid}')">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          </div>
-        </div>`;
+
+    items.forEach(function(item) {
+      var itemId = item.id || item.vid || '';
+      var tipo   = item.tipo || 'video';
+      var title  = item.title || '—';
+      var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
+      var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+
+      var row = document.createElement('div');
+      row.className = 'vrow';
+      row.innerHTML =
+        '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
+        '<div class="vrow-info">' +
+          '<div class="vrow-title">' + title + '</div>' +
+          '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
+          (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
+        '</div>' +
+        '<div class="vrow-acts">' +
+          '<div class="ico-btn" onclick="openEditModal('' + itemId + '')">' +
+            '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+          '</div>' +
+          '<div class="ico-btn" onclick="removePacVid('' + itemId + '')">' +
+            '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+          '</div>' +
+        '</div>';
       list.appendChild(row);
     });
   });
-  if(!patientPlan.length) list.innerHTML='<div class="empty" style="padding:.75rem 0">Sin ejercicios asignados</div>';
 }
 
 // removePacVid local eliminada — usa versión Firestore
 
 function updateAssignSelect() {} // no longer needed
-function openAssignModal() {
-  // Llenar selector con biblioteca de ejercicios
+function _llenarSelectorBiblioteca() {
   var sel = document.getElementById('as-biblioteca-sel');
-  sel.innerHTML = '<option value="">— Seleccioná un ejercicio —</option>';
+  sel.innerHTML = '<option value="">— Elegí un ejercicio —</option>';
   videos.forEach(function(v) {
     var opt = document.createElement('option');
     opt.value = v.id;
-    opt.textContent = v.title + (v.cat ? ' [' + v.cat + ']' : '');
+    var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
+    opt.textContent = icon + ' ' + v.title + (v.cat ? ' [' + v.cat + ']' : '');
     sel.appendChild(opt);
   });
-  // reset campos
-  document.getElementById('as-titulo').value='';
-  document.getElementById('as-ind-series').value='';
-  document.getElementById('as-ind-reps').value='';
-  document.getElementById('as-ind-dur').value='';
-  document.getElementById('as-ind-texto').value='';
+}
+
+async function openAssignModal() {
+  // Siempre recargar biblioteca desde Firestore para tener datos frescos
+  try {
+    await cargarEjercicios();
+  } catch(e) { console.error('Error cargando ejercicios:', e); }
+
+  _llenarSelectorBiblioteca();
+
+  // Reset campos override
+  ['as-titulo','as-ind-series','as-ind-reps','as-ind-dur','as-ind-texto',
+   'as-vid-series','as-vid-dur','as-vid-desc','as-foto-series','as-foto-reps'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('m-assign').classList.add('open');
 }
 
@@ -1977,25 +2020,33 @@ function onBibliotecaSel(sel) {
 }
 // doAssign local eliminada — usa versión Firestore
 
-function openEditModal(vid) {
-  var item=patientPlan.find(p=>p.vid===vid);
-  var v=videos.find(dv=>dv.id===vid);
-  if(!item||!v) return;
-  editingVidId=vid;
-  document.getElementById('me-title').textContent=v.title;
-  document.getElementById('me-series').value=item.series||'';
-  document.getElementById('me-reps').value=item.reps||'';
-  document.getElementById('me-dur').value=item.dur||'';
-  document.getElementById('me-desc').value=item.desc||'';
+function openEditModal(itemId) {
+  var item = patientPlan.find(function(p) { return (p.id || p.vid) === itemId; });
+  if (!item) return;
+  editingVidId = itemId;
+  document.getElementById('me-title').textContent = item.title || 'Ejercicio';
+  document.getElementById('me-series').value = item.series || '';
+  document.getElementById('me-reps').value   = item.reps || '';
+  document.getElementById('me-dur').value    = item.dur || '';
+  document.getElementById('me-desc').value   = item.desc || '';
   document.getElementById('m-edit').classList.add('open');
 }
-function saveEdit() {
-  var item=patientPlan.find(p=>p.vid===editingVidId);
-  if(!item) return;
-  item.series=document.getElementById('me-series').value;
-  item.reps=document.getElementById('me-reps').value;
-  item.dur=document.getElementById('me-dur').value;
-  item.desc=document.getElementById('me-desc').value;
+async function saveEdit() {
+  var item = patientPlan.find(function(p) { return (p.id || p.vid) === editingVidId; });
+  if (!item) return;
+  item.series = document.getElementById('me-series').value;
+  item.reps   = document.getElementById('me-reps').value;
+  item.dur    = document.getElementById('me-dur').value;
+  item.desc   = document.getElementById('me-desc').value;
+  // Guardar en Firestore
+  if (item.id && currentPacId) {
+    try {
+      const { db, doc, updateDoc } = fb();
+      await updateDoc(doc(db, 'planes/' + currentPacId + '/items/' + item.id), {
+        series: item.series, reps: item.reps, dur: item.dur, desc: item.desc
+      });
+    } catch(e) { console.error('Error guardando edición:', e); }
+  }
   closeM('m-edit');
   renderPacVideos();
   toast('Datos actualizados ✓');
@@ -2838,10 +2889,9 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     document.getElementById('p-greeting').textContent = 'Hola, ' + (nameParts[0] || nombre);
     renderAccordion();
     updateStats();
+    mostrarTipoPaciente(profileData.tipo || 'rpg');
     showPage('p-home');
     setActiveNav('nav-p', 0);
-    // Mostrar tipo de programa del paciente
-    iniciarTipoPaciente(profileData.tipo || 'rpg');
   } else {
     document.getElementById('nav-d').style.display = 'flex';
     document.getElementById('nav-p').style.display = 'none';
@@ -2869,56 +2919,34 @@ window._showAccessError = function(tipo) {
   if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
 };
 
-// ── TIPO DE PACIENTE ──
-var tipoPacienteActual = 'rpg';
-
-var TIPO_LABELS = {
-  rpg:     { emoji: '🏃', nombre: 'RPG Postural',  sub: 'Reeducación postural global' },
-  neuro:   { emoji: '🧠', nombre: 'Neurológico',    sub: 'Rehabilitación neurológica' },
-  general: { emoji: '💪', nombre: 'General',        sub: 'Entrenamiento y rehabilitación' },
-};
-
-function iniciarTipoPaciente(tipo) {
-  tipoPacienteActual = tipo || 'rpg';
-  // Mostrar/ocultar el selector según si el paciente puede cambiarlo
-  // Solo se muestra si no hay tipo asignado (tipo = 'sin_asignar') o siempre visible
-  var wrap = document.getElementById('p-tipo-wrap');
-  if (wrap) wrap.style.display = 'block';
-  // Marcar el activo
-  _actualizarBotonesTipo(tipoPacienteActual);
-  // Actualizar el subtítulo de la página
-  var info = TIPO_LABELS[tipoPacienteActual] || TIPO_LABELS.rpg;
-  var sub = document.querySelector('#p-home .pg-sub');
-  if (sub) sub.textContent = info.emoji + ' ' + info.sub;
-}
-
-function _actualizarBotonesTipo(tipo) {
+// ── TIPO DE PROGRAMA (nuevo usuario) ──
+function selNuTipo(tipo) {
   ['rpg','neuro','general'].forEach(function(t) {
-    var btn = document.getElementById('ptb-' + t);
+    var btn = document.getElementById('nu-ptb-' + t);
     if (btn) btn.classList.toggle('on', t === tipo);
   });
 }
 
-async function selTipoPaciente(tipo) {
-  if (tipoPacienteActual === tipo) return;
-  tipoPacienteActual = tipo;
-  _actualizarBotonesTipo(tipo);
-  var info = TIPO_LABELS[tipo] || TIPO_LABELS.rpg;
-  var sub = document.querySelector('#p-home .pg-sub');
-  if (sub) sub.textContent = info.emoji + ' ' + info.sub;
-  // Guardar en Firestore
-  var uid = profileData && profileData.uid;
-  if (uid) {
-    try {
-      const { db, doc, updateDoc } = fb();
-      await updateDoc(doc(db, 'usuarios', uid), { tipo: tipo });
-      profileData.tipo = tipo;
-      toast(info.emoji + ' Programa cambiado a ' + info.nombre);
-    } catch(e) {
-      console.error('Error guardando tipo:', e);
-      toast('Tipo actualizado localmente');
-    }
-  }
+function toggleNuTipo(rol) {
+  var wrap = document.getElementById('nu-tipo-wrap');
+  if (wrap) wrap.style.display = rol.toLowerCase() === 'paciente' ? 'block' : 'none';
+}
+
+// ── BADGE TIPO EN VISTA PACIENTE (solo informativo) ──
+var TIPO_INFO = {
+  rpg:     { emoji: '🏃', label: 'RPG Postural' },
+  neuro:   { emoji: '🧠', label: 'Neurológico' },
+  general: { emoji: '💪', label: 'General' },
+};
+
+function mostrarTipoPaciente(tipo) {
+  var info = TIPO_INFO[tipo] || TIPO_INFO.rpg;
+  var wrap  = document.getElementById('p-tipo-info');
+  var badge = document.getElementById('p-tipo-badge');
+  var sub   = document.getElementById('p-home-sub');
+  if (wrap)  wrap.style.display = 'block';
+  if (badge) badge.textContent  = info.emoji + ' ' + info.label;
+  if (sub)   sub.textContent    = 'Tu programa de ejercicios · ' + info.label;
 }
 
 // Override logout to use Firebase signOut
