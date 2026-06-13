@@ -1375,9 +1375,11 @@ function renderAccordion() {
   container.innerHTML = '';
   var byMes = {};
   patientPlan.forEach(item => {
-    if (!byMes[item.mes]) byMes[item.mes] = {};
-    if (!byMes[item.mes][item.sem]) byMes[item.mes][item.sem] = [];
-    byMes[item.mes][item.sem].push(item);
+    var mesKey = item.mes || 'Sin mes asignado';
+    var semKey = item.sem || 'General';
+    if (!byMes[mesKey]) byMes[mesKey] = {};
+    if (!byMes[mesKey][semKey]) byMes[mesKey][semKey] = [];
+    byMes[mesKey][semKey].push(item);
   });
 
   Object.keys(byMes).forEach((mes, mi) => {
