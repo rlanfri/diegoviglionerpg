@@ -331,6 +331,31 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pac-chip-wrap{position:relative}
 .pac-chip-del{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);display:none;z-index:2}
 .pac-chip-wrap.admin-mode .pac-chip-del{display:flex}
+
+/* ACORDEÓN DE PACIENTES */
+.pac-detail-inline{padding:.85rem 0 .3rem;border-bottom:1px solid var(--bd);margin-bottom:.5rem}
+.pac-detail-inline .sec-label:first-child{margin-top:0}
+
+/* HILO DE COMENTARIOS POR EJERCICIO */
+.hilo-wrap{margin-top:.55rem;padding-top:.55rem;border-top:1px dashed var(--bd)}
+.hilo-label{font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+.hilo-msgs{display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem}
+.hilo-msg{max-width:85%;border-radius:10px;padding:.45rem .65rem;font-size:.78rem;line-height:1.5}
+.hilo-msg.theirs{align-self:flex-start;background:var(--warm);color:var(--t);border-bottom-left-radius:3px}
+.hilo-msg.mine{align-self:flex-end;background:var(--acc-l);color:var(--acc-d);border-bottom-right-radius:3px}
+.hilo-dolor{margin-bottom:.25rem;display:inline-block}
+.hilo-fecha{font-size:.6rem;color:var(--mu);margin-top:.2rem;font-weight:300}
+.hilo-empty{font-size:.74rem;color:var(--mu);font-weight:300;padding:.3rem 0}
+.hilo-reply{display:flex;gap:.4rem;align-items:flex-end}
+.hilo-reply textarea{flex:1;border:1.5px solid var(--bd);border-radius:8px;padding:.45rem .6rem;font-size:.78rem;font-family:'Barlow',sans-serif;outline:none;background:#f8f9fa;color:var(--t);resize:none;min-height:36px}
+.hilo-reply textarea:focus{border-color:var(--acc)}
+.hilo-reply button{background:var(--acc);color:#fff;border:none;padding:.5rem .85rem;border-radius:8px;font-size:.78rem;font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;flex-shrink:0}
+.hilo-limite{font-size:.7rem;color:var(--mu);font-weight:300;background:var(--cream);border-radius:8px;padding:.5rem .65rem;text-align:center;line-height:1.5}
+.ex-item-doc{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:.65rem .8rem;margin-bottom:.45rem}
+.ex-item-doc .vrow{padding:0;border-bottom:none}
+.nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
+.nu-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.nu-tipo-btn:active{transform:scale(.97)}
 </style>
 
   <!-- Firebase SDK -->
@@ -454,7 +479,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- PAC HOME -->
     <div class="page" id="p-home">
       <div class="pg-title" id="p-greeting">Hola</div>
-      <div class="pg-sub">Tu programa de ejercicios</div>
+      <div id="p-tipo-info" style="display:none;margin-bottom:.7rem">
+        <span id="p-tipo-badge" style="display:inline-flex;align-items:center;gap:5px;background:var(--acc-l);color:var(--acc-d);border-radius:100px;padding:.25rem .75rem;font-size:.72rem;font-weight:600"></span>
+      </div>
+      <div class="pg-sub" id="p-home-sub">Tu programa de ejercicios</div>
       <div class="stat-strip">
         <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
         <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
@@ -493,51 +521,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- DOC PACIENTES -->
     <div class="page" id="d-pacientes">
       <div class="pg-title" id="pacs-title">Pacientes</div>
-      <div class="pg-sub" id="pacs-sub">Seleccioná un paciente para gestionar</div>
+      <div class="pg-sub" id="pacs-sub">Tocá un paciente para ver su plan</div>
       <div id="d-pac-list"></div>
-      <div id="d-pac-detail" style="display:none;margin-top:.7rem">
-        <div class="divider"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:.9rem">
-          <div class="pac-av" id="dpd-av" style="width:44px;height:44px;font-size:.88rem">MG</div>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:.95rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em" id="dpd-name">—</div>
-            <div style="font-size:.72rem;color:var(--mu);font-weight:300" id="dpd-diag">—</div>
-          </div>
-          <span class="badge bg-g" id="dpd-pct">—</span>
-        </div>
-        <!-- Asignar profesional (solo admin) -->
-        <div id="dpd-asignar-prof-wrap" style="display:none;margin-bottom:.65rem">
-          <div class="ff" style="margin-bottom:.4rem">
-            <label>Profesional asignado</label>
-            <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
-              <option value="">Sin asignar</option>
-            </select>
-          </div>
-          <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
-        </div>
-
-        <div class="sec-label">Ejercicios / Indicaciones asignadas</div>
-        <div id="dpd-video-list"></div>
-        <button class="btn-prim" style="margin-top:.55rem" onclick="openAssignModal()">+ Asignar ejercicio / indicación</button>
-        <div class="sec-label" style="margin-top:1rem">Comentarios del paciente</div>
-        <div class="cmt-card">
-          <div class="cmt-head"><span class="cmt-date">Hoy</span><span class="badge bg-g">Leve</span></div>
-          <div class="cmt-video" style="display:flex;align-items:center">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-            Estiramiento cadena posterior · Semana 1
-          </div>
-          <div class="cmt-text">Sentí tensión al inicio pero mejoró.</div>
-        </div>
-        <div class="sec-label" style="margin-top:.5rem">Dejar nota al paciente</div>
-        <div class="ff"><textarea id="dpd-nota" placeholder="Indicación, corrección, aliento..."></textarea></div>
-        <button class="btn-prim" onclick="sendNota()">Enviar nota</button>
-
-        <!-- FICHA CLÍNICA INLINE -->
-        <div style="margin-top:1.25rem">
-          <div class="sec-label" style="margin-top:0;margin-bottom:.6rem">Ficha clínica</div>
-          <div id="inline-ficha-container"></div>
-        </div>
-      </div>
     </div>
 
     <!-- DOC EJERCICIOS -->
@@ -608,22 +593,31 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="ff"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre del paciente"></div>
         <div class="ff"><label>Email Google</label><input type="email" id="nu-email" placeholder="email@gmail.com"></div>
         <div class="f2">
-          <div class="ff"><label>Rol</label><select id="nu-rol"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
+          <div class="ff"><label>Rol</label><select id="nu-rol" onchange="toggleNuTipo(this.value)"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
           <div class="ff"><label>Diagnóstico</label><input type="text" id="nu-diag" placeholder="Diagnóstico"></div>
+        </div>
+        <div id="nu-tipo-wrap" style="margin-bottom:.65rem">
+          <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">Tipo de programa</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
+            <button type="button" class="nu-tipo-btn on" id="nu-ptb-rpg" onclick="selNuTipo('rpg')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
+              <span style="font-size:.72rem;font-weight:600">RPG</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-neuro" onclick="selNuTipo('neuro')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
+              <span style="font-size:.72rem;font-weight:600">Neurológico</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-general" onclick="selNuTipo('general')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
+              <span style="font-size:.72rem;font-weight:600">General</span>
+            </button>
+          </div>
         </div>
         <button class="btn-prim" onclick="addUser()">Crear usuario</button>
       </div>
       <div class="sec-label">Todos los usuarios</div>
       <div class="sc" style="padding:.45rem .7rem" id="u-list"></div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-section-lbl" style="margin-top:.6rem">Pacientes</div>
-<div id="contenedor-pacientes"></div>
+    </div>
 
     <!-- FICHA CLÍNICA -->
     <div class="page" id="d-ficha">
@@ -966,6 +960,7 @@ function isValidDriveUrl(url) {
 let role = 'paciente';
 let currentCommentVideo = '';
 let currentCommentItemId = '';
+let patientComments = []; // comentarios del paciente actualmente abierto (doctor) o propio (paciente)
 let editingVidId = null;
 let profileData = {};
 let prevPage = '';
@@ -1067,9 +1062,10 @@ async function addUser() {
       pct: 0,
       profId: '',
       profNombre: 'Sin asignar',
-      tipo: 'rpg',
+      tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
     });
     ['nu-nombre','nu-email','nu-diag'].forEach(id => document.getElementById(id).value = '');
+    selNuTipo('rpg');
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
@@ -1224,11 +1220,14 @@ async function asignarProfesional() {
   const prof = profesionalesData.find(x => x.id === profId);
   const profNombre = prof ? prof.nombre : 'Sin asignar';
   const { db, doc, updateDoc } = fb();
+  const reopenId = currentPacId;
   try {
     await updateDoc(doc(db, 'usuarios', currentPacId), { profId, profNombre });
     await cargarUsuarios();
     renderPacientesList();
     renderUsuariosList();
+    currentPacId = null; // togglePacAccordion espera que esté cerrado para reabrir
+    await togglePacAccordion(reopenId);
     toast('Profesional asignado ✓');
   } catch(err) {
     console.error(err);
@@ -1369,7 +1368,6 @@ function switchTab(el, pid, navId) {
   el.classList.add('on');
   showPage(pid);
   if (pid==='d-pacientes') {
-    document.getElementById('d-pac-detail').style.display='none';
     renderPacientesList();
   }
 }
@@ -1388,6 +1386,7 @@ function goBack() {
 function renderAccordion() {
   var container = document.getElementById('p-accordion');
   container.innerHTML = '';
+  var itemIdsForHilosPac = [];
   var byMes = {};
   patientPlan.forEach(item => {
     var mesKey = item.mes || 'Sin mes asignado';
@@ -1416,6 +1415,7 @@ function renderAccordion() {
         var title = item.title || item.name || '—';
         var desc = item.desc || '';
         var uid = `${mi}-${si}-${ei}`;
+        var msgsCount = patientComments.filter(c => (c.itemId||'') === itemId).length;
 
         // Renderizar contenido según tipo
         var contentHTML = '';
@@ -1462,13 +1462,15 @@ function renderAccordion() {
             ${desc ? `<div class="ex-desc">${desc}</div>` : ''}
             <div class="ex-actions">
               <button class="btn-seen${seen?' done':''}" id="bseen-${uid}" onclick="markSeen('${itemId}','${uid}')">${seen?'✓ Visto':'Marcar como visto'}</button>
-              <button class="btn-cmt" onclick="openCmt('${title}','${itemId}')">
+              ${msgsCount < 4 ? `<button class="btn-cmt" onclick="openCmt('${title}','${itemId}')">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
                 Comentar
-              </button>
+              </button>` : ''}
             </div>
+            <div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-p-${itemId}"></div></div>
           </div>
         </div>`;
+        itemIdsForHilosPac.push(itemId);
       });
 
       weeksHTML += `
@@ -1495,6 +1497,11 @@ function renderAccordion() {
       </div>
       <div class="acc-month-body${isFirst?' open':''}" id="mb-${mi}">${weeksHTML}</div>`;
     container.appendChild(div);
+  });
+
+  // Render hilos de comentarios por ejercicio (vista paciente)
+  itemIdsForHilosPac.forEach(function(itemId) {
+    renderHiloComentarios(itemId, 'hilo-p-' + itemId, true);
   });
 }
 
@@ -1804,17 +1811,16 @@ function toggleInlineFicha(headerEl) {
   if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
-// ── RENDER PACIENTES LIST ──
+// ── RENDER PACIENTES LIST (acordeón) ──
 function renderPacientesList() {
   var list = document.getElementById('d-pac-list');
   var isAdmin = role === 'admin';
-  // Filter: profesional only sees their patients
   var visible = isAdmin
     ? pacientesData.filter(p => p.estado !== 'eliminado')
-    : pacientesData.filter(p => p.estado === 'activo' && (p.profId === 'p1' || true)); // in prod: filter by logged-in prof id
-  
+    : pacientesData.filter(p => p.estado === 'activo');
+
   if (!visible.length) { list.innerHTML = '<div class="empty">Sin pacientes asignados</div>'; return; }
-  
+
   list.innerHTML = visible.map(p => {
     var badgeClass = p.pct >= 70 ? 'bg-g' : 'bg-y';
     var delBtn = isAdmin ? `
@@ -1822,18 +1828,22 @@ function renderPacientesList() {
         <svg viewBox="0 0 24 24" fill="#991b1b" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
       </div>` : '';
     var profLabel = isAdmin
-      ? `<span style="color:var(--acc);font-weight:500">${p.profNombre}</span>`
-      : p.diag;
-    return `<div class="pac-chip" onclick="openPacById('${p.id}')" style="${p.estado==='inactivo'?'opacity:.6':''}">
-      <div class="pac-av" style="width:38px;height:38px;font-size:.75rem">${p.ini}</div>
-      <div style="flex:1">
-        <div class="pac-name">${p.nombre}</div>
-        <div class="pac-meta">${p.diag} · ${profLabel}</div>
+      ? `<span style="color:var(--acc);font-weight:500">${p.profNombre || 'Sin asignar'}</span>`
+      : (p.diag || '—');
+    return `<div class="pac-chip-wrap">
+      <div class="pac-chip" onclick="togglePacAccordion('${p.id}')" id="chip-${p.id}" style="${p.estado==='inactivo'?'opacity:.6':''}">
+        <div class="pac-av" style="width:38px;height:38px;font-size:.75rem">${p.ini}</div>
+        <div style="flex:1">
+          <div class="pac-name">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
+          <div class="pac-meta">${profLabel}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.35rem">
+          ${p.estado === 'inactivo' ? '<span class="estado-badge inactivo">Inactivo</span>' : `<span class="badge ${badgeClass}">${p.pct}%</span>`}
+          <span class="acc-chevron" id="chev-${p.id}">▾</span>
+          ${delBtn}
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:.35rem">
-        ${p.estado === 'inactivo' ? '<span class="estado-badge inactivo">Inactivo</span>' : `<span class="badge ${badgeClass}">${p.pct}%</span>`}
-        ${delBtn}
-      </div>
+      <div class="pac-detail-inline" id="pacdet-${p.id}" style="display:none"></div>
     </div>`;
   }).join('');
 }
@@ -1842,31 +1852,63 @@ function eliminarPaciente(id) {
   if (!confirm('¿Eliminar este paciente? Esta acción no se puede deshacer.')) return;
   var p = pacientesData.find(x => x.id === id);
   if (p) p.estado = 'eliminado';
+  if (currentPacId === id) currentPacId = null;
   renderPacientesList();
   renderUsuariosList();
-  document.getElementById('d-pac-detail').style.display = 'none';
   toast('Paciente eliminado');
 }
 
-async function openPacById(id) {
+// Template del detalle del paciente (sin repetir nombre/avatar, ya están en el chip)
+function renderPacDetailHTML(p) {
+  var profSelWrap = role === 'admin' ? `
+    <div id="dpd-asignar-prof-wrap" style="margin-bottom:.65rem">
+      <div class="ff" style="margin-bottom:.4rem">
+        <label>Profesional asignado</label>
+        <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
+    </div>` : '';
+
+  return `
+    ${profSelWrap}
+    <div class="sec-label" style="margin-top:0">Ejercicios / Indicaciones asignadas</div>
+    <div id="dpd-video-list"><div class="empty">Cargando plan...</div></div>
+    <button class="btn-prim" style="margin-top:.55rem" onclick="openAssignModal()">+ Asignar ejercicio / indicación</button>
+
+    <div class="sec-label" style="margin-top:1rem">Dejar nota al paciente</div>
+    <div class="ff"><textarea id="dpd-nota" placeholder="Indicación, corrección, aliento..."></textarea></div>
+    <button class="btn-prim" onclick="sendNota()">Enviar nota</button>
+
+    <div style="margin-top:1.25rem">
+      <div class="sec-label" style="margin-top:0;margin-bottom:.6rem">Ficha clínica</div>
+      <div id="inline-ficha-container"></div>
+    </div>`;
+}
+
+async function togglePacAccordion(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
-  currentPacId = id;
+  var det = document.getElementById('pacdet-' + id);
+  var wasOpen = det && det.style.display === 'block';
 
+  // Cerrar todos los acordeones abiertos
+  document.querySelectorAll('.pac-detail-inline').forEach(function(d) { d.style.display = 'none'; d.innerHTML = ''; });
   document.querySelectorAll('.pac-chip').forEach(function(c) { c.classList.remove('sel'); });
-  document.querySelectorAll('.pac-chip').forEach(function(c) {
-    var oc = c.getAttribute('onclick');
-    if (oc && oc.indexOf(id) > -1) c.classList.add('sel');
-  });
+  document.querySelectorAll('[id^="chev-"]').forEach(function(c) { c.classList.remove('open'); });
 
-  document.getElementById('dpd-av').textContent   = p.ini || '?';
-  document.getElementById('dpd-name').textContent = (p.nombre||'') + (p.apellido ? ' '+p.apellido : '');
-  document.getElementById('dpd-diag').textContent = p.diag || '—';
-  document.getElementById('dpd-pct').textContent  = (p.pct||0) + '%';
+  if (wasOpen) { currentPacId = null; return; }
 
-  var wrap = document.getElementById('dpd-asignar-prof-wrap');
+  currentPacId = id;
+  document.getElementById('chip-' + id)?.classList.add('sel');
+  document.getElementById('chev-' + id)?.classList.add('open');
+
+  det.innerHTML = renderPacDetailHTML(p);
+  det.style.display = 'block';
+
+  // Llenar selector de profesional (admin)
   if (role === 'admin') {
-    wrap.style.display = 'block';
     var sel = document.getElementById('dpd-prof-sel');
     sel.innerHTML = '<option value="">Sin asignar</option>';
     profesionalesData.forEach(function(prof) {
@@ -1876,35 +1918,21 @@ async function openPacById(id) {
       sel.appendChild(opt);
     });
     sel.value = p.profId || '';
-  } else {
-    wrap.style.display = 'none';
   }
 
-  document.getElementById('dpd-video-list').innerHTML = '<div class="empty">Cargando plan...</div>';
-  document.getElementById('d-pac-detail').style.display = 'block';
-
+  // Cargar plan + comentarios del paciente
   try {
     await cargarPlanPaciente(id);
-  } catch(e) { console.error('Error cargando plan:', e); }
+    patientComments = await cargarComentariosPaciente(id);
+  } catch(e) { console.error('Error cargando plan/comentarios:', e); }
 
   renderPacVideos();
   renderInlineFicha(p.tipo || 'rpg');
-  setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+  setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
 }
 
-function openPac(el, name, av, diag, pct) {
-  // legacy — find by name
-  var p = pacientesData.find(x => x.nombre === name);
-  if (p) { openPacById(p.id); return; }
-  document.getElementById('dpd-av').textContent = av;
-  document.getElementById('dpd-name').textContent = name;
-  document.getElementById('dpd-diag').textContent = diag;
-  document.getElementById('dpd-pct').textContent = pct + '%';
-  renderPacVideos();
-  document.getElementById('d-pac-detail').style.display = 'block';
-}
-
-// asignarProfesional local reemplazada por versión Firestore
+// Alias por compatibilidad con llamadas previas
+async function openPacById(id) { return togglePacAccordion(id); }
 
 function renderPacVideos() {
   var list = document.getElementById('dpd-video-list');
@@ -1928,6 +1956,8 @@ function renderPacVideos() {
     indicacion: '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
   };
 
+  var itemIdsForHilos = [];
+
   Object.keys(byKey).forEach(function(key) {
     var items = byKey[key];
     var lbl = document.createElement('div');
@@ -1943,26 +1973,93 @@ function renderPacVideos() {
       var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
       var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
 
-      var row = document.createElement('div');
-      row.className = 'vrow';
-      row.innerHTML =
-        '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
-        '<div class="vrow-info">' +
-          '<div class="vrow-title">' + title + '</div>' +
-          '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
-          (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
+      var wrap = document.createElement('div');
+      wrap.className = 'ex-item-doc';
+      wrap.innerHTML =
+        '<div class="vrow">' +
+          '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
+          '<div class="vrow-info">' +
+            '<div class="vrow-title">' + title + '</div>' +
+            '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
+            (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
+          '</div>' +
+          '<div class="vrow-acts">' +
+            '<div class="ico-btn" onclick="openEditModal(\'' + itemId + '\')">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+            '</div>' +
+            '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+            '</div>' +
+          '</div>' +
         '</div>' +
-        '<div class="vrow-acts">' +
-          '<div class="ico-btn" onclick="openEditModal(\'' + itemId + '\')">' +
-            '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
-          '</div>' +
-          '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')">' +
-            '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
-          '</div>' +
-        '</div>';
-      list.appendChild(row);
+        '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>';
+      list.appendChild(wrap);
+      if (itemId) itemIdsForHilos.push(itemId);
     });
   });
+
+  // Render hilos de comentarios por ejercicio (vista doctor)
+  itemIdsForHilos.forEach(function(itemId) {
+    renderHiloComentarios(itemId, 'hilo-' + itemId, false);
+  });
+}
+
+// ── HILO DE COMENTARIOS POR EJERCICIO ──
+function renderHiloComentarios(itemId, mountId, isPaciente) {
+  var el = document.getElementById(mountId);
+  if (!el) return;
+
+  var msgs = patientComments.filter(function(c) { return (c.itemId || '') === itemId; });
+  msgs = msgs.slice().sort(function(a,b) { return (a.fecha||'').localeCompare(b.fecha||''); });
+
+  var html = '<div class="hilo-label">Comentarios</div>';
+
+  if (!msgs.length) {
+    html += '<div class="hilo-empty">Sin comentarios para este ejercicio</div>';
+  } else {
+    html += '<div class="hilo-msgs">';
+    msgs.forEach(function(m) {
+      var mine = isPaciente ? (m.tipo !== 'profesional') : (m.tipo === 'profesional');
+      var fecha = '';
+      try { fecha = new Date(m.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e) {}
+      html += '<div class="hilo-msg ' + (mine ? 'mine' : 'theirs') + '">' +
+        (m.dolor ? '<span class="badge bg-g hilo-dolor">' + m.dolor + '</span>' : '') +
+        '<div class="hilo-text">' + (m.texto || '') + '</div>' +
+        '<div class="hilo-fecha">' + fecha + '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (msgs.length >= 4) {
+    html += '<div class="hilo-limite">Llegaron al límite de mensajes para este ejercicio. Comunicate directamente con ' +
+      (isPaciente ? 'tu profesional' : 'el paciente') + ' para profundizar.</div>';
+  } else if (!isPaciente) {
+    html += '<div class="hilo-reply">' +
+      '<textarea id="hilo-input-' + itemId + '" placeholder="Responder al paciente..." rows="1"></textarea>' +
+      '<button onclick="enviarMensajeHilo(\'' + itemId + '\')">Enviar</button>' +
+    '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+async function enviarMensajeHilo(itemId) {
+  var input = document.getElementById('hilo-input-' + itemId);
+  if (!input) return;
+  var texto = input.value.trim();
+  if (!texto) { toast('Escribí un mensaje'); return; }
+  if (!currentPacId) return;
+  var item = patientPlan.find(function(p) { return (p.id||p.vid) === itemId; });
+  try {
+    await guardarComentario(currentPacId, itemId, '', texto, item ? item.title : '', 'profesional');
+    patientComments = await cargarComentariosPaciente(currentPacId);
+    renderHiloComentarios(itemId, 'hilo-' + itemId, false);
+    toast('Mensaje enviado ✓');
+  } catch(e) {
+    console.error('Error enviando mensaje:', e);
+    toast('Error al enviar mensaje');
+  }
 }
 
 // removePacVid local eliminada — usa versión Firestore
@@ -2636,15 +2733,14 @@ function fcTab(el, panelId) {
 }
 
 function openFicha() {
-  var name = document.getElementById('dpd-name').textContent;
-  var diag = document.getElementById('dpd-diag').textContent;
-  var av   = document.getElementById('dpd-av').textContent;
+  var p = pacientesData.find(x => x.id === currentPacId);
+  var name = p ? ((p.nombre||'') + (p.apellido?' '+p.apellido:'')) : '—';
+  var diag = p ? (p.diag||'—') : '—';
+  var av   = p ? (p.ini||'?') : '?';
   document.getElementById('fc-name').textContent = name;
   document.getElementById('fc-diag').textContent = diag;
   document.getElementById('fc-av').textContent   = av;
   document.getElementById('me-evol-pac').textContent = name;
-  // Hide patient detail before switching
-  document.getElementById('d-pac-detail').style.display = 'none';
   prevPage = 'd-pacientes';
   // Navigate first
   showPage('d-ficha');
@@ -2696,13 +2792,14 @@ async function cargarProgresoPacientes() {
   }
 }
 
-async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle) {
+async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle, tipo) {
   const { db, collection, addDoc } = fb();
   await addDoc(collection(db, 'comentarios/' + pacienteUid + '/items'), {
     itemId: itemId || '',
-    dolor, texto, ejercicioTitle,
+    dolor: dolor || '',
+    texto, ejercicioTitle,
     fecha: new Date().toISOString(),
-    tipo: 'paciente'
+    tipo: tipo || 'paciente'
   });
 }
 
@@ -2795,7 +2892,9 @@ async function saveComment() {
   var text = document.getElementById('mc-text').value.trim();
   closeM('m-comment');
   try {
-    await guardarComentario(profileData.uid, currentCommentItemId || '', label, text, currentCommentVideo);
+    await guardarComentario(profileData.uid, currentCommentItemId || '', label, text, currentCommentVideo, 'paciente');
+    patientComments = await cargarComentariosPaciente(profileData.uid);
+    renderAccordion();
     toast('Comentario enviado ✓');
   } catch(e) {
     console.error('Error guardando comentario:', e);
@@ -2851,6 +2950,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
       profileData.email = d.email || '';
       profileData.tel = d.tel || '';
       profileData.diag = d.diag || '';
+      profileData.tipo = d.tipo || 'rpg';
       const ini2 = ((profileData.nombre[0]||'')+(profileData.apellido[0]||'')).toUpperCase() || ini;
       profileData.initials = ini2;
       document.getElementById('av-btn').textContent = ini2;
@@ -2859,6 +2959,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     await cargarEjercicios();
     if (role === 'paciente') {
       await cargarPlanPaciente(uid);
+      try { patientComments = await cargarComentariosPaciente(uid); } catch(e) { console.error('Error cargando comentarios:', e); }
     }
   } catch(err) {
     console.error('Error cargando datos Firestore:', err);
@@ -2873,6 +2974,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     document.getElementById('p-greeting').textContent = 'Hola, ' + (nameParts[0] || nombre);
     renderAccordion();
     updateStats();
+    mostrarTipoPaciente(profileData.tipo || 'rpg');
     try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
     showPage('p-home');
     setActiveNav('nav-p', 0);
@@ -2904,6 +3006,36 @@ window._showAccessError = function(tipo) {
   const btn = document.querySelector('.btn-login');
   if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
 };
+
+// ── TIPO DE PROGRAMA (nuevo usuario) ──
+function selNuTipo(tipo) {
+  ['rpg','neuro','general'].forEach(function(t) {
+    var btn = document.getElementById('nu-ptb-' + t);
+    if (btn) btn.classList.toggle('on', t === tipo);
+  });
+}
+
+function toggleNuTipo(rol) {
+  var wrap = document.getElementById('nu-tipo-wrap');
+  if (wrap) wrap.style.display = rol.toLowerCase() === 'paciente' ? 'block' : 'none';
+}
+
+// ── BADGE TIPO EN VISTA PACIENTE (solo informativo) ──
+var TIPO_INFO = {
+  rpg:     { emoji: '🏃', label: 'RPG Postural' },
+  neuro:   { emoji: '🧠', label: 'Neurológico' },
+  general: { emoji: '💪', label: 'General' },
+};
+
+function mostrarTipoPaciente(tipo) {
+  var info = TIPO_INFO[tipo] || TIPO_INFO.rpg;
+  var wrap  = document.getElementById('p-tipo-info');
+  var badge = document.getElementById('p-tipo-badge');
+  var sub   = document.getElementById('p-home-sub');
+  if (wrap)  wrap.style.display = 'block';
+  if (badge) badge.textContent  = info.emoji + ' ' + info.label;
+  if (sub)   sub.textContent    = 'Tu programa de ejercicios · ' + info.label;
+}
 
 // Override logout to use Firebase signOut
 const _origLogout = window.logout;
