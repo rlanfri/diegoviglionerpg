@@ -1470,7 +1470,7 @@ function renderAccordion() {
             <div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-p-${itemId}"></div></div>
           </div>
         </div>`;
-        itemIdsForHilosPac.push(itemId);
+        itemIdsForHilosPac.push({ id: itemId, title: title });
       });
 
       weeksHTML += `
@@ -1500,8 +1500,8 @@ function renderAccordion() {
   });
 
   // Render hilos de comentarios por ejercicio (vista paciente)
-  itemIdsForHilosPac.forEach(function(itemId) {
-    renderHiloComentarios(itemId, 'hilo-p-' + itemId, true);
+  itemIdsForHilosPac.forEach(function(it) {
+    renderHiloComentarios(it.id, 'hilo-p-' + it.id, true, it.title);
   });
 }
 
@@ -1994,22 +1994,28 @@ function renderPacVideos() {
         '</div>' +
         '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>';
       list.appendChild(wrap);
-      if (itemId) itemIdsForHilos.push(itemId);
+      if (itemId) itemIdsForHilos.push({ id: itemId, title: title });
     });
   });
 
   // Render hilos de comentarios por ejercicio (vista doctor)
-  itemIdsForHilos.forEach(function(itemId) {
-    renderHiloComentarios(itemId, 'hilo-' + itemId, false);
+  itemIdsForHilos.forEach(function(it) {
+    renderHiloComentarios(it.id, 'hilo-' + it.id, false, it.title);
   });
 }
 
 // ── HILO DE COMENTARIOS POR EJERCICIO ──
-function renderHiloComentarios(itemId, mountId, isPaciente) {
+function renderHiloComentarios(itemId, mountId, isPaciente, title) {
   var el = document.getElementById(mountId);
   if (!el) return;
 
-  var msgs = patientComments.filter(function(c) { return (c.itemId || '') === itemId; });
+  // Match exacto por itemId, o fallback a comentarios viejos (itemId vacío) que coincidan por título
+  var msgs = patientComments.filter(function(c) {
+    var cItemId = c.itemId || '';
+    if (cItemId === itemId && itemId) return true;
+    if (!cItemId && title && c.ejercicioTitle === title) return true;
+    return false;
+  });
   msgs = msgs.slice().sort(function(a,b) { return (a.fecha||'').localeCompare(b.fecha||''); });
 
   var html = '<div class="hilo-label">Comentarios</div>';
@@ -2051,10 +2057,11 @@ async function enviarMensajeHilo(itemId) {
   if (!texto) { toast('Escribí un mensaje'); return; }
   if (!currentPacId) return;
   var item = patientPlan.find(function(p) { return (p.id||p.vid) === itemId; });
+  var title = item ? item.title : '';
   try {
-    await guardarComentario(currentPacId, itemId, '', texto, item ? item.title : '', 'profesional');
+    await guardarComentario(currentPacId, itemId, '', texto, title, 'profesional');
     patientComments = await cargarComentariosPaciente(currentPacId);
-    renderHiloComentarios(itemId, 'hilo-' + itemId, false);
+    renderHiloComentarios(itemId, 'hilo-' + itemId, false, title);
     toast('Mensaje enviado ✓');
   } catch(e) {
     console.error('Error enviando mensaje:', e);
