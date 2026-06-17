@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>RPG Diego Viglione</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -1660,147 +1661,329 @@ function editDocVideo(id) {
 // ── PACIENTES ──
 
 // ── FICHA INLINE ──
-function renderInlineFicha(tipo) {
+// ── SCHEMA DE FICHAS (rpg / neuro / general) ──
+// Cada campo: { id, label, type: 'text'|'date'|'textarea'|'select'|'range', placeholder, options }
+var FICHA_SCHEMA = {
+  rpg: {
+    titulo: 'Ficha RPG Postural',
+    secciones: [
+      { label: 'Datos generales', campos: [
+        { id:'fnac', label:'Fecha de nacimiento', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'sexo', label:'Sexo', type:'select', options:['—','Femenino','Masculino','Otro'] },
+        { id:'dni', label:'DNI', type:'text', placeholder:'Nro de documento' },
+        { id:'dir', label:'Dirección', type:'text', placeholder:'Domicilio' },
+        { id:'tel2', label:'Teléfono', type:'text', placeholder:'+54 351...' },
+        { id:'os', label:'Obra social', type:'text', placeholder:'OSDE...' },
+        { id:'afil', label:'N° afiliado', type:'text' },
+        { id:'ocup', label:'Ocupación', type:'text', placeholder:'Jubilado, empleado...' },
+        { id:'esf', label:'Realizaba esfuerzo', type:'select', options:['—','Sí','No'] },
+        { id:'medico', label:'Médico derivante', type:'text', placeholder:'Dr./Dra.' },
+      ]},
+      { label:'Motivo de consulta', campos:[
+        { id:'diag-m', label:'Diagnóstico médico', type:'text', placeholder:'Diagnóstico oficial' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo?' },
+        { id:'tiempo-dolor', label:'Tiempo con dolor', type:'text', placeholder:'Ej: 3 años' },
+        { id:'irradia', label:'¿Se irradia?', type:'select', options:['—','No','Sí'] },
+        { id:'irradia-loc', label:'¿A dónde?', type:'text', placeholder:'Pierna izq, glúteo...' },
+        { id:'pos', label:'¿Cambia con posición?', type:'select', options:['—','Sí','No'] },
+        { id:'inicio', label:'¿Cómo comenzó?', type:'select', options:['—','Gradualmente','De repente','Con esfuerzo'] },
+        { id:'cuando-duele', label:'¿Cuándo duele más?', type:'text', placeholder:'Por la tarde, al caminar...' },
+        { id:'trauma', label:'Traumatismo previo', type:'textarea' },
+      ]},
+      { label:'Antecedentes', campos:[
+        { id:'ap', label:'Antecedentes personales', type:'textarea', placeholder:'Patologías, cirugías, fracturas...' },
+        { id:'af-col', label:'Fam. con columna', type:'select', options:['—','Sí','No'] },
+        { id:'af-desc', label:'¿Cuáles?', type:'text' },
+        { id:'dep', label:'Deportes', type:'select', options:['—','Sí','No'] },
+        { id:'dep-desc', label:'¿Cuáles?', type:'text' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+        { id:'nutri', label:'Estado nutricional', type:'text', placeholder:'Regular, bueno...' },
+        { id:'talla', label:'Altura / Peso', type:'text', placeholder:'1.65m / 70kg' },
+      ]},
+      { label:'Dolor (EVA)', campos:[
+        { id:'eva', label:'Nivel de dolor (0-10)', type:'range' },
+      ]},
+      { label:'Evaluación postural', campos:[
+        { id:'obs-gral', label:'Observación general', type:'textarea', placeholder:'Postura global, actitud, compensaciones...' },
+        { id:'frontal', label:'Plano frontal', type:'textarea', placeholder:'Cabeza, hombros, pelvis...' },
+        { id:'sagital', label:'Plano sagital', type:'textarea', placeholder:'Cifosis, lordosis...' },
+        { id:'pruebas', label:'Pruebas especiales', type:'textarea', placeholder:'Lasègue, Thomas, Adams... con resultado' },
+      ]},
+      { label:'Plan y objetivos', campos:[
+        { id:'obj-c', label:'Objetivos corto plazo', type:'textarea', placeholder:'1-4 semanas...' },
+        { id:'obj-m', label:'Objetivos mediano plazo', type:'textarea', placeholder:'1-3 meses...' },
+        { id:'tec', label:'Técnicas a aplicar', type:'textarea', placeholder:'RPG, kinesiotaping...' },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En tratamiento','Alta médica','Alta por objetivos','Derivado'] },
+        { id:'alta', label:'Fecha alta estimada', type:'date' },
+      ]},
+    ]
+  },
+  neuro: {
+    titulo: 'Ficha Neurológica',
+    secciones: [
+      { label:'Datos del paciente', campos:[
+        { id:'fecha', label:'Fecha de evaluación', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'diag', label:'Diagnóstico médico', type:'text', placeholder:'Diagnóstico oficial' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo?' },
+        { id:'medico', label:'Médico derivante', type:'text' },
+        { id:'os', label:'Obra social', type:'text' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+      ]},
+      { label:'Evaluación en decúbito supino', campos:[
+        { id:'sup-cabeza', label:'Cabeza y cuello', type:'textarea', placeholder:'Posición, tono, asimetrías...' },
+        { id:'sup-tronco', label:'Tronco', type:'textarea', placeholder:'Alineación, rigidez...' },
+        { id:'sup-pelvis', label:'Pelvis', type:'textarea', placeholder:'Posición, asimetría...' },
+        { id:'sup-mmss', label:'Miembros superiores', type:'textarea', placeholder:'Tono, ROM...' },
+        { id:'sup-mmii', label:'Miembros inferiores', type:'textarea', placeholder:'Tono, ROM...' },
+        { id:'giro-d', label:'Giro lateral derecho', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'giro-i', label:'Giro lateral izquierdo', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'giro-cal', label:'Calidad del movimiento', type:'textarea', placeholder:'Compensaciones...' },
+        { id:'sed-pasaje', label:'Decúbito a sedente', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'sed-ctrl', label:'Control durante pasaje', type:'textarea' },
+      ]},
+      { label:'Evaluación en sedente', campos:[
+        { id:'sed-cabeza', label:'Cabeza y cuello', type:'textarea', placeholder:'Control cefálico...' },
+        { id:'sed-tronco', label:'Tronco', type:'textarea', placeholder:'Control de tronco...' },
+        { id:'sed-pelvis', label:'Pelvis', type:'textarea' },
+        { id:'sed-mmss', label:'MMSS / MMII', type:'textarea', placeholder:'Tono, función...' },
+        { id:'sed-mantiene', label:'Mantiene sedente', type:'select', options:['—','Sí','No'] },
+        { id:'sed-tiempo', label:'Tiempo', type:'text', placeholder:'Ej: 2 min' },
+        { id:'bip-pasaje', label:'Sedente a parado', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'bip-sim', label:'Simetría de carga', type:'textarea' },
+      ]},
+      { label:'Evaluación en bipedestación', campos:[
+        { id:'bip-cabeza', label:'Cabeza y tronco', type:'textarea', placeholder:'Alineación, control...' },
+        { id:'bip-pelvis', label:'Pelvis', type:'textarea' },
+        { id:'bip-mmii', label:'Miembros inferiores', type:'textarea' },
+        { id:'bip-mantiene', label:'Mantiene bipedestación', type:'select', options:['—','Sí','No'] },
+        { id:'bip-apoyo', label:'Apoyo', type:'select', options:['—','Sin apoyo','Unilateral','Bilateral'] },
+      ]},
+      { label:'Marcha y nivel funcional', campos:[
+        { id:'marcha-si', label:'Realiza marcha', type:'select', options:['—','Sí','No'] },
+        { id:'marcha-elem', label:'Elementos de asistencia', type:'text', placeholder:'Bastón, andador...' },
+        { id:'marcha-obs', label:'Observaciones de la marcha', type:'textarea', placeholder:'Patrón, asimetría, cadencia...' },
+        { id:'funcional', label:'Nivel funcional general', type:'textarea', placeholder:'AVD, independencia...' },
+        { id:'tono', label:'Tono muscular', type:'textarea', placeholder:'Hipertonía, hipotonía, espasticidad...' },
+        { id:'obs-rel', label:'Observaciones relevantes', type:'textarea' },
+      ]},
+      { label:'Objetivos kinésicos', campos:[
+        { id:'obj-c', label:'Objetivo a corto plazo', type:'textarea', placeholder:'Primeras sesiones...' },
+        { id:'obj-l', label:'Objetivos a largo plazo', type:'textarea', placeholder:'Funcionalidad, independencia...' },
+        { id:'estrateg', label:'Estrategias terapéuticas', type:'textarea', placeholder:'Técnicas, abordajes, frecuencia...' },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En tratamiento','Alta médica','Alta por objetivos','Derivado'] },
+        { id:'alta', label:'Fecha alta estimada', type:'date' },
+      ]},
+    ]
+  },
+  general: {
+    titulo: 'Ficha General',
+    secciones: [
+      { label:'Datos generales', campos:[
+        { id:'fnac', label:'Fecha de nacimiento', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'sexo', label:'Sexo', type:'select', options:['—','Femenino','Masculino','Otro'] },
+        { id:'os', label:'Obra social', type:'text', placeholder:'OSDE...' },
+        { id:'ocup', label:'Ocupación', type:'text', placeholder:'Empleado, estudiante...' },
+        { id:'medico', label:'Médico derivante', type:'text', placeholder:'Dr./Dra.' },
+      ]},
+      { label:'Motivo de consulta', campos:[
+        { id:'diag-m', label:'Diagnóstico / motivo', type:'text', placeholder:'Diagnóstico u objetivo principal' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo? ¿Qué espera lograr?' },
+        { id:'nivel-act', label:'Nivel de actividad actual', type:'select', options:['—','Sedentario','Poco activo','Moderado','Activo','Muy activo'] },
+      ]},
+      { label:'Antecedentes', campos:[
+        { id:'ap', label:'Antecedentes médicos relevantes', type:'textarea', placeholder:'Lesiones, cirugías, patologías...' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+        { id:'talla', label:'Altura / Peso', type:'text', placeholder:'1.70m / 75kg' },
+      ]},
+      { label:'Evaluación física inicial', campos:[
+        { id:'postura', label:'Postura general', type:'textarea', placeholder:'Observaciones posturales básicas...' },
+        { id:'flex', label:'Flexibilidad', type:'textarea', placeholder:'Test sit and reach, movilidad general...' },
+        { id:'fuerza', label:'Fuerza general', type:'textarea', placeholder:'Push-ups, sentadillas, test básico...' },
+        { id:'cardio', label:'Resistencia cardiovascular', type:'textarea', placeholder:'Test de escalón, caminata 6 min...' },
+        { id:'dolor', label:'Zonas de dolor o molestia', type:'text', placeholder:'Espalda baja, rodilla derecha...' },
+      ]},
+      { label:'Plan de entrenamiento', campos:[
+        { id:'obj-c', label:'Objetivo a corto plazo', type:'textarea', placeholder:'Ej: Mejorar movilidad, activar musculatura...' },
+        { id:'obj-m', label:'Objetivo a mediano plazo', type:'textarea', placeholder:'Ej: Ganar fuerza en tren inferior...' },
+        { id:'freq', label:'Frecuencia semanal', type:'select', options:['—','1 vez/semana','2 veces/semana','3 veces/semana','4+ veces/semana'] },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En plan','Objetivos cumplidos','Derivado','Abandonó'] },
+      ]},
+    ]
+  }
+};
+
+// Helpers de prefijo único de id por campo de DOM
+function _fichaFieldDomId(tipo, campoId) { return 'ficha-' + tipo + '-' + campoId; }
+
+function _renderFichaField(tipo, campo, valorGuardado, soloLectura) {
+  var domId = _fichaFieldDomId(tipo, campo.id);
+  var dis = soloLectura ? ' disabled' : '';
+  var val = (valorGuardado === undefined || valorGuardado === null) ? '' : valorGuardado;
+
+  if (campo.type === 'textarea') {
+    return '<div class="ff"><label>' + campo.label + '</label>' +
+      '<textarea id="' + domId + '" placeholder="' + (campo.placeholder||'') + '"' + dis + '>' + val + '</textarea></div>';
+  }
+  if (campo.type === 'select') {
+    var opts = (campo.options||[]).map(function(o) {
+      return '<option' + (o===val?' selected':'') + '>' + o + '</option>';
+    }).join('');
+    return '<div class="ff"><label>' + campo.label + '</label><select id="' + domId + '"' + dis + '>' + opts + '</select></div>';
+  }
+  if (campo.type === 'range') {
+    var rv = val === '' ? 0 : val;
+    return '<div class="ff"><label>' + campo.label + '</label>' +
+      '<div class="eva-row"><span class="eva-label">0</span>' +
+      '<input type="range" min="0" max="10" value="' + rv + '" id="' + domId + '" class="eva-slider"' + dis +
+      ' oninput="document.getElementById(\'' + domId + '-val\').textContent=this.value">' +
+      '<span class="eva-label">10</span><span class="eva-val" id="' + domId + '-val">' + rv + '</span></div></div>';
+  }
+  // text / date
+  return '<div class="ff"><label>' + campo.label + '</label>' +
+    '<input type="' + campo.type + '" id="' + domId + '" placeholder="' + (campo.placeholder||'') + '" value="' + val + '"' + dis + '></div>';
+}
+
+function _renderFichaSecciones(tipo, secciones, datosGuardados, soloLectura) {
+  datosGuardados = datosGuardados || {};
+  return secciones.map(function(sec) {
+    var camposHTML = sec.campos.map(function(c) {
+      return _renderFichaField(tipo, c, datosGuardados[c.id], soloLectura);
+    }).join('');
+    return '<div class="sec-label">' + sec.label + '</div>' + camposHTML;
+  }).join('');
+}
+
+// ── FICHA INLINE (vista doctor, dentro del acordeón de pacientes) ──
+function renderInlineFicha(tipo, datosGuardados) {
   var el = document.getElementById('inline-ficha-container');
   if (!el) return;
-  el.innerHTML = tipo === 'neuro' ? buildNeuroFicha() : buildRpgFicha();
+  tipo = FICHA_SCHEMA[tipo] ? tipo : 'rpg';
+  var schema = FICHA_SCHEMA[tipo];
+  var camposHTML = _renderFichaSecciones(tipo, schema.secciones, datosGuardados, false);
+
+  el.innerHTML =
+    '<div class="sc" style="padding:.75rem .9rem">' +
+      '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
+        '<h3>' + schema.titulo + '</h3>' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
+      '</div>' +
+      '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
+        camposHTML +
+        '<div style="display:flex;gap:.5rem;margin-top:.75rem">' +
+          '<button class="btn-prim" style="flex:1" onclick="guardarFichaPaciente(\'' + tipo + '\')">Guardar ficha</button>' +
+          '<button class="btn-out" style="flex:1;text-align:center" onclick="descargarFichaPDF(\'' + tipo + '\')">Descargar PDF</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
 }
 
-function buildRpgFicha() {
-  return '<div class="sc" style="padding:.75rem .9rem">' +
-    '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
-    '<h3>Ficha RPG Postural</h3>' +
-    '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
-    '</div>' +
-    '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
-
-    // DATOS
-    '<div class="sec-label" style="margin-top:0">Datos generales</div>' +
-    '<div class="f2"><div class="ff"><label>Fecha de nacimiento</label><input type="date" id="rpg-fnac"></div>' +
-    '<div class="ff"><label>Edad</label><input type="text" id="rpg-edad" placeholder="Años"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Sexo</label><select id="rpg-sexo"><option>—</option><option>Femenino</option><option>Masculino</option><option>Otro</option></select></div>' +
-    '<div class="ff"><label>DNI</label><input type="text" id="rpg-dni" placeholder="Nro de documento"></div></div>' +
-    '<div class="ff"><label>Dirección</label><input type="text" id="rpg-dir" placeholder="Domicilio"></div>' +
-    '<div class="ff"><label>Teléfono</label><input type="tel" id="rpg-tel2" placeholder="+54 351..."></div>' +
-    '<div class="f2"><div class="ff"><label>Obra social</label><input type="text" id="rpg-os" placeholder="OSDE..."></div>' +
-    '<div class="ff"><label>N° afiliado</label><input type="text" id="rpg-afil"></div></div>' +
-    '<div class="ff"><label>Ocupación</label><input type="text" id="rpg-ocup" placeholder="Jubilado, empleado..."></div>' +
-    '<div class="f2"><div class="ff"><label>Realizaba esfuerzo</label><select id="rpg-esf"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Médico derivante</label><input type="text" id="rpg-medico" placeholder="Dr./Dra."></div></div>' +
-
-    // CONSULTA
-    '<div class="sec-label">Motivo de consulta</div>' +
-    '<div class="ff"><label>Diagnóstico médico</label><input type="text" id="rpg-diag-m" placeholder="Diagnóstico oficial"></div>' +
-    '<div class="ff"><label>Motivo de consulta</label><textarea id="rpg-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo?"></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Tiempo con dolor</label><input type="text" id="rpg-tiempo-dolor" placeholder="Ej: 3 años"></div>' +
-    '<div class="ff"><label>¿Se irradia?</label><select id="rpg-irradia"><option>—</option><option>No</option><option>Sí</option></select></div></div>' +
-    '<div class="ff"><label>¿A dónde?</label><input type="text" id="rpg-irradia-loc" placeholder="Pierna izq, glúteo..."></div>' +
-    '<div class="f2"><div class="ff"><label>¿Cambia con posición?</label><select id="rpg-pos"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cómo comenzó?</label><select id="rpg-inicio"><option>—</option><option>Gradualmente</option><option>De repente</option><option>Con esfuerzo</option></select></div></div>' +
-    '<div class="ff"><label>¿Cuándo duele más?</label><input type="text" id="rpg-cuando-duele" placeholder="Por la tarde, al caminar..."></div>' +
-    '<div class="ff"><label>Traumatismo previo</label><textarea id="rpg-trauma" placeholder="Descripción..."></textarea></div>' +
-
-    // ANTECEDENTES
-    '<div class="sec-label">Antecedentes</div>' +
-    '<div class="ff"><label>Antecedentes personales</label><textarea id="rpg-ap" placeholder="Patologías, cirugías, fracturas..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Fam. con columna</label><select id="rpg-af-col"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-af-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Deportes</label><select id="rpg-dep"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-dep-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Medicación</label><select id="rpg-meds"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-meds-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Estado nutricional</label><input type="text" id="rpg-nutri" placeholder="Regular, bueno..."></div>' +
-    '<div class="ff"><label>Altura / Peso</label><input type="text" id="rpg-talla" placeholder="1.65m / 70kg"></div></div>' +
-
-    // EVA
-    '<div class="sec-label">Dolor (EVA)</div>' +
-    '<div class="eva-row"><span class="eva-label">0</span>' +
-    '<input type="range" min="0" max="10" value="0" id="rpg-eva" oninput="document.getElementById(\'rpg-eva-val\').textContent=this.value" class="eva-slider">' +
-    '<span class="eva-label">10</span><span class="eva-val" id="rpg-eva-val">0</span></div>' +
-
-    // EVALUACIÓN POSTURAL
-    '<div class="sec-label" style="margin-top:1rem">Evaluación postural</div>' +
-    '<div class="ff"><label>Observación general</label><textarea id="rpg-obs-gral" placeholder="Postura global, actitud, compensaciones..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Plano frontal</label><textarea id="rpg-frontal" placeholder="Cabeza, hombros, pelvis..." style="min-height:80px"></textarea></div>' +
-    '<div class="ff"><label>Plano sagital</label><textarea id="rpg-sagital" placeholder="Cifosis, lordosis..." style="min-height:80px"></textarea></div></div>' +
-    '<div class="ff"><label>Pruebas especiales</label><textarea id="rpg-pruebas" placeholder="Lasègue, Thomas, Adams... con resultado"></textarea></div>' +
-
-    // OBJETIVOS
-    '<div class="sec-label" style="margin-top:1rem">Plan y objetivos</div>' +
-    '<div class="ff"><label>Objetivos corto plazo</label><textarea id="rpg-obj-c" placeholder="1-4 semanas..."></textarea></div>' +
-    '<div class="ff"><label>Objetivos mediano plazo</label><textarea id="rpg-obj-m" placeholder="1-3 meses..."></textarea></div>' +
-    '<div class="ff"><label>Técnicas a aplicar</label><textarea id="rpg-tec" placeholder="RPG, kinesiotaping..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Estado</label><select id="rpg-estado-pac"><option>En tratamiento</option><option>Alta médica</option><option>Alta por objetivos</option><option>Derivado</option></select></div>' +
-    '<div class="ff"><label>Fecha alta estimada</label><input type="date" id="rpg-alta"></div></div>' +
-
-    '<button class="btn-prim" style="margin-top:.75rem" onclick="toast(\'Ficha RPG guardada ✓\')">Guardar ficha</button>' +
-    '</div></div>';
+// Recolecta los valores actuales del formulario según el schema
+function _recolectarFichaValores(tipo) {
+  var schema = FICHA_SCHEMA[tipo];
+  if (!schema) return {};
+  var out = {};
+  schema.secciones.forEach(function(sec) {
+    sec.campos.forEach(function(c) {
+      var domEl = document.getElementById(_fichaFieldDomId(tipo, c.id));
+      if (domEl) out[c.id] = domEl.value;
+    });
+  });
+  return out;
 }
 
-function buildNeuroFicha() {
-  return '<div class="sc" style="padding:.75rem .9rem">' +
-    '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
-    '<h3>Ficha Neurológica</h3>' +
-    '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
-    '</div>' +
-    '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
+async function guardarFichaPaciente(tipo) {
+  if (!currentPacId) { toast('No hay paciente seleccionado'); return; }
+  var valores = _recolectarFichaValores(tipo);
+  try {
+    const { db, doc, updateDoc } = fb();
+    await updateDoc(doc(db, 'usuarios', currentPacId), { ficha: valores, fichaTipo: tipo });
+    var p = pacientesData.find(x => x.id === currentPacId);
+    if (p) { p.ficha = valores; p.fichaTipo = tipo; }
+    toast('Ficha guardada ✓');
+  } catch(e) {
+    console.error('Error guardando ficha:', e);
+    toast('Error al guardar la ficha');
+  }
+}
 
-    '<div class="sec-label" style="margin-top:0">Datos del paciente</div>' +
-    '<div class="f2"><div class="ff"><label>Fecha de evaluación</label><input type="date" id="ne-fecha"></div>' +
-    '<div class="ff"><label>Edad</label><input type="text" id="ne-edad" placeholder="Años"></div></div>' +
-    '<div class="ff"><label>Diagnóstico médico</label><input type="text" id="ne-diag" placeholder="Diagnóstico oficial"></div>' +
-    '<div class="ff"><label>Motivo de consulta</label><textarea id="ne-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo?"></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Médico derivante</label><input type="text" id="ne-medico"></div>' +
-    '<div class="ff"><label>Obra social</label><input type="text" id="ne-os"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Medicación</label><select id="ne-meds"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="ne-meds-desc"></div></div>' +
+function descargarFichaPDF(tipo) {
+  if (typeof window.jspdf === 'undefined') { toast('No se pudo cargar el generador de PDF'); return; }
+  var p = pacientesData.find(function(x) { return x.id === currentPacId; });
+  if (!p) { toast('Seleccioná un paciente primero'); return; }
 
-    '<div class="sec-label">Evaluación en decúbito supino</div>' +
-    '<div class="ff"><label>Cabeza y cuello</label><textarea id="ne-sup-cabeza" placeholder="Posición, tono, asimetrías..."></textarea></div>' +
-    '<div class="ff"><label>Tronco</label><textarea id="ne-sup-tronco" placeholder="Alineación, rigidez..."></textarea></div>' +
-    '<div class="ff"><label>Pelvis</label><textarea id="ne-sup-pelvis" placeholder="Posición, asimetría..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Miembros superiores</label><textarea id="ne-sup-mmss" placeholder="Tono, ROM..." style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Miembros inferiores</label><textarea id="ne-sup-mmii" placeholder="Tono, ROM..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Giro lat. derecho</label><select id="ne-giro-d"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Giro lat. izquierdo</label><select id="ne-giro-i"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div></div>' +
-    '<div class="ff"><label>Calidad del movimiento</label><textarea id="ne-giro-cal" placeholder="Compensaciones..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Decúbito a sedente</label><select id="ne-sed-pasaje"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Control durante pasaje</label><textarea id="ne-sed-ctrl" placeholder="..." style="min-height:60px"></textarea></div></div>' +
+  var schema = FICHA_SCHEMA[tipo] || FICHA_SCHEMA.rpg;
+  var valores = _recolectarFichaValores(tipo); // toma lo que está en pantalla en este momento
 
-    '<div class="sec-label">Evaluación en sedente</div>' +
-    '<div class="f2"><div class="ff"><label>Cabeza y cuello</label><textarea id="ne-sed-cabeza" placeholder="Control cefálico..." style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Tronco</label><textarea id="ne-sed-tronco" placeholder="Control de tronco..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Pelvis</label><textarea id="ne-sed-pelvis" style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>MMSS / MMII</label><textarea id="ne-sed-mmss" placeholder="Tono, función..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Mantiene sedente</label><select id="ne-sed-mantiene"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Tiempo</label><input type="text" id="ne-sed-tiempo" placeholder="Ej: 2 min"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Sedente a parado</label><select id="ne-bip-pasaje"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Simetría de carga</label><textarea id="ne-bip-sim" style="min-height:60px"></textarea></div></div>' +
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  var pageW = doc.internal.pageSize.getWidth();
+  var pageH = doc.internal.pageSize.getHeight();
+  var marginL = 48, marginR = 48;
+  var contentW = pageW - marginL - marginR;
+  var y = 56;
 
-    '<div class="sec-label">Evaluación en bipedestación</div>' +
-    '<div class="ff"><label>Cabeza y tronco</label><textarea id="ne-bip-cabeza" placeholder="Alineación, control..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Pelvis</label><textarea id="ne-bip-pelvis" style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Miembros inferiores</label><textarea id="ne-bip-mmii" style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Mantiene bipedestad.</label><select id="ne-bip-mantiene"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Apoyo</label><select id="ne-bip-apoyo"><option>—</option><option>Sin apoyo</option><option>Unilateral</option><option>Bilateral</option></select></div></div>' +
+  function checkPageBreak(extra) {
+    if (y + (extra||0) > pageH - 56) { doc.addPage(); y = 56; }
+  }
 
-    '<div class="sec-label">Marcha y nivel funcional</div>' +
-    '<div class="f2"><div class="ff"><label>Realiza marcha</label><select id="ne-marcha-si"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Elementos de asistencia</label><input type="text" id="ne-marcha-elem" placeholder="Bastón, andador..."></div></div>' +
-    '<div class="ff"><label>Observaciones de la marcha</label><textarea id="ne-marcha-obs" placeholder="Patrón, asimetría, cadencia..."></textarea></div>' +
-    '<div class="ff"><label>Nivel funcional general</label><textarea id="ne-funcional" placeholder="AVD, independencia..."></textarea></div>' +
-    '<div class="ff"><label>Tono muscular</label><textarea id="ne-tono" placeholder="Hipertonía, hipotonía, espasticidad..."></textarea></div>' +
-    '<div class="ff"><label>Observaciones relevantes</label><textarea id="ne-obs-rel" placeholder="Datos adicionales..."></textarea></div>' +
+  // Encabezado
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(schema.titulo, marginL, y);
+  y += 22;
 
-    '<div class="sec-label">Objetivos kinésicos</div>' +
-    '<div class="ff"><label>Objetivo a corto plazo</label><textarea id="ne-obj-c" placeholder="Primeras sesiones..."></textarea></div>' +
-    '<div class="ff"><label>Objetivos a largo plazo</label><textarea id="ne-obj-l" placeholder="Funcionalidad, independencia..."></textarea></div>' +
-    '<div class="ff"><label>Estrategias terapéuticas</label><textarea id="ne-estrateg" placeholder="Técnicas, abordajes, frecuencia..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Estado</label><select id="ne-estado-pac"><option>En tratamiento</option><option>Alta médica</option><option>Alta por objetivos</option><option>Derivado</option></select></div>' +
-    '<div class="ff"><label>Fecha alta estimada</label><input type="date" id="ne-alta"></div></div>' +
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  var nombreCompleto = (p.nombre || '') + (p.apellido ? ' ' + p.apellido : '');
+  doc.text('Paciente: ' + nombreCompleto, marginL, y); y += 14;
+  doc.text('Diagnóstico: ' + (p.diag || '—'), marginL, y); y += 14;
+  doc.text('Fecha de generación: ' + new Date().toLocaleDateString('es-AR'), marginL, y); y += 10;
 
-    '<button class="btn-prim" style="margin-top:.75rem" onclick="toast(\'Ficha neurológica guardada ✓\')">Guardar ficha</button>' +
-    '</div></div>';
+  doc.setDrawColor(220);
+  doc.line(marginL, y, pageW - marginR, y);
+  y += 18;
+
+  schema.secciones.forEach(function(sec) {
+    checkPageBreak(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11.5);
+    doc.setTextColor(40, 120, 170);
+    doc.text(sec.label, marginL, y);
+    doc.setTextColor(0, 0, 0);
+    y += 16;
+
+    sec.campos.forEach(function(c) {
+      var val = valores[c.id];
+      if (val === undefined || val === null || val === '') val = '—';
+      checkPageBreak(28);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(c.label + ':', marginL, y);
+      y += 12;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      var lines = doc.splitTextToSize(String(val), contentW);
+      lines.forEach(function(line) {
+        checkPageBreak(12);
+        doc.text(line, marginL, y);
+        y += 12;
+      });
+      y += 4;
+    });
+    y += 6;
+  });
+
+  var nombreArchivo = 'Ficha_' + (schema.titulo.replace(/\s+/g,'_')) + '_' + (p.nombre||'paciente').replace(/\s+/g,'_') + '.pdf';
+  doc.save(nombreArchivo);
+  toast('PDF descargado ✓');
 }
 
 function toggleInlineFicha(headerEl) {
@@ -1927,7 +2110,7 @@ async function togglePacAccordion(id) {
   } catch(e) { console.error('Error cargando plan/comentarios:', e); }
 
   renderPacVideos();
-  renderInlineFicha(p.tipo || 'rpg');
+  renderInlineFicha(p.fichaTipo || p.tipo || 'rpg', p.ficha);
   setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
 }
 
