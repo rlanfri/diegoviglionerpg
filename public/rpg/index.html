@@ -123,6 +123,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .foto-wrap img{width:100%;height:auto;max-height:300px;object-fit:cover;display:block}
 .foto-wrap:hover{opacity:.95}
 .vid-overlay{position:absolute;inset:0;background:#0d0d0d;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-direction:column;gap:.6rem}
+.vid-overlay::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(0,0,0,.55) 100%);pointer-events:none}
+.vid-overlay .play-ring,.vid-overlay .vid-title-overlay{position:relative;z-index:1}
 .play-ring{width:56px;height:56px;border-radius:50%;border:2.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-size:22px;padding-left:3px;color:#fff}
 .vid-title-overlay{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;color:rgba(255,255,255,.6);letter-spacing:.04em;text-transform:uppercase;font-weight:400}
 .ex-pills{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.55rem}
@@ -329,6 +331,31 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pac-chip-wrap{position:relative}
 .pac-chip-del{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);display:none;z-index:2}
 .pac-chip-wrap.admin-mode .pac-chip-del{display:flex}
+
+/* ACORDEÓN DE PACIENTES */
+.pac-detail-inline{padding:.85rem 0 .3rem;border-bottom:1px solid var(--bd);margin-bottom:.5rem}
+.pac-detail-inline .sec-label:first-child{margin-top:0}
+
+/* HILO DE COMENTARIOS POR EJERCICIO */
+.hilo-wrap{margin-top:.55rem;padding-top:.55rem;border-top:1px dashed var(--bd)}
+.hilo-label{font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
+.hilo-msgs{display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem}
+.hilo-msg{max-width:85%;border-radius:10px;padding:.45rem .65rem;font-size:.78rem;line-height:1.5}
+.hilo-msg.theirs{align-self:flex-start;background:var(--warm);color:var(--t);border-bottom-left-radius:3px}
+.hilo-msg.mine{align-self:flex-end;background:var(--acc-l);color:var(--acc-d);border-bottom-right-radius:3px}
+.hilo-dolor{margin-bottom:.25rem;display:inline-block}
+.hilo-fecha{font-size:.6rem;color:var(--mu);margin-top:.2rem;font-weight:300}
+.hilo-empty{font-size:.74rem;color:var(--mu);font-weight:300;padding:.3rem 0}
+.hilo-reply{display:flex;gap:.4rem;align-items:flex-end}
+.hilo-reply textarea{flex:1;border:1.5px solid var(--bd);border-radius:8px;padding:.45rem .6rem;font-size:.78rem;font-family:'Barlow',sans-serif;outline:none;background:#f8f9fa;color:var(--t);resize:none;min-height:36px}
+.hilo-reply textarea:focus{border-color:var(--acc)}
+.hilo-reply button{background:var(--acc);color:#fff;border:none;padding:.5rem .85rem;border-radius:8px;font-size:.78rem;font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;flex-shrink:0}
+.hilo-limite{font-size:.7rem;color:var(--mu);font-weight:300;background:var(--cream);border-radius:8px;padding:.5rem .65rem;text-align:center;line-height:1.5}
+.ex-item-doc{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:.65rem .8rem;margin-bottom:.45rem}
+.ex-item-doc .vrow{padding:0;border-bottom:none}
+.nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
+.nu-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.nu-tipo-btn:active{transform:scale(.97)}
 </style>
 
   <!-- Firebase SDK -->
@@ -452,7 +479,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- PAC HOME -->
     <div class="page" id="p-home">
       <div class="pg-title" id="p-greeting">Hola</div>
-      <div class="pg-sub">Tu programa de ejercicios</div>
+      <div id="p-tipo-info" style="display:none;margin-bottom:.7rem">
+        <span id="p-tipo-badge" style="display:inline-flex;align-items:center;gap:5px;background:var(--acc-l);color:var(--acc-d);border-radius:100px;padding:.25rem .75rem;font-size:.72rem;font-weight:600"></span>
+      </div>
+      <div class="pg-sub" id="p-home-sub">Tu programa de ejercicios</div>
       <div class="stat-strip">
         <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
         <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
@@ -474,6 +504,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       <div id="p-cmt-list"><div class="empty">Sin comentarios aún</div></div>
       <div class="sec-label" style="margin-top:1.1rem">Notas del licenciado</div>
       <div id="p-notas-prof"><div class="empty">Sin notas aún</div></div>
+      <div class="sec-label" style="margin-top:1.1rem">Mi ficha clínica</div>
+      <div id="p-ficha-container"><div class="empty">Cargando...</div></div>
     </div>
 
     <!-- DOC HOME -->
@@ -491,51 +523,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     <!-- DOC PACIENTES -->
     <div class="page" id="d-pacientes">
       <div class="pg-title" id="pacs-title">Pacientes</div>
-      <div class="pg-sub" id="pacs-sub">Seleccioná un paciente para gestionar</div>
+      <div class="pg-sub" id="pacs-sub">Tocá un paciente para ver su plan</div>
       <div id="d-pac-list"></div>
-      <div id="d-pac-detail" style="display:none;margin-top:.7rem">
-        <div class="divider"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:.9rem">
-          <div class="pac-av" id="dpd-av" style="width:44px;height:44px;font-size:.88rem">MG</div>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:.95rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em" id="dpd-name">—</div>
-            <div style="font-size:.72rem;color:var(--mu);font-weight:300" id="dpd-diag">—</div>
-          </div>
-          <span class="badge bg-g" id="dpd-pct">—</span>
-        </div>
-        <!-- Asignar profesional (solo admin) -->
-        <div id="dpd-asignar-prof-wrap" style="display:none;margin-bottom:.65rem">
-          <div class="ff" style="margin-bottom:.4rem">
-            <label>Profesional asignado</label>
-            <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
-              <option value="">Sin asignar</option>
-            </select>
-          </div>
-          <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
-        </div>
-
-        <div class="sec-label">Ejercicios / Indicaciones asignadas</div>
-        <div id="dpd-video-list"></div>
-        <button class="btn-prim" style="margin-top:.55rem" onclick="openAssignModal()">+ Asignar ejercicio / indicación</button>
-        <div class="sec-label" style="margin-top:1rem">Comentarios del paciente</div>
-        <div class="cmt-card">
-          <div class="cmt-head"><span class="cmt-date">Hoy</span><span class="badge bg-g">Leve</span></div>
-          <div class="cmt-video" style="display:flex;align-items:center">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="11" height="11" style="margin-right:4px;flex-shrink:0"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-            Estiramiento cadena posterior · Semana 1
-          </div>
-          <div class="cmt-text">Sentí tensión al inicio pero mejoró.</div>
-        </div>
-        <div class="sec-label" style="margin-top:.5rem">Dejar nota al paciente</div>
-        <div class="ff"><textarea id="dpd-nota" placeholder="Indicación, corrección, aliento..."></textarea></div>
-        <button class="btn-prim" onclick="sendNota()">Enviar nota</button>
-
-        <!-- FICHA CLÍNICA INLINE -->
-        <div style="margin-top:1.25rem">
-          <div class="sec-label" style="margin-top:0;margin-bottom:.6rem">Ficha clínica</div>
-          <div id="inline-ficha-container"></div>
-        </div>
-      </div>
     </div>
 
     <!-- DOC EJERCICIOS -->
@@ -606,80 +595,30 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         <div class="ff"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre del paciente"></div>
         <div class="ff"><label>Email Google</label><input type="email" id="nu-email" placeholder="email@gmail.com"></div>
         <div class="f2">
-          <div class="ff"><label>Rol</label><select id="nu-rol"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
+          <div class="ff"><label>Rol</label><select id="nu-rol" onchange="toggleNuTipo(this.value)"><option>Paciente</option><option>Profesional</option><option>Admin</option></select></div>
           <div class="ff"><label>Diagnóstico</label><input type="text" id="nu-diag" placeholder="Diagnóstico"></div>
+        </div>
+        <div id="nu-tipo-wrap" style="margin-bottom:.65rem">
+          <div style="font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">Tipo de programa</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem">
+            <button type="button" class="nu-tipo-btn on" id="nu-ptb-rpg" onclick="selNuTipo('rpg')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🏃</span>
+              <span style="font-size:.72rem;font-weight:600">RPG</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-neuro" onclick="selNuTipo('neuro')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">🧠</span>
+              <span style="font-size:.72rem;font-weight:600">Neurológico</span>
+            </button>
+            <button type="button" class="nu-tipo-btn" id="nu-ptb-general" onclick="selNuTipo('general')">
+              <span style="font-size:1.1rem;display:block;margin-bottom:2px">💪</span>
+              <span style="font-size:.72rem;font-weight:600">General</span>
+            </button>
+          </div>
         </div>
         <button class="btn-prim" onclick="addUser()">Crear usuario</button>
       </div>
       <div class="sec-label">Todos los usuarios</div>
       <div class="sc" style="padding:.45rem .7rem" id="u-list"></div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <!-- Pacientes -->
-        <div class="u-section-lbl" style="margin-top:.6rem">Pacientes</div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u1">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">MG</div>
-          <div style="flex:1">
-            <div class="u-name">María González</div>
-            <div class="u-meta">maria@gmail.com · <span class="u-prof-asig">Sin asignar</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u2">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">CR</div>
-          <div style="flex:1">
-            <div class="u-name">Carlos Ruiz</div>
-            <div class="u-meta">carlos@gmail.com · <span class="u-prof-asig">Dr. Gonzalo Vera</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="inactivo" data-id="u3">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;opacity:.5">AT</div>
-          <div style="flex:1">
-            <div class="u-name" style="opacity:.5">Ana Torres</div>
-            <div class="u-meta">ana@gmail.com · <span class="u-prof-asig">Sin asignar</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge inactivo">Inactivo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-        <div class="u-row" data-rol="paciente" data-estado="activo" data-id="u4">
-          <div class="pac-av" style="width:34px;height:34px;font-size:.7rem">JP</div>
-          <div style="flex:1">
-            <div class="u-name">Juan Pérez</div>
-            <div class="u-meta">juan@gmail.com · <span class="u-prof-asig">Dr. Gonzalo Vera</span></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:.35rem">
-            <span class="estado-badge activo">Activo</span>
-            <div class="ico-btn" onclick="openMenuEstado(this)" title="Cambiar estado">
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="sc" style="margin-top:.6rem;background:var(--acc-l);border-color:rgba(58,143,196,.25)">
-        <div style="font-size:.76rem;color:var(--acc-d);line-height:1.65;font-weight:300">
-          <strong style="font-weight:600">Sobre el acceso:</strong> Los usuarios ingresan con su cuenta Google. El Admin es el único que puede eliminar usuarios. Activo/Inactivo habilita o revoca el acceso sin borrar datos.
-        </div>
-      </div>
     </div>
 
     <!-- FICHA CLÍNICA -->
@@ -988,6 +927,18 @@ function convertYouTubeUrl(url) {
   return url;
 }
 
+// Extrae el ID de video de cualquier formato de URL de YouTube y devuelve la URL del thumbnail
+function getYouTubeThumb(url) {
+  if (!url) return '';
+  url = url.trim();
+  var id = '';
+  if (url.includes('/embed/')) id = url.split('/embed/')[1].split('?')[0].split('&')[0];
+  else if (url.includes('watch?v=')) id = url.split('watch?v=')[1].split('&')[0];
+  else if (url.includes('youtu.be/')) id = url.split('youtu.be/')[1].split('?')[0];
+  if (!id) return '';
+  return 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg';
+}
+
 function convertDriveUrl(url) {
   if (!url) return '';
   url = url.trim();
@@ -1010,6 +961,8 @@ function isValidDriveUrl(url) {
 // ── DATA ──
 let role = 'paciente';
 let currentCommentVideo = '';
+let currentCommentItemId = '';
+let patientComments = []; // comentarios del paciente actualmente abierto (doctor) o propio (paciente)
 let editingVidId = null;
 let profileData = {};
 let prevPage = '';
@@ -1052,12 +1005,12 @@ async function cargarEjercicios() {
 }
 
 async function cargarPlanPaciente(uid) {
-  const { db, collection, getDocs, query, where } = fb();
-  const snap = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
+  const { db, collection, getDocs } = fb();
+  const snap = await getDocs(collection(db, `planes/${uid}/items`));
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
-  // cargar seenSet
-  const snapSeen = await getDocs(collection(db, 'usuarios', uid, 'ejercicios'));
+  // cargar seenSet desde vistos/{uid}/items
+  const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
 }
@@ -1111,9 +1064,10 @@ async function addUser() {
       pct: 0,
       profId: '',
       profNombre: 'Sin asignar',
-      tipo: 'rpg',
+      tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
     });
     ['nu-nombre','nu-email','nu-diag'].forEach(id => document.getElementById(id).value = '');
+    selNuTipo('rpg');
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
@@ -1172,58 +1126,61 @@ async function addVideo() {
   }
 }
 
-// ── OVERRIDE doAssign → escribe en Firestore ──
 async function doAssign() {
-  if (!currentPacId) { toast('Seleccioná un paciente primero'); return; }
-  const mes = document.getElementById('as-mes').value;
-  const sem = document.getElementById('as-sem').value;
-  const titulo = document.getElementById('as-titulo').value.trim();
-  const vidSelId = document.getElementById('as-biblioteca-sel').value;
-  if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
-  if (!titulo) { toast('Ingresá un título'); return; }
-  // Obtener tipo del ejercicio seleccionado
-  const vidSel = videos.find(v => v.id === vidSelId);
-  const tipo = vidSel ? (vidSel.tipo || 'video') : 'indicacion';
-  let series='', reps='', dur='', desc='', url='', fotoUrl='';
-  if (tipo==='indicacion') {
-    desc=document.getElementById('as-ind-texto').value;
-    series=document.getElementById('as-ind-series').value;
-    reps=document.getElementById('as-ind-reps').value;
-    dur=document.getElementById('as-ind-dur').value;
-  } else if (tipo==='foto') {
-    fotoUrl = convertDriveUrl(document.getElementById('as-foto-url').value.trim());
-    if (!fotoUrl) { toast('Ingresá la URL de Google Drive'); return; }
-    if (!isValidDriveUrl(document.getElementById('as-foto-url').value.trim())) { toast('La URL debe ser de Google Drive'); return; }
-    desc=document.getElementById('as-foto-desc').value;
-    series=document.getElementById('as-foto-series').value;
-    reps=document.getElementById('as-foto-reps').value;
-  } else {
-    url = document.getElementById('as-vid-url').value.trim();
-    if (!url) { toast('Ingresá la URL de YouTube'); return; }
-    if (!isValidYouTubeUrl(url)) { toast('La URL no parece ser de YouTube'); return; }
-    url = convertYouTubeUrl(url);
-    desc=document.getElementById('as-vid-desc').value;
-    series=document.getElementById('as-vid-series').value;
-    dur=document.getElementById('as-vid-dur').value;
-  }
-  const { db, collection, addDoc } = fb();
-  try {
-    await addDoc(collection(db, `planes/${currentPacId}/items`), {
-      mes, sem, tipo, title: titulo, series, reps, dur, desc,
-      url: vidSel ? vidSel.url : url,
-      fotoUrl: vidSel ? vidSel.fotoUrl : fotoUrl,
-      ejercicioId: vidSelId,
-    });
-    closeM('m-assign');
-    await cargarEjercicios();
-    renderPacVideos();
-    toast('Asignado a ' + sem + ' de ' + mes + ' ✓');
-  } catch(err) {
-    console.error(err);
-    toast('Error al asignar');
-  }
-}
+    if (!currentPacId) { toast('Seleccioná un paciente primero'); return; }
 
+    const mes = document.getElementById('as-mes').value;
+    const sem = document.getElementById('as-sem').value;
+    const vidSelId = document.getElementById('as-biblioteca-sel').value;
+
+    if (!mes || !sem) { toast('Seleccioná mes y semana'); return; }
+    if (!vidSelId) { toast('Seleccioná un ejercicio de la biblioteca'); return; }
+
+    const { db, doc: fsDoc, getDoc, collection, addDoc } = fb();
+
+    try {
+        // Buscar primero en el array local (ya cargado), si no existe ir a Firestore
+        let ex = videos.find(v => v.id === vidSelId);
+        if (!ex) {
+            const docSnap = await getDoc(fsDoc(db, 'ejercicios', vidSelId));
+            ex = docSnap.exists() ? docSnap.data() : {};
+        }
+
+        const tituloOverride = document.getElementById('as-titulo').value.trim();
+        const seriesOverride = document.getElementById('as-ind-series')?.value.trim() || document.getElementById('as-vid-series')?.value.trim() || '';
+        const repsOverride   = document.getElementById('as-ind-reps')?.value.trim() || '';
+        const durOverride    = document.getElementById('as-ind-dur')?.value.trim() || document.getElementById('as-vid-dur')?.value.trim() || '';
+        const descOverride   = document.getElementById('as-ind-texto')?.value.trim() || document.getElementById('as-vid-desc')?.value.trim() || '';
+
+        const item = {
+            mes,
+            sem,
+            tipo:        ex.tipo || 'video',
+            title:       tituloOverride || ex.title || 'Ejercicio',
+            url:         ex.url || '',
+            fotoUrl:     ex.fotoUrl || '',
+            desc:        descOverride || ex.desc || '',
+            series:      seriesOverride || ex.series || '',
+            reps:        repsOverride || ex.reps || '',
+            dur:         durOverride || ex.dur || '',
+            ejercicioId: vidSelId,
+            fechaAsignado: new Date().toISOString()
+        };
+
+        const newRef = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
+
+        // Actualizar local sin reload
+        patientPlan.push({ id: newRef.id, ...item });
+
+        closeM('m-assign');
+        renderPacVideos();
+        toast('✓ Asignado: ' + item.title + ' → ' + sem);
+
+    } catch(err) {
+        console.error('Error al asignar:', err);
+        toast('Error al guardar la asignación');
+    }
+}
 // ── OVERRIDE cambiarEstado → escribe en Firestore ──
 async function cambiarEstado(sel, tipo, id) {
   const val = sel.value;
@@ -1265,11 +1222,14 @@ async function asignarProfesional() {
   const prof = profesionalesData.find(x => x.id === profId);
   const profNombre = prof ? prof.nombre : 'Sin asignar';
   const { db, doc, updateDoc } = fb();
+  const reopenId = currentPacId;
   try {
     await updateDoc(doc(db, 'usuarios', currentPacId), { profId, profNombre });
     await cargarUsuarios();
     renderPacientesList();
     renderUsuariosList();
+    currentPacId = null; // togglePacAccordion espera que esté cerrado para reabrir
+    await togglePacAccordion(reopenId);
     toast('Profesional asignado ✓');
   } catch(err) {
     console.error(err);
@@ -1309,13 +1269,13 @@ async function deleteDocVideo(id) {
 // ── OVERRIDE removePacVid → borra en Firestore ──
 async function removePacVid(itemId) {
   if (!currentPacId) return;
+  if (!confirm('¿Quitar este ejercicio del plan?')) return;
   const { db, doc, deleteDoc } = fb();
   try {
-    await deleteDoc(doc(db, `planes/${currentPacId}/items/${itemId}`));
-    await cargarEjercicios();
-    patientPlan = patientPlan.filter(p => p.id !== itemId);
+    await deleteDoc(doc(db, 'planes/' + currentPacId + '/items/' + itemId));
+    patientPlan = patientPlan.filter(p => (p.id || p.vid) !== itemId);
     renderPacVideos();
-    toast('Ejercicio removido');
+    toast('Ejercicio removido ✓');
   } catch(err) {
     console.error(err);
     toast('Error al remover ejercicio');
@@ -1410,7 +1370,6 @@ function switchTab(el, pid, navId) {
   el.classList.add('on');
   showPage(pid);
   if (pid==='d-pacientes') {
-    document.getElementById('d-pac-detail').style.display='none';
     renderPacientesList();
   }
 }
@@ -1429,11 +1388,14 @@ function goBack() {
 function renderAccordion() {
   var container = document.getElementById('p-accordion');
   container.innerHTML = '';
+  var itemIdsForHilosPac = [];
   var byMes = {};
   patientPlan.forEach(item => {
-    if (!byMes[item.mes]) byMes[item.mes] = {};
-    if (!byMes[item.mes][item.sem]) byMes[item.mes][item.sem] = [];
-    byMes[item.mes][item.sem].push(item);
+    var mesKey = item.mes || 'Sin mes asignado';
+    var semKey = item.sem || 'General';
+    if (!byMes[mesKey]) byMes[mesKey] = {};
+    if (!byMes[mesKey][semKey]) byMes[mesKey][semKey] = [];
+    byMes[mesKey][semKey].push(item);
   });
 
   Object.keys(byMes).forEach((mes, mi) => {
@@ -1455,13 +1417,18 @@ function renderAccordion() {
         var title = item.title || item.name || '—';
         var desc = item.desc || '';
         var uid = `${mi}-${si}-${ei}`;
+        var msgsCount = patientComments.filter(c => (c.itemId||'') === itemId).length;
 
         // Renderizar contenido según tipo
         var contentHTML = '';
         if (tipo === 'video' && item.url) {
+          var thumbUrl = getYouTubeThumb(item.url);
+          var overlayBg = thumbUrl
+            ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center`
+            : `background:#0d0d0d`;
           contentHTML = `
             <div class="video-wrap">
-              <div class="vid-overlay" id="vto-${uid}" onclick="playVid('${uid}','${item.url}','${itemId}')">
+              <div class="vid-overlay" id="vto-${uid}" style="${overlayBg}" onclick="playVid('${uid}','${item.url}','${itemId}')">
                 <div class="play-ring">▶</div>
                 <div class="vid-title-overlay">${title}</div>
               </div>
@@ -1497,13 +1464,15 @@ function renderAccordion() {
             ${desc ? `<div class="ex-desc">${desc}</div>` : ''}
             <div class="ex-actions">
               <button class="btn-seen${seen?' done':''}" id="bseen-${uid}" onclick="markSeen('${itemId}','${uid}')">${seen?'✓ Visto':'Marcar como visto'}</button>
-              <button class="btn-cmt" onclick="openCmt('${title}')">
+              ${msgsCount < 4 ? `<button class="btn-cmt" onclick="openCmt('${title}','${itemId}')">
                 <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
                 Comentar
-              </button>
+              </button>` : ''}
             </div>
+            <div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-p-${itemId}"></div></div>
           </div>
         </div>`;
+        itemIdsForHilosPac.push({ id: itemId, title: title });
       });
 
       weeksHTML += `
@@ -1530,6 +1499,11 @@ function renderAccordion() {
       </div>
       <div class="acc-month-body${isFirst?' open':''}" id="mb-${mi}">${weeksHTML}</div>`;
     container.appendChild(div);
+  });
+
+  // Render hilos de comentarios por ejercicio (vista paciente)
+  itemIdsForHilosPac.forEach(function(it) {
+    renderHiloComentarios(it.id, 'hilo-p-' + it.id, true, it.title);
   });
 }
 
@@ -1565,21 +1539,24 @@ function openFotoModal(fotoUrl, title) {
   document.getElementById('m-foto').classList.add('open');
 }
 
-function markSeen(vid, uid) {
-  if (seenSet.has(vid)) return;
-  seenSet.add(vid);
-  var sb = document.getElementById('sb-'+uid);
-  if (sb) { sb.className='seen-badge'; sb.textContent='✓ Visto'; }
-  var btn = document.getElementById('bseen-'+uid);
-  if (btn) { btn.textContent='✓ Visto'; btn.classList.add('done'); }
+function markSeen(itemId, uid) {
+  if (seenSet.has(itemId)) return;
+  seenSet.add(itemId);
+  var sb = document.getElementById('sb-' + uid);
+  if (sb) { sb.className = 'seen-badge'; sb.textContent = '✓ Visto'; }
+  var btn = document.getElementById('bseen-' + uid);
+  if (btn) { btn.textContent = '✓ Visto'; btn.classList.add('done'); }
   updateStats();
-  renderAccordion();
+  var currentUid = profileData && profileData.uid;
+  if (currentUid) {
+    guardarVisto(currentUid, itemId).catch(function(e) { console.error('Error guardando visto:', e); });
+  }
   toast('¡Marcado como visto!');
 }
 
 function updateStats() {
   var total = patientPlan.length;
-  var seen = patientPlan.filter(i=>seenSet.has(i.vid)).length;
+  var seen = patientPlan.filter(i => seenSet.has(i.id || i.vid)).length;
   var pct = total ? Math.round(seen/total*100) : 0;
   document.getElementById('ph-total').textContent = total;
   document.getElementById('ph-seen').textContent = seen;
@@ -1685,147 +1662,270 @@ function editDocVideo(id) {
 // ── PACIENTES ──
 
 // ── FICHA INLINE ──
-function renderInlineFicha(tipo) {
+// ── SCHEMA DE FICHAS (rpg / neuro / general) ──
+// Cada campo: { id, label, type: 'text'|'date'|'textarea'|'select'|'range', placeholder, options }
+var FICHA_SCHEMA = {
+  rpg: {
+    titulo: 'Ficha RPG Postural',
+    secciones: [
+      { label: 'Datos generales', campos: [
+        { id:'fnac', label:'Fecha de nacimiento', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'sexo', label:'Sexo', type:'select', options:['—','Femenino','Masculino','Otro'] },
+        { id:'dni', label:'DNI', type:'text', placeholder:'Nro de documento' },
+        { id:'dir', label:'Dirección', type:'text', placeholder:'Domicilio' },
+        { id:'tel2', label:'Teléfono', type:'text', placeholder:'+54 351...' },
+        { id:'os', label:'Obra social', type:'text', placeholder:'OSDE...' },
+        { id:'afil', label:'N° afiliado', type:'text' },
+        { id:'ocup', label:'Ocupación', type:'text', placeholder:'Jubilado, empleado...' },
+        { id:'esf', label:'Realizaba esfuerzo', type:'select', options:['—','Sí','No'] },
+        { id:'medico', label:'Médico derivante', type:'text', placeholder:'Dr./Dra.' },
+      ]},
+      { label:'Motivo de consulta', campos:[
+        { id:'diag-m', label:'Diagnóstico médico', type:'text', placeholder:'Diagnóstico oficial' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo?' },
+        { id:'tiempo-dolor', label:'Tiempo con dolor', type:'text', placeholder:'Ej: 3 años' },
+        { id:'irradia', label:'¿Se irradia?', type:'select', options:['—','No','Sí'] },
+        { id:'irradia-loc', label:'¿A dónde?', type:'text', placeholder:'Pierna izq, glúteo...' },
+        { id:'pos', label:'¿Cambia con posición?', type:'select', options:['—','Sí','No'] },
+        { id:'inicio', label:'¿Cómo comenzó?', type:'select', options:['—','Gradualmente','De repente','Con esfuerzo'] },
+        { id:'cuando-duele', label:'¿Cuándo duele más?', type:'text', placeholder:'Por la tarde, al caminar...' },
+        { id:'trauma', label:'Traumatismo previo', type:'textarea' },
+      ]},
+      { label:'Antecedentes', campos:[
+        { id:'ap', label:'Antecedentes personales', type:'textarea', placeholder:'Patologías, cirugías, fracturas...' },
+        { id:'af-col', label:'Fam. con columna', type:'select', options:['—','Sí','No'] },
+        { id:'af-desc', label:'¿Cuáles?', type:'text' },
+        { id:'dep', label:'Deportes', type:'select', options:['—','Sí','No'] },
+        { id:'dep-desc', label:'¿Cuáles?', type:'text' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+        { id:'nutri', label:'Estado nutricional', type:'text', placeholder:'Regular, bueno...' },
+        { id:'talla', label:'Altura / Peso', type:'text', placeholder:'1.65m / 70kg' },
+      ]},
+      { label:'Dolor (EVA)', campos:[
+        { id:'eva', label:'Nivel de dolor (0-10)', type:'range' },
+      ]},
+      { label:'Evaluación postural', campos:[
+        { id:'obs-gral', label:'Observación general', type:'textarea', placeholder:'Postura global, actitud, compensaciones...' },
+        { id:'frontal', label:'Plano frontal', type:'textarea', placeholder:'Cabeza, hombros, pelvis...' },
+        { id:'sagital', label:'Plano sagital', type:'textarea', placeholder:'Cifosis, lordosis...' },
+        { id:'pruebas', label:'Pruebas especiales', type:'textarea', placeholder:'Lasègue, Thomas, Adams... con resultado' },
+      ]},
+      { label:'Plan y objetivos', campos:[
+        { id:'obj-c', label:'Objetivos corto plazo', type:'textarea', placeholder:'1-4 semanas...' },
+        { id:'obj-m', label:'Objetivos mediano plazo', type:'textarea', placeholder:'1-3 meses...' },
+        { id:'tec', label:'Técnicas a aplicar', type:'textarea', placeholder:'RPG, kinesiotaping...' },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En tratamiento','Alta médica','Alta por objetivos','Derivado'] },
+        { id:'alta', label:'Fecha alta estimada', type:'date' },
+      ]},
+    ]
+  },
+  neuro: {
+    titulo: 'Ficha Neurológica',
+    secciones: [
+      { label:'Datos del paciente', campos:[
+        { id:'fecha', label:'Fecha de evaluación', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'diag', label:'Diagnóstico médico', type:'text', placeholder:'Diagnóstico oficial' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo?' },
+        { id:'medico', label:'Médico derivante', type:'text' },
+        { id:'os', label:'Obra social', type:'text' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+      ]},
+      { label:'Evaluación en decúbito supino', campos:[
+        { id:'sup-cabeza', label:'Cabeza y cuello', type:'textarea', placeholder:'Posición, tono, asimetrías...' },
+        { id:'sup-tronco', label:'Tronco', type:'textarea', placeholder:'Alineación, rigidez...' },
+        { id:'sup-pelvis', label:'Pelvis', type:'textarea', placeholder:'Posición, asimetría...' },
+        { id:'sup-mmss', label:'Miembros superiores', type:'textarea', placeholder:'Tono, ROM...' },
+        { id:'sup-mmii', label:'Miembros inferiores', type:'textarea', placeholder:'Tono, ROM...' },
+        { id:'giro-d', label:'Giro lateral derecho', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'giro-i', label:'Giro lateral izquierdo', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'giro-cal', label:'Calidad del movimiento', type:'textarea', placeholder:'Compensaciones...' },
+        { id:'sed-pasaje', label:'Decúbito a sedente', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'sed-ctrl', label:'Control durante pasaje', type:'textarea' },
+      ]},
+      { label:'Evaluación en sedente', campos:[
+        { id:'sed-cabeza', label:'Cabeza y cuello', type:'textarea', placeholder:'Control cefálico...' },
+        { id:'sed-tronco', label:'Tronco', type:'textarea', placeholder:'Control de tronco...' },
+        { id:'sed-pelvis', label:'Pelvis', type:'textarea' },
+        { id:'sed-mmss', label:'MMSS / MMII', type:'textarea', placeholder:'Tono, función...' },
+        { id:'sed-mantiene', label:'Mantiene sedente', type:'select', options:['—','Sí','No'] },
+        { id:'sed-tiempo', label:'Tiempo', type:'text', placeholder:'Ej: 2 min' },
+        { id:'bip-pasaje', label:'Sedente a parado', type:'select', options:['—','Independiente','Con ayuda','No lo realiza'] },
+        { id:'bip-sim', label:'Simetría de carga', type:'textarea' },
+      ]},
+      { label:'Evaluación en bipedestación', campos:[
+        { id:'bip-cabeza', label:'Cabeza y tronco', type:'textarea', placeholder:'Alineación, control...' },
+        { id:'bip-pelvis', label:'Pelvis', type:'textarea' },
+        { id:'bip-mmii', label:'Miembros inferiores', type:'textarea' },
+        { id:'bip-mantiene', label:'Mantiene bipedestación', type:'select', options:['—','Sí','No'] },
+        { id:'bip-apoyo', label:'Apoyo', type:'select', options:['—','Sin apoyo','Unilateral','Bilateral'] },
+      ]},
+      { label:'Marcha y nivel funcional', campos:[
+        { id:'marcha-si', label:'Realiza marcha', type:'select', options:['—','Sí','No'] },
+        { id:'marcha-elem', label:'Elementos de asistencia', type:'text', placeholder:'Bastón, andador...' },
+        { id:'marcha-obs', label:'Observaciones de la marcha', type:'textarea', placeholder:'Patrón, asimetría, cadencia...' },
+        { id:'funcional', label:'Nivel funcional general', type:'textarea', placeholder:'AVD, independencia...' },
+        { id:'tono', label:'Tono muscular', type:'textarea', placeholder:'Hipertonía, hipotonía, espasticidad...' },
+        { id:'obs-rel', label:'Observaciones relevantes', type:'textarea' },
+      ]},
+      { label:'Objetivos kinésicos', campos:[
+        { id:'obj-c', label:'Objetivo a corto plazo', type:'textarea', placeholder:'Primeras sesiones...' },
+        { id:'obj-l', label:'Objetivos a largo plazo', type:'textarea', placeholder:'Funcionalidad, independencia...' },
+        { id:'estrateg', label:'Estrategias terapéuticas', type:'textarea', placeholder:'Técnicas, abordajes, frecuencia...' },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En tratamiento','Alta médica','Alta por objetivos','Derivado'] },
+        { id:'alta', label:'Fecha alta estimada', type:'date' },
+      ]},
+    ]
+  },
+  general: {
+    titulo: 'Ficha General',
+    secciones: [
+      { label:'Datos generales', campos:[
+        { id:'fnac', label:'Fecha de nacimiento', type:'date' },
+        { id:'edad', label:'Edad', type:'text', placeholder:'Años' },
+        { id:'sexo', label:'Sexo', type:'select', options:['—','Femenino','Masculino','Otro'] },
+        { id:'os', label:'Obra social', type:'text', placeholder:'OSDE...' },
+        { id:'ocup', label:'Ocupación', type:'text', placeholder:'Empleado, estudiante...' },
+        { id:'medico', label:'Médico derivante', type:'text', placeholder:'Dr./Dra.' },
+      ]},
+      { label:'Motivo de consulta', campos:[
+        { id:'diag-m', label:'Diagnóstico / motivo', type:'text', placeholder:'Diagnóstico u objetivo principal' },
+        { id:'motivo', label:'Motivo de consulta', type:'textarea', placeholder:'¿Qué lo trae? ¿Desde cuándo? ¿Qué espera lograr?' },
+        { id:'nivel-act', label:'Nivel de actividad actual', type:'select', options:['—','Sedentario','Poco activo','Moderado','Activo','Muy activo'] },
+      ]},
+      { label:'Antecedentes', campos:[
+        { id:'ap', label:'Antecedentes médicos relevantes', type:'textarea', placeholder:'Lesiones, cirugías, patologías...' },
+        { id:'meds', label:'Medicación', type:'select', options:['—','Sí','No'] },
+        { id:'meds-desc', label:'¿Cuáles?', type:'text' },
+        { id:'talla', label:'Altura / Peso', type:'text', placeholder:'1.70m / 75kg' },
+      ]},
+      { label:'Evaluación física inicial', campos:[
+        { id:'postura', label:'Postura general', type:'textarea', placeholder:'Observaciones posturales básicas...' },
+        { id:'flex', label:'Flexibilidad', type:'textarea', placeholder:'Test sit and reach, movilidad general...' },
+        { id:'fuerza', label:'Fuerza general', type:'textarea', placeholder:'Push-ups, sentadillas, test básico...' },
+        { id:'cardio', label:'Resistencia cardiovascular', type:'textarea', placeholder:'Test de escalón, caminata 6 min...' },
+        { id:'dolor', label:'Zonas de dolor o molestia', type:'text', placeholder:'Espalda baja, rodilla derecha...' },
+      ]},
+      { label:'Plan de entrenamiento', campos:[
+        { id:'obj-c', label:'Objetivo a corto plazo', type:'textarea', placeholder:'Ej: Mejorar movilidad, activar musculatura...' },
+        { id:'obj-m', label:'Objetivo a mediano plazo', type:'textarea', placeholder:'Ej: Ganar fuerza en tren inferior...' },
+        { id:'freq', label:'Frecuencia semanal', type:'select', options:['—','1 vez/semana','2 veces/semana','3 veces/semana','4+ veces/semana'] },
+        { id:'estado-pac', label:'Estado', type:'select', options:['En plan','Objetivos cumplidos','Derivado','Abandonó'] },
+      ]},
+    ]
+  }
+};
+
+// Helpers de prefijo único de id por campo de DOM
+function _fichaFieldDomId(tipo, campoId) { return 'ficha-' + tipo + '-' + campoId; }
+
+function _renderFichaField(tipo, campo, valorGuardado, soloLectura) {
+  var domId = _fichaFieldDomId(tipo, campo.id);
+  var dis = soloLectura ? ' disabled' : '';
+  var val = (valorGuardado === undefined || valorGuardado === null) ? '' : valorGuardado;
+
+  if (campo.type === 'textarea') {
+    return '<div class="ff"><label>' + campo.label + '</label>' +
+      '<textarea id="' + domId + '" placeholder="' + (campo.placeholder||'') + '"' + dis + '>' + val + '</textarea></div>';
+  }
+  if (campo.type === 'select') {
+    var opts = (campo.options||[]).map(function(o) {
+      return '<option' + (o===val?' selected':'') + '>' + o + '</option>';
+    }).join('');
+    return '<div class="ff"><label>' + campo.label + '</label><select id="' + domId + '"' + dis + '>' + opts + '</select></div>';
+  }
+  if (campo.type === 'range') {
+    var rv = val === '' ? 0 : val;
+    return '<div class="ff"><label>' + campo.label + '</label>' +
+      '<div class="eva-row"><span class="eva-label">0</span>' +
+      '<input type="range" min="0" max="10" value="' + rv + '" id="' + domId + '" class="eva-slider"' + dis +
+      ' oninput="document.getElementById(\'' + domId + '-val\').textContent=this.value">' +
+      '<span class="eva-label">10</span><span class="eva-val" id="' + domId + '-val">' + rv + '</span></div></div>';
+  }
+  // text / date
+  return '<div class="ff"><label>' + campo.label + '</label>' +
+    '<input type="' + campo.type + '" id="' + domId + '" placeholder="' + (campo.placeholder||'') + '" value="' + val + '"' + dis + '></div>';
+}
+
+function _renderFichaSecciones(tipo, secciones, datosGuardados, soloLectura) {
+  datosGuardados = datosGuardados || {};
+  return secciones.map(function(sec) {
+    var camposHTML = sec.campos.map(function(c) {
+      return _renderFichaField(tipo, c, datosGuardados[c.id], soloLectura);
+    }).join('');
+    return '<div class="sec-label">' + sec.label + '</div>' + camposHTML;
+  }).join('');
+}
+
+// ── FICHA INLINE (vista doctor, dentro del acordeón de pacientes) ──
+function renderInlineFicha(tipo, datosGuardados) {
   var el = document.getElementById('inline-ficha-container');
   if (!el) return;
-  el.innerHTML = tipo === 'neuro' ? buildNeuroFicha() : buildRpgFicha();
+  tipo = FICHA_SCHEMA[tipo] ? tipo : 'rpg';
+  var schema = FICHA_SCHEMA[tipo];
+  var camposHTML = _renderFichaSecciones(tipo, schema.secciones, datosGuardados, false);
+
+  el.innerHTML =
+    '<div class="sc" style="padding:.75rem .9rem">' +
+      '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
+        '<h3>' + schema.titulo + '</h3>' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
+      '</div>' +
+      '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
+        camposHTML +
+        '<button class="btn-prim" style="margin-top:.75rem" onclick="guardarFichaPaciente(\'' + tipo + '\')">Guardar ficha</button>' +
+      '</div>' +
+    '</div>';
 }
 
-function buildRpgFicha() {
-  return '<div class="sc" style="padding:.75rem .9rem">' +
-    '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
-    '<h3>Ficha RPG Postural</h3>' +
-    '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
-    '</div>' +
-    '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
-
-    // DATOS
-    '<div class="sec-label" style="margin-top:0">Datos generales</div>' +
-    '<div class="f2"><div class="ff"><label>Fecha de nacimiento</label><input type="date" id="rpg-fnac"></div>' +
-    '<div class="ff"><label>Edad</label><input type="text" id="rpg-edad" placeholder="Años"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Sexo</label><select id="rpg-sexo"><option>—</option><option>Femenino</option><option>Masculino</option><option>Otro</option></select></div>' +
-    '<div class="ff"><label>DNI</label><input type="text" id="rpg-dni" placeholder="Nro de documento"></div></div>' +
-    '<div class="ff"><label>Dirección</label><input type="text" id="rpg-dir" placeholder="Domicilio"></div>' +
-    '<div class="ff"><label>Teléfono</label><input type="tel" id="rpg-tel2" placeholder="+54 351..."></div>' +
-    '<div class="f2"><div class="ff"><label>Obra social</label><input type="text" id="rpg-os" placeholder="OSDE..."></div>' +
-    '<div class="ff"><label>N° afiliado</label><input type="text" id="rpg-afil"></div></div>' +
-    '<div class="ff"><label>Ocupación</label><input type="text" id="rpg-ocup" placeholder="Jubilado, empleado..."></div>' +
-    '<div class="f2"><div class="ff"><label>Realizaba esfuerzo</label><select id="rpg-esf"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Médico derivante</label><input type="text" id="rpg-medico" placeholder="Dr./Dra."></div></div>' +
-
-    // CONSULTA
-    '<div class="sec-label">Motivo de consulta</div>' +
-    '<div class="ff"><label>Diagnóstico médico</label><input type="text" id="rpg-diag-m" placeholder="Diagnóstico oficial"></div>' +
-    '<div class="ff"><label>Motivo de consulta</label><textarea id="rpg-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo?"></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Tiempo con dolor</label><input type="text" id="rpg-tiempo-dolor" placeholder="Ej: 3 años"></div>' +
-    '<div class="ff"><label>¿Se irradia?</label><select id="rpg-irradia"><option>—</option><option>No</option><option>Sí</option></select></div></div>' +
-    '<div class="ff"><label>¿A dónde?</label><input type="text" id="rpg-irradia-loc" placeholder="Pierna izq, glúteo..."></div>' +
-    '<div class="f2"><div class="ff"><label>¿Cambia con posición?</label><select id="rpg-pos"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cómo comenzó?</label><select id="rpg-inicio"><option>—</option><option>Gradualmente</option><option>De repente</option><option>Con esfuerzo</option></select></div></div>' +
-    '<div class="ff"><label>¿Cuándo duele más?</label><input type="text" id="rpg-cuando-duele" placeholder="Por la tarde, al caminar..."></div>' +
-    '<div class="ff"><label>Traumatismo previo</label><textarea id="rpg-trauma" placeholder="Descripción..."></textarea></div>' +
-
-    // ANTECEDENTES
-    '<div class="sec-label">Antecedentes</div>' +
-    '<div class="ff"><label>Antecedentes personales</label><textarea id="rpg-ap" placeholder="Patologías, cirugías, fracturas..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Fam. con columna</label><select id="rpg-af-col"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-af-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Deportes</label><select id="rpg-dep"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-dep-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Medicación</label><select id="rpg-meds"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="rpg-meds-desc"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Estado nutricional</label><input type="text" id="rpg-nutri" placeholder="Regular, bueno..."></div>' +
-    '<div class="ff"><label>Altura / Peso</label><input type="text" id="rpg-talla" placeholder="1.65m / 70kg"></div></div>' +
-
-    // EVA
-    '<div class="sec-label">Dolor (EVA)</div>' +
-    '<div class="eva-row"><span class="eva-label">0</span>' +
-    '<input type="range" min="0" max="10" value="0" id="rpg-eva" oninput="document.getElementById(\'rpg-eva-val\').textContent=this.value" class="eva-slider">' +
-    '<span class="eva-label">10</span><span class="eva-val" id="rpg-eva-val">0</span></div>' +
-
-    // EVALUACIÓN POSTURAL
-    '<div class="sec-label" style="margin-top:1rem">Evaluación postural</div>' +
-    '<div class="ff"><label>Observación general</label><textarea id="rpg-obs-gral" placeholder="Postura global, actitud, compensaciones..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Plano frontal</label><textarea id="rpg-frontal" placeholder="Cabeza, hombros, pelvis..." style="min-height:80px"></textarea></div>' +
-    '<div class="ff"><label>Plano sagital</label><textarea id="rpg-sagital" placeholder="Cifosis, lordosis..." style="min-height:80px"></textarea></div></div>' +
-    '<div class="ff"><label>Pruebas especiales</label><textarea id="rpg-pruebas" placeholder="Lasègue, Thomas, Adams... con resultado"></textarea></div>' +
-
-    // OBJETIVOS
-    '<div class="sec-label" style="margin-top:1rem">Plan y objetivos</div>' +
-    '<div class="ff"><label>Objetivos corto plazo</label><textarea id="rpg-obj-c" placeholder="1-4 semanas..."></textarea></div>' +
-    '<div class="ff"><label>Objetivos mediano plazo</label><textarea id="rpg-obj-m" placeholder="1-3 meses..."></textarea></div>' +
-    '<div class="ff"><label>Técnicas a aplicar</label><textarea id="rpg-tec" placeholder="RPG, kinesiotaping..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Estado</label><select id="rpg-estado-pac"><option>En tratamiento</option><option>Alta médica</option><option>Alta por objetivos</option><option>Derivado</option></select></div>' +
-    '<div class="ff"><label>Fecha alta estimada</label><input type="date" id="rpg-alta"></div></div>' +
-
-    '<button class="btn-prim" style="margin-top:.75rem" onclick="toast(\'Ficha RPG guardada ✓\')">Guardar ficha</button>' +
-    '</div></div>';
+// Recolecta los valores actuales del formulario según el schema
+function _recolectarFichaValores(tipo) {
+  var schema = FICHA_SCHEMA[tipo];
+  if (!schema) return {};
+  var out = {};
+  schema.secciones.forEach(function(sec) {
+    sec.campos.forEach(function(c) {
+      var domEl = document.getElementById(_fichaFieldDomId(tipo, c.id));
+      if (domEl) out[c.id] = domEl.value;
+    });
+  });
+  return out;
 }
 
-function buildNeuroFicha() {
-  return '<div class="sc" style="padding:.75rem .9rem">' +
-    '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleInlineFicha(this)">' +
-    '<h3>Ficha Neurológica</h3>' +
-    '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
-    '</div>' +
-    '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
+async function guardarFichaPaciente(tipo) {
+  if (!currentPacId) { toast('No hay paciente seleccionado'); return; }
+  var valores = _recolectarFichaValores(tipo);
+  try {
+    const { db, doc, updateDoc } = fb();
+    await updateDoc(doc(db, 'usuarios', currentPacId), { ficha: valores, fichaTipo: tipo });
+    var p = pacientesData.find(x => x.id === currentPacId);
+    if (p) { p.ficha = valores; p.fichaTipo = tipo; }
+    toast('Ficha guardada ✓');
+  } catch(e) {
+    console.error('Error guardando ficha:', e);
+    toast('Error al guardar la ficha');
+  }
+}
 
-    '<div class="sec-label" style="margin-top:0">Datos del paciente</div>' +
-    '<div class="f2"><div class="ff"><label>Fecha de evaluación</label><input type="date" id="ne-fecha"></div>' +
-    '<div class="ff"><label>Edad</label><input type="text" id="ne-edad" placeholder="Años"></div></div>' +
-    '<div class="ff"><label>Diagnóstico médico</label><input type="text" id="ne-diag" placeholder="Diagnóstico oficial"></div>' +
-    '<div class="ff"><label>Motivo de consulta</label><textarea id="ne-motivo" placeholder="¿Qué lo trae? ¿Desde cuándo?"></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Médico derivante</label><input type="text" id="ne-medico"></div>' +
-    '<div class="ff"><label>Obra social</label><input type="text" id="ne-os"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Medicación</label><select id="ne-meds"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>¿Cuáles?</label><input type="text" id="ne-meds-desc"></div></div>' +
+// ── FICHA SOLO LECTURA (vista paciente) ──
+function renderFichaPacienteReadOnly(tipo, datosGuardados) {
+  var el = document.getElementById('p-ficha-container');
+  if (!el) return;
+  tipo = FICHA_SCHEMA[tipo] ? tipo : 'rpg';
+  var schema = FICHA_SCHEMA[tipo];
+  var hayDatos = datosGuardados && Object.keys(datosGuardados).some(function(k){ return datosGuardados[k]; });
 
-    '<div class="sec-label">Evaluación en decúbito supino</div>' +
-    '<div class="ff"><label>Cabeza y cuello</label><textarea id="ne-sup-cabeza" placeholder="Posición, tono, asimetrías..."></textarea></div>' +
-    '<div class="ff"><label>Tronco</label><textarea id="ne-sup-tronco" placeholder="Alineación, rigidez..."></textarea></div>' +
-    '<div class="ff"><label>Pelvis</label><textarea id="ne-sup-pelvis" placeholder="Posición, asimetría..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Miembros superiores</label><textarea id="ne-sup-mmss" placeholder="Tono, ROM..." style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Miembros inferiores</label><textarea id="ne-sup-mmii" placeholder="Tono, ROM..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Giro lat. derecho</label><select id="ne-giro-d"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Giro lat. izquierdo</label><select id="ne-giro-i"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div></div>' +
-    '<div class="ff"><label>Calidad del movimiento</label><textarea id="ne-giro-cal" placeholder="Compensaciones..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Decúbito a sedente</label><select id="ne-sed-pasaje"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Control durante pasaje</label><textarea id="ne-sed-ctrl" placeholder="..." style="min-height:60px"></textarea></div></div>' +
+  if (!hayDatos) {
+    el.innerHTML = '<div class="sc"><div class="sc-head"><h3>' + schema.titulo + '</h3></div>' +
+      '<div class="empty">Tu profesional todavía no completó tu ficha clínica</div></div>';
+    return;
+  }
 
-    '<div class="sec-label">Evaluación en sedente</div>' +
-    '<div class="f2"><div class="ff"><label>Cabeza y cuello</label><textarea id="ne-sed-cabeza" placeholder="Control cefálico..." style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Tronco</label><textarea id="ne-sed-tronco" placeholder="Control de tronco..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Pelvis</label><textarea id="ne-sed-pelvis" style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>MMSS / MMII</label><textarea id="ne-sed-mmss" placeholder="Tono, función..." style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Mantiene sedente</label><select id="ne-sed-mantiene"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Tiempo</label><input type="text" id="ne-sed-tiempo" placeholder="Ej: 2 min"></div></div>' +
-    '<div class="f2"><div class="ff"><label>Sedente a parado</label><select id="ne-bip-pasaje"><option>—</option><option>Independiente</option><option>Con ayuda</option><option>No lo realiza</option></select></div>' +
-    '<div class="ff"><label>Simetría de carga</label><textarea id="ne-bip-sim" style="min-height:60px"></textarea></div></div>' +
-
-    '<div class="sec-label">Evaluación en bipedestación</div>' +
-    '<div class="ff"><label>Cabeza y tronco</label><textarea id="ne-bip-cabeza" placeholder="Alineación, control..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Pelvis</label><textarea id="ne-bip-pelvis" style="min-height:70px"></textarea></div>' +
-    '<div class="ff"><label>Miembros inferiores</label><textarea id="ne-bip-mmii" style="min-height:70px"></textarea></div></div>' +
-    '<div class="f2"><div class="ff"><label>Mantiene bipedestad.</label><select id="ne-bip-mantiene"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Apoyo</label><select id="ne-bip-apoyo"><option>—</option><option>Sin apoyo</option><option>Unilateral</option><option>Bilateral</option></select></div></div>' +
-
-    '<div class="sec-label">Marcha y nivel funcional</div>' +
-    '<div class="f2"><div class="ff"><label>Realiza marcha</label><select id="ne-marcha-si"><option>—</option><option>Sí</option><option>No</option></select></div>' +
-    '<div class="ff"><label>Elementos de asistencia</label><input type="text" id="ne-marcha-elem" placeholder="Bastón, andador..."></div></div>' +
-    '<div class="ff"><label>Observaciones de la marcha</label><textarea id="ne-marcha-obs" placeholder="Patrón, asimetría, cadencia..."></textarea></div>' +
-    '<div class="ff"><label>Nivel funcional general</label><textarea id="ne-funcional" placeholder="AVD, independencia..."></textarea></div>' +
-    '<div class="ff"><label>Tono muscular</label><textarea id="ne-tono" placeholder="Hipertonía, hipotonía, espasticidad..."></textarea></div>' +
-    '<div class="ff"><label>Observaciones relevantes</label><textarea id="ne-obs-rel" placeholder="Datos adicionales..."></textarea></div>' +
-
-    '<div class="sec-label">Objetivos kinésicos</div>' +
-    '<div class="ff"><label>Objetivo a corto plazo</label><textarea id="ne-obj-c" placeholder="Primeras sesiones..."></textarea></div>' +
-    '<div class="ff"><label>Objetivos a largo plazo</label><textarea id="ne-obj-l" placeholder="Funcionalidad, independencia..."></textarea></div>' +
-    '<div class="ff"><label>Estrategias terapéuticas</label><textarea id="ne-estrateg" placeholder="Técnicas, abordajes, frecuencia..."></textarea></div>' +
-    '<div class="f2"><div class="ff"><label>Estado</label><select id="ne-estado-pac"><option>En tratamiento</option><option>Alta médica</option><option>Alta por objetivos</option><option>Derivado</option></select></div>' +
-    '<div class="ff"><label>Fecha alta estimada</label><input type="date" id="ne-alta"></div></div>' +
-
-    '<button class="btn-prim" style="margin-top:.75rem" onclick="toast(\'Ficha neurológica guardada ✓\')">Guardar ficha</button>' +
-    '</div></div>';
+  var camposHTML = _renderFichaSecciones(tipo, schema.secciones, datosGuardados, true);
+  el.innerHTML = '<div class="sc"><div class="sc-head"><h3>' + schema.titulo + '</h3></div>' + camposHTML + '</div>';
 }
 
 function toggleInlineFicha(headerEl) {
@@ -1836,17 +1936,16 @@ function toggleInlineFicha(headerEl) {
   if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
-// ── RENDER PACIENTES LIST ──
+// ── RENDER PACIENTES LIST (acordeón) ──
 function renderPacientesList() {
   var list = document.getElementById('d-pac-list');
   var isAdmin = role === 'admin';
-  // Filter: profesional only sees their patients
   var visible = isAdmin
     ? pacientesData.filter(p => p.estado !== 'eliminado')
-    : pacientesData.filter(p => p.estado === 'activo' && (p.profId === 'p1' || true)); // in prod: filter by logged-in prof id
-  
+    : pacientesData.filter(p => p.estado === 'activo');
+
   if (!visible.length) { list.innerHTML = '<div class="empty">Sin pacientes asignados</div>'; return; }
-  
+
   list.innerHTML = visible.map(p => {
     var badgeClass = p.pct >= 70 ? 'bg-g' : 'bg-y';
     var delBtn = isAdmin ? `
@@ -1854,18 +1953,22 @@ function renderPacientesList() {
         <svg viewBox="0 0 24 24" fill="#991b1b" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
       </div>` : '';
     var profLabel = isAdmin
-      ? `<span style="color:var(--acc);font-weight:500">${p.profNombre}</span>`
-      : p.diag;
-    return `<div class="pac-chip" onclick="openPacById('${p.id}')" style="${p.estado==='inactivo'?'opacity:.6':''}">
-      <div class="pac-av" style="width:38px;height:38px;font-size:.75rem">${p.ini}</div>
-      <div style="flex:1">
-        <div class="pac-name">${p.nombre}</div>
-        <div class="pac-meta">${p.diag} · ${profLabel}</div>
+      ? `<span style="color:var(--acc);font-weight:500">${p.profNombre || 'Sin asignar'}</span>`
+      : (p.diag || '—');
+    return `<div class="pac-chip-wrap">
+      <div class="pac-chip" onclick="togglePacAccordion('${p.id}')" id="chip-${p.id}" style="${p.estado==='inactivo'?'opacity:.6':''}">
+        <div class="pac-av" style="width:38px;height:38px;font-size:.75rem">${p.ini}</div>
+        <div style="flex:1">
+          <div class="pac-name">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
+          <div class="pac-meta">${profLabel}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.35rem">
+          ${p.estado === 'inactivo' ? '<span class="estado-badge inactivo">Inactivo</span>' : `<span class="badge ${badgeClass}">${p.pct}%</span>`}
+          <span class="acc-chevron" id="chev-${p.id}">▾</span>
+          ${delBtn}
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:.35rem">
-        ${p.estado === 'inactivo' ? '<span class="estado-badge inactivo">Inactivo</span>' : `<span class="badge ${badgeClass}">${p.pct}%</span>`}
-        ${delBtn}
-      </div>
+      <div class="pac-detail-inline" id="pacdet-${p.id}" style="display:none"></div>
     </div>`;
   }).join('');
 }
@@ -1874,130 +1977,249 @@ function eliminarPaciente(id) {
   if (!confirm('¿Eliminar este paciente? Esta acción no se puede deshacer.')) return;
   var p = pacientesData.find(x => x.id === id);
   if (p) p.estado = 'eliminado';
+  if (currentPacId === id) currentPacId = null;
   renderPacientesList();
   renderUsuariosList();
-  document.getElementById('d-pac-detail').style.display = 'none';
   toast('Paciente eliminado');
 }
 
-function openPacById(id) {
+// Template del detalle del paciente (sin repetir nombre/avatar, ya están en el chip)
+function renderPacDetailHTML(p) {
+  var profSelWrap = role === 'admin' ? `
+    <div id="dpd-asignar-prof-wrap" style="margin-bottom:.65rem">
+      <div class="ff" style="margin-bottom:.4rem">
+        <label>Profesional asignado</label>
+        <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
+          <option value="">Sin asignar</option>
+        </select>
+      </div>
+      <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
+    </div>` : '';
+
+  return `
+    ${profSelWrap}
+    <div class="sec-label" style="margin-top:0">Ejercicios / Indicaciones asignadas</div>
+    <div id="dpd-video-list"><div class="empty">Cargando plan...</div></div>
+    <button class="btn-prim" style="margin-top:.55rem" onclick="openAssignModal()">+ Asignar ejercicio / indicación</button>
+
+    <div class="sec-label" style="margin-top:1rem">Dejar nota al paciente</div>
+    <div class="ff"><textarea id="dpd-nota" placeholder="Indicación, corrección, aliento..."></textarea></div>
+    <button class="btn-prim" onclick="sendNota()">Enviar nota</button>
+
+    <div style="margin-top:1.25rem">
+      <div class="sec-label" style="margin-top:0;margin-bottom:.6rem">Ficha clínica</div>
+      <div id="inline-ficha-container"></div>
+    </div>`;
+}
+
+async function togglePacAccordion(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
+  var det = document.getElementById('pacdet-' + id);
+  var wasOpen = det && det.style.display === 'block';
+
+  // Cerrar todos los acordeones abiertos
+  document.querySelectorAll('.pac-detail-inline').forEach(function(d) { d.style.display = 'none'; d.innerHTML = ''; });
+  document.querySelectorAll('.pac-chip').forEach(function(c) { c.classList.remove('sel'); });
+  document.querySelectorAll('[id^="chev-"]').forEach(function(c) { c.classList.remove('open'); });
+
+  if (wasOpen) { currentPacId = null; return; }
+
   currentPacId = id;
-  document.querySelectorAll('.pac-chip').forEach(c=>c.classList.remove('sel'));
-  // highlight
-  document.querySelectorAll('.pac-chip').forEach(c => { if(c.onclick && c.onclick.toString().includes(id)) c.classList.add('sel'); });
-  document.getElementById('dpd-av').textContent = p.ini;
-  document.getElementById('dpd-name').textContent = p.nombre;
-  document.getElementById('dpd-diag').textContent = p.diag;
-  document.getElementById('dpd-pct').textContent = p.pct + '%';
-  // Admin: show profesional assignment
-  var wrap = document.getElementById('dpd-asignar-prof-wrap');
+  document.getElementById('chip-' + id)?.classList.add('sel');
+  document.getElementById('chev-' + id)?.classList.add('open');
+
+  det.innerHTML = renderPacDetailHTML(p);
+  det.style.display = 'block';
+
+  // Llenar selector de profesional (admin)
   if (role === 'admin') {
-    wrap.style.display = 'block';
-    // Llenar selector con profesionales reales de Firestore
     var sel = document.getElementById('dpd-prof-sel');
     sel.innerHTML = '<option value="">Sin asignar</option>';
     profesionalesData.forEach(function(prof) {
       var opt = document.createElement('option');
       opt.value = prof.id;
-      opt.textContent = (prof.nombre || '') + (prof.apellido ? ' ' + prof.apellido : '');
+      opt.textContent = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
       sel.appendChild(opt);
     });
     sel.value = p.profId || '';
-  } else {
-    wrap.style.display = 'none';
   }
+
+  // Cargar plan + comentarios del paciente
+  try {
+    await cargarPlanPaciente(id);
+    patientComments = await cargarComentariosPaciente(id);
+  } catch(e) { console.error('Error cargando plan/comentarios:', e); }
+
   renderPacVideos();
-  document.getElementById('d-pac-detail').style.display = 'block';
-  // Render inline ficha based on patient tipo
-  renderInlineFicha(p.tipo || 'rpg');
-  setTimeout(function(){ document.getElementById('d-pac-detail').scrollIntoView({behavior:'smooth',block:'nearest'}); },50);
+  renderInlineFicha(p.fichaTipo || p.tipo || 'rpg', p.ficha);
+  setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
 }
 
-function openPac(el, name, av, diag, pct) {
-  // legacy — find by name
-  var p = pacientesData.find(x => x.nombre === name);
-  if (p) { openPacById(p.id); return; }
-  document.getElementById('dpd-av').textContent = av;
-  document.getElementById('dpd-name').textContent = name;
-  document.getElementById('dpd-diag').textContent = diag;
-  document.getElementById('dpd-pct').textContent = pct + '%';
-  renderPacVideos();
-  document.getElementById('d-pac-detail').style.display = 'block';
-}
-
-// asignarProfesional local reemplazada por versión Firestore
+// Alias por compatibilidad con llamadas previas
+async function openPacById(id) { return togglePacAccordion(id); }
 
 function renderPacVideos() {
   var list = document.getElementById('dpd-video-list');
-  list.innerHTML='';
-  var byKey={};
-  patientPlan.forEach(item=>{
-    var k=item.mes+' · '+item.sem;
-    if(!byKey[k]) byKey[k]=[];
+  list.innerHTML = '';
+
+  if (!patientPlan.length) {
+    list.innerHTML = '<div class="empty" style="padding:.75rem 0">Sin ejercicios asignados</div>';
+    return;
+  }
+
+  var byKey = {};
+  patientPlan.forEach(function(item) {
+    var k = (item.mes || 'Sin mes') + ' · ' + (item.sem || 'Sin semana');
+    if (!byKey[k]) byKey[k] = [];
     byKey[k].push(item);
   });
 
-  var typeIcon = {
-    video: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`,
-    foto:  `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`,
-    indicacion: `<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>`,
+  var iconSVG = {
+    video:      '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>',
+    foto:       '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>',
+    indicacion: '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>',
   };
 
-  Object.entries(byKey).forEach(([key,items])=>{
-    var lbl=document.createElement('div');
-    lbl.className='sec-label';
-    lbl.style.marginTop='.4rem';
-    lbl.textContent=key;
+  var itemIdsForHilos = [];
+
+  Object.keys(byKey).forEach(function(key) {
+    var items = byKey[key];
+    var lbl = document.createElement('div');
+    lbl.className = 'sec-label';
+    lbl.style.marginTop = '.4rem';
+    lbl.textContent = key;
     list.appendChild(lbl);
-    items.forEach(item=>{
-      var tipo = item.tipo || 'video';
-      var v = videos.find(dv=>dv.id===item.vid);
-      var title = item.title || (v?.title) || '—';
-      var meta=[item.series,item.reps,item.dur].filter(Boolean).join(' · ');
-      var row=document.createElement('div');
-      row.className='vrow';
-      row.innerHTML=`
-        <div class="vrow-thumb" style="background:${tipo==='video'?'var(--acc)':tipo==='foto'?'#555':'#333'}">${typeIcon[tipo]||typeIcon.indicacion}</div>
-        <div class="vrow-info">
-          <div class="vrow-title">${title}</div>
-          <div class="vrow-meta">${meta||'Sin datos de carga'}</div>
-          ${item.desc?`<div class="vrow-meta" style="font-style:italic;margin-top:1px">${item.desc.slice(0,55)}…</div>`:''}
-        </div>
-        <div class="vrow-acts">
-          <div class="ico-btn" onclick="openEditModal('${item.vid}')">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          </div>
-          <div class="ico-btn" onclick="removePacVid('${item.vid}')">
-            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          </div>
-        </div>`;
-      list.appendChild(row);
+
+    items.forEach(function(item) {
+      var itemId = item.id || item.vid || '';
+      var tipo   = item.tipo || 'video';
+      var title  = item.title || '—';
+      var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
+      var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+
+      var wrap = document.createElement('div');
+      wrap.className = 'ex-item-doc';
+      wrap.innerHTML =
+        '<div class="vrow">' +
+          '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
+          '<div class="vrow-info">' +
+            '<div class="vrow-title">' + title + '</div>' +
+            '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
+            (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
+          '</div>' +
+          '<div class="vrow-acts">' +
+            '<div class="ico-btn" onclick="openEditModal(\'' + itemId + '\')">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+            '</div>' +
+            '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>';
+      list.appendChild(wrap);
+      if (itemId) itemIdsForHilos.push({ id: itemId, title: title });
     });
   });
-  if(!patientPlan.length) list.innerHTML='<div class="empty" style="padding:.75rem 0">Sin ejercicios asignados</div>';
+
+  // Render hilos de comentarios por ejercicio (vista doctor)
+  itemIdsForHilos.forEach(function(it) {
+    renderHiloComentarios(it.id, 'hilo-' + it.id, false, it.title);
+  });
+}
+
+// ── HILO DE COMENTARIOS POR EJERCICIO ──
+function renderHiloComentarios(itemId, mountId, isPaciente, title) {
+  var el = document.getElementById(mountId);
+  if (!el) return;
+
+  // Match exacto por itemId, o fallback a comentarios viejos (itemId vacío) que coincidan por título
+  var msgs = patientComments.filter(function(c) {
+    var cItemId = c.itemId || '';
+    if (cItemId === itemId && itemId) return true;
+    if (!cItemId && title && c.ejercicioTitle === title) return true;
+    return false;
+  });
+  msgs = msgs.slice().sort(function(a,b) { return (a.fecha||'').localeCompare(b.fecha||''); });
+
+  var html = '<div class="hilo-label">Comentarios</div>';
+
+  if (!msgs.length) {
+    html += '<div class="hilo-empty">Sin comentarios para este ejercicio</div>';
+  } else {
+    html += '<div class="hilo-msgs">';
+    msgs.forEach(function(m) {
+      var mine = isPaciente ? (m.tipo !== 'profesional') : (m.tipo === 'profesional');
+      var fecha = '';
+      try { fecha = new Date(m.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e) {}
+      html += '<div class="hilo-msg ' + (mine ? 'mine' : 'theirs') + '">' +
+        (m.dolor ? '<span class="badge bg-g hilo-dolor">' + m.dolor + '</span>' : '') +
+        '<div class="hilo-text">' + (m.texto || '') + '</div>' +
+        '<div class="hilo-fecha">' + fecha + '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (msgs.length >= 4) {
+    html += '<div class="hilo-limite">Llegaron al límite de mensajes para este ejercicio. Comunicate directamente con ' +
+      (isPaciente ? 'tu profesional' : 'el paciente') + ' para profundizar.</div>';
+  } else if (!isPaciente) {
+    html += '<div class="hilo-reply">' +
+      '<textarea id="hilo-input-' + itemId + '" placeholder="Responder al paciente..." rows="1"></textarea>' +
+      '<button onclick="enviarMensajeHilo(\'' + itemId + '\')">Enviar</button>' +
+    '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+async function enviarMensajeHilo(itemId) {
+  var input = document.getElementById('hilo-input-' + itemId);
+  if (!input) return;
+  var texto = input.value.trim();
+  if (!texto) { toast('Escribí un mensaje'); return; }
+  if (!currentPacId) return;
+  var item = patientPlan.find(function(p) { return (p.id||p.vid) === itemId; });
+  var title = item ? item.title : '';
+  try {
+    await guardarComentario(currentPacId, itemId, '', texto, title, 'profesional');
+    patientComments = await cargarComentariosPaciente(currentPacId);
+    renderHiloComentarios(itemId, 'hilo-' + itemId, false, title);
+    toast('Mensaje enviado ✓');
+  } catch(e) {
+    console.error('Error enviando mensaje:', e);
+    toast('Error al enviar mensaje');
+  }
 }
 
 // removePacVid local eliminada — usa versión Firestore
 
 function updateAssignSelect() {} // no longer needed
-function openAssignModal() {
-  // Llenar selector con biblioteca de ejercicios
+async function openAssignModal() {
+  // Siempre recargar biblioteca desde Firestore
+  try {
+    await cargarEjercicios();
+  } catch(e) { console.error('Error cargando ejercicios:', e); }
+
+  // Llenar selector
   var sel = document.getElementById('as-biblioteca-sel');
-  sel.innerHTML = '<option value="">— Seleccioná un ejercicio —</option>';
+  sel.innerHTML = '<option value="">— Elegí un ejercicio —</option>';
   videos.forEach(function(v) {
     var opt = document.createElement('option');
     opt.value = v.id;
-    opt.textContent = v.title + (v.cat ? ' [' + v.cat + ']' : '');
+    var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
+    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (v.cat ? ' [' + v.cat + ']' : '');
     sel.appendChild(opt);
   });
-  // reset campos
-  document.getElementById('as-titulo').value='';
-  document.getElementById('as-ind-series').value='';
-  document.getElementById('as-ind-reps').value='';
-  document.getElementById('as-ind-dur').value='';
-  document.getElementById('as-ind-texto').value='';
+
+  // Reset campos override
+  ['as-titulo','as-ind-series','as-ind-reps','as-ind-dur','as-ind-texto',
+   'as-vid-series','as-vid-dur','as-vid-desc'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+
   document.getElementById('m-assign').classList.add('open');
 }
 
@@ -2013,25 +2235,32 @@ function onBibliotecaSel(sel) {
 }
 // doAssign local eliminada — usa versión Firestore
 
-function openEditModal(vid) {
-  var item=patientPlan.find(p=>p.vid===vid);
-  var v=videos.find(dv=>dv.id===vid);
-  if(!item||!v) return;
-  editingVidId=vid;
-  document.getElementById('me-title').textContent=v.title;
-  document.getElementById('me-series').value=item.series||'';
-  document.getElementById('me-reps').value=item.reps||'';
-  document.getElementById('me-dur').value=item.dur||'';
-  document.getElementById('me-desc').value=item.desc||'';
+function openEditModal(itemId) {
+  var item = patientPlan.find(function(p) { return (p.id || p.vid) === itemId; });
+  if (!item) return;
+  editingVidId = itemId;
+  document.getElementById('me-title').textContent = item.title || 'Ejercicio';
+  document.getElementById('me-series').value = item.series || '';
+  document.getElementById('me-reps').value   = item.reps || '';
+  document.getElementById('me-dur').value    = item.dur || '';
+  document.getElementById('me-desc').value   = item.desc || '';
   document.getElementById('m-edit').classList.add('open');
 }
-function saveEdit() {
-  var item=patientPlan.find(p=>p.vid===editingVidId);
-  if(!item) return;
-  item.series=document.getElementById('me-series').value;
-  item.reps=document.getElementById('me-reps').value;
-  item.dur=document.getElementById('me-dur').value;
-  item.desc=document.getElementById('me-desc').value;
+async function saveEdit() {
+  var item = patientPlan.find(function(p) { return (p.id || p.vid) === editingVidId; });
+  if (!item) return;
+  item.series = document.getElementById('me-series').value;
+  item.reps   = document.getElementById('me-reps').value;
+  item.dur    = document.getElementById('me-dur').value;
+  item.desc   = document.getElementById('me-desc').value;
+  if (item.id && currentPacId) {
+    try {
+      const { db, doc, updateDoc } = fb();
+      await updateDoc(doc(db, 'planes/' + currentPacId + '/items/' + item.id), {
+        series: item.series, reps: item.reps, dur: item.dur, desc: item.desc
+      });
+    } catch(e) { console.error('Error guardando edición:', e); }
+  }
   closeM('m-edit');
   renderPacVideos();
   toast('Datos actualizados ✓');
@@ -2636,15 +2865,14 @@ function fcTab(el, panelId) {
 }
 
 function openFicha() {
-  var name = document.getElementById('dpd-name').textContent;
-  var diag = document.getElementById('dpd-diag').textContent;
-  var av   = document.getElementById('dpd-av').textContent;
+  var p = pacientesData.find(x => x.id === currentPacId);
+  var name = p ? ((p.nombre||'') + (p.apellido?' '+p.apellido:'')) : '—';
+  var diag = p ? (p.diag||'—') : '—';
+  var av   = p ? (p.ini||'?') : '?';
   document.getElementById('fc-name').textContent = name;
   document.getElementById('fc-diag').textContent = diag;
   document.getElementById('fc-av').textContent   = av;
   document.getElementById('me-evol-pac').textContent = name;
-  // Hide patient detail before switching
-  document.getElementById('d-pac-detail').style.display = 'none';
   prevPage = 'd-pacientes';
   // Navigate first
   showPage('d-ficha');
@@ -2696,13 +2924,14 @@ async function cargarProgresoPacientes() {
   }
 }
 
-async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle) {
+async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle, tipo) {
   const { db, collection, addDoc } = fb();
   await addDoc(collection(db, 'comentarios/' + pacienteUid + '/items'), {
     itemId: itemId || '',
-    dolor, texto, ejercicioTitle,
+    dolor: dolor || '',
+    texto, ejercicioTitle,
     fecha: new Date().toISOString(),
-    tipo: 'paciente'
+    tipo: tipo || 'paciente'
   });
 }
 
@@ -2795,7 +3024,9 @@ async function saveComment() {
   var text = document.getElementById('mc-text').value.trim();
   closeM('m-comment');
   try {
-    await guardarComentario(profileData.uid, currentCommentItemId || '', label, text, currentCommentVideo);
+    await guardarComentario(profileData.uid, currentCommentItemId || '', label, text, currentCommentVideo, 'paciente');
+    patientComments = await cargarComentariosPaciente(profileData.uid);
+    renderAccordion();
     toast('Comentario enviado ✓');
   } catch(e) {
     console.error('Error guardando comentario:', e);
@@ -2851,6 +3082,9 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
       profileData.email = d.email || '';
       profileData.tel = d.tel || '';
       profileData.diag = d.diag || '';
+      profileData.tipo = d.tipo || 'rpg';
+      profileData.ficha = d.ficha || {};
+      profileData.fichaTipo = d.fichaTipo || d.tipo || 'rpg';
       const ini2 = ((profileData.nombre[0]||'')+(profileData.apellido[0]||'')).toUpperCase() || ini;
       profileData.initials = ini2;
       document.getElementById('av-btn').textContent = ini2;
@@ -2859,6 +3093,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     await cargarEjercicios();
     if (role === 'paciente') {
       await cargarPlanPaciente(uid);
+      try { patientComments = await cargarComentariosPaciente(uid); } catch(e) { console.error('Error cargando comentarios:', e); }
     }
   } catch(err) {
     console.error('Error cargando datos Firestore:', err);
@@ -2873,6 +3108,9 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     document.getElementById('p-greeting').textContent = 'Hola, ' + (nameParts[0] || nombre);
     renderAccordion();
     updateStats();
+    mostrarTipoPaciente(profileData.tipo || 'rpg');
+    renderFichaPacienteReadOnly(profileData.fichaTipo || profileData.tipo || 'rpg', profileData.ficha);
+    try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
@@ -2881,6 +3119,8 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
+    try { await cargarProgresoPacientes(); } catch(e) { console.error('Error cargando progreso:', e); }
+    try { await renderComentariosProfesional(); } catch(e) { console.error('Error cargando comentarios:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
@@ -2901,6 +3141,36 @@ window._showAccessError = function(tipo) {
   const btn = document.querySelector('.btn-login');
   if (btn) { btn.innerHTML = '<div class="g-dot">G</div>Ingresar con Google'; btn.disabled = false; }
 };
+
+// ── TIPO DE PROGRAMA (nuevo usuario) ──
+function selNuTipo(tipo) {
+  ['rpg','neuro','general'].forEach(function(t) {
+    var btn = document.getElementById('nu-ptb-' + t);
+    if (btn) btn.classList.toggle('on', t === tipo);
+  });
+}
+
+function toggleNuTipo(rol) {
+  var wrap = document.getElementById('nu-tipo-wrap');
+  if (wrap) wrap.style.display = rol.toLowerCase() === 'paciente' ? 'block' : 'none';
+}
+
+// ── BADGE TIPO EN VISTA PACIENTE (solo informativo) ──
+var TIPO_INFO = {
+  rpg:     { emoji: '🏃', label: 'RPG Postural' },
+  neuro:   { emoji: '🧠', label: 'Neurológico' },
+  general: { emoji: '💪', label: 'General' },
+};
+
+function mostrarTipoPaciente(tipo) {
+  var info = TIPO_INFO[tipo] || TIPO_INFO.rpg;
+  var wrap  = document.getElementById('p-tipo-info');
+  var badge = document.getElementById('p-tipo-badge');
+  var sub   = document.getElementById('p-home-sub');
+  if (wrap)  wrap.style.display = 'block';
+  if (badge) badge.textContent  = info.emoji + ' ' + info.label;
+  if (sub)   sub.textContent    = 'Tu programa de ejercicios · ' + info.label;
+}
 
 // Override logout to use Firebase signOut
 const _origLogout = window.logout;
@@ -2973,6 +3243,24 @@ window.logout = function() {
     <button class="btn-prim" style="background:transparent;color:#ef4444;border:1.5px solid #ef4444;margin-top:.5rem" onclick="logout()">Cerrar sesión</button>
   </div>
 </div>
+<script>
+// 1. Limpieza total de pacientes de prueba al cargar
+document.addEventListener('DOMContentLoaded', () => {
+    // Eliminar del DOM físico
+    document.querySelectorAll('.u-row').forEach(el => {
+        let txt = el.innerHTML.toLowerCase();
+        if(txt.includes('maria@') || txt.includes('carlos@') || txt.includes('u1') || txt.includes('u2')) {
+            el.remove();
+        }
+    });
+    // Vaciar el array de datos en memoria para que no los vuelva a renderizar
+    if(typeof pacientesData !== 'undefined') {
+        pacientesData = []; 
+    }
+});
 
+// 2. Función de asignación prioritaria
+// doAssign unificado — definido arriba
+</script>
 </body>
 </html>
