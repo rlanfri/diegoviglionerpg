@@ -358,6 +358,29 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .ex-item-doc{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:.65rem .8rem;margin-bottom:.45rem}
 .ex-item-doc .vrow{padding:0;border-bottom:none}
 .nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
+
+/* ── PROGRESO FOTOGRÁFICO ── */
+.fotos-timeline{display:flex;flex-direction:column;gap:.85rem}
+.foto-entry{display:flex;gap:.75rem;align-items:flex-start}
+.foto-entry-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:36px}
+.foto-entry-dot{width:11px;height:11px;border-radius:50%;background:var(--acc);flex-shrink:0;margin-top:3px}
+.foto-entry-connector{width:2px;flex:1;background:var(--bd);margin-top:3px;min-height:24px}
+.foto-entry:last-child .foto-entry-connector{display:none}
+.foto-entry-body{flex:1;min-width:0}
+.foto-entry-meta{display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem;flex-wrap:wrap}
+.foto-entry-fecha{font-size:.68rem;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:.06em}
+.foto-entry-delta{font-size:.65rem;color:var(--mu);background:var(--cream);border-radius:100px;padding:.1rem .5rem;font-weight:500}
+.foto-entry-desc{font-size:.78rem;color:var(--t);font-weight:400;margin-bottom:.4rem;line-height:1.4}
+.foto-entry-img{width:100%;max-height:200px;object-fit:cover;border-radius:9px;cursor:pointer;display:block;border:1px solid var(--bd)}
+.foto-entry-img:hover{opacity:.9}
+.foto-entry-placeholder{width:100%;height:100px;background:var(--warm);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.75rem;border:1.5px dashed var(--bd)}
+.foto-entry-del{font-size:.65rem;color:var(--red);cursor:pointer;margin-top:.3rem;opacity:.7}
+.foto-entry-del:hover{opacity:1}
+/* Lightbox */
+.foto-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.foto-lightbox img{max-width:100%;max-height:92vh;border-radius:10px;object-fit:contain}
+.foto-lightbox-close{position:fixed;top:1.2rem;right:1.2rem;color:#fff;font-size:1.6rem;cursor:pointer;line-height:1;opacity:.8}
+.foto-lightbox-close:hover{opacity:1}
 .nu-tipo-btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
 .nu-tipo-btn:active{transform:scale(.97)}
 </style>
@@ -849,6 +872,32 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
   </div>
 </div>
 
+<!-- MODAL FOTO DE PROGRESO -->
+<div class="mwrap" id="m-foto-prog">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="m-title">Agregar foto de progreso</div>
+    <div class="m-sub" id="mfp-pac-name">Paciente</div>
+    <div class="ff" style="margin-top:.85rem">
+      <label>URL de la imagen</label>
+      <input type="text" id="mfp-url" placeholder="https://drive.google.com/file/d/... o link directo">
+      <div style="font-size:.65rem;color:var(--mu);margin-top:.3rem">Subí la foto a Google Drive, copiá el link de compartir y pegalo acá</div>
+    </div>
+    <div class="ff">
+      <label>Descripción / Contexto</label>
+      <input type="text" id="mfp-desc" placeholder="Ej: Evaluación inicial, Semana 4, Post-alta...">
+    </div>
+    <div class="ff">
+      <label>Fecha de la foto</label>
+      <input type="date" id="mfp-fecha">
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeM('m-foto-prog')">Cancelar</button>
+      <button class="btn-ok" onclick="guardarFotoProgreso()">Guardar foto</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NUEVA EVOLUCIÓN -->
 <div class="mwrap" id="m-evol">
   <div class="msheet">
@@ -979,6 +1028,7 @@ let pacientesData = [];
 let profesionalesData = [];
 let videos = [];
 let patientPlan = [];
+let patientFotos = []; // fotos de progreso del paciente actualmente abierto (doctor)
 let seenSet = new Set();
 let currentPacId = null;
 let fotosProgreso = {};
@@ -2320,6 +2370,14 @@ function renderPacDetailHTML(p) {
     <div style="margin-top:1.25rem">
       <div class="sec-label" style="margin-top:0;margin-bottom:.6rem">Ficha clínica</div>
       <div id="inline-ficha-container"></div>
+    </div>
+
+    <div style="margin-top:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem">
+        <div class="sec-label" style="margin-top:0;margin-bottom:0">Progreso fotográfico</div>
+        <button class="btn-out" style="font-size:.72rem;padding:.35rem .75rem" onclick="openAddFotoProgreso()">+ Agregar foto</button>
+      </div>
+      <div id="pac-fotos-grid"><div class="empty">Sin fotos de progreso aún</div></div>
     </div>`;
 }
 
@@ -2356,19 +2414,161 @@ async function togglePacAccordion(id) {
     sel.value = p.profId || '';
   }
 
-  // Cargar plan + comentarios del paciente
+  // Cargar plan + comentarios + fotos del paciente
   try {
     await cargarPlanPaciente(id);
     patientComments = await cargarComentariosPaciente(id);
-  } catch(e) { console.error('Error cargando plan/comentarios:', e); }
+    patientFotos = await cargarFotosProgreso(id);
+  } catch(e) { console.error('Error cargando plan/comentarios/fotos:', e); }
 
   renderPacVideos();
   renderInlineFicha(p.fichaTipo || p.tipo || 'rpg', p.ficha);
+  renderFotosTimeline();
   setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
 }
 
 // Alias por compatibilidad con llamadas previas
 async function openPacById(id) { return togglePacAccordion(id); }
+
+// ── PROGRESO FOTOGRÁFICO ──
+
+async function cargarFotosProgreso(uid) {
+  const { db, collection, getDocs, query, orderBy } = fb();
+  try {
+    const snap = await getDocs(query(collection(db, 'fotos/' + uid + '/items'), orderBy('fecha', 'asc')));
+    var fotos = [];
+    snap.forEach(function(d) { fotos.push({ id: d.id, ...d.data() }); });
+    return fotos;
+  } catch(e) {
+    // Si orderBy falla (índice no creado), fallback sin orden
+    const snap = await getDocs(collection(db, 'fotos/' + uid + '/items'));
+    var fotos = [];
+    snap.forEach(function(d) { fotos.push({ id: d.id, ...d.data() }); });
+    return fotos.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+  }
+}
+
+function openAddFotoProgreso() {
+  if (!currentPacId) return;
+  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+  document.getElementById('mfp-pac-name').textContent = p ? (p.nombre + (p.apellido?' '+p.apellido:'')) : 'Paciente';
+  document.getElementById('mfp-url').value = '';
+  document.getElementById('mfp-desc').value = '';
+  document.getElementById('mfp-fecha').value = new Date().toISOString().split('T')[0];
+  limpiarErroresForm(['mfp-url','mfp-desc','mfp-fecha']);
+  document.getElementById('m-foto-prog').classList.add('open');
+}
+
+async function guardarFotoProgreso() {
+  if (!validarFormulario([
+    { id:'mfp-url',  label:'URL de imagen', validators:[function(v){ return VALID.required(v,'La URL de la imagen'); }] },
+    { id:'mfp-desc', label:'Descripción',   validators:[function(v){ return VALID.required(v,'La descripción'); }, VALID.minLen(3)] },
+    { id:'mfp-fecha',label:'Fecha',         validators:[function(v){ return VALID.required(v,'La fecha'); }, VALID.dateNotFuture] },
+  ])) return;
+
+  var rawUrl  = document.getElementById('mfp-url').value.trim();
+  var desc    = document.getElementById('mfp-desc').value.trim();
+  var fecha   = document.getElementById('mfp-fecha').value;
+  var url     = convertDriveUrl(rawUrl) || rawUrl; // intenta convertir Drive; si no, usa tal cual
+
+  const { db, collection, addDoc } = fb();
+  try {
+    var ref = await addDoc(collection(db, 'fotos/' + currentPacId + '/items'), {
+      url, rawUrl, desc, fecha,
+      creadoEn: new Date().toISOString()
+    });
+    patientFotos.push({ id: ref.id, url, rawUrl, desc, fecha });
+    patientFotos.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+    closeM('m-foto-prog');
+    renderFotosTimeline();
+    toast('Foto guardada ✓');
+  } catch(e) {
+    console.error('Error guardando foto:', e);
+    toast('Error al guardar la foto');
+  }
+}
+
+async function eliminarFotoProgreso(fotoId) {
+  if (!confirm('¿Eliminar esta foto del progreso?')) return;
+  const { db, doc, deleteDoc } = fb();
+  try {
+    await deleteDoc(doc(db, 'fotos/' + currentPacId + '/items/' + fotoId));
+    patientFotos = patientFotos.filter(function(f){ return f.id !== fotoId; });
+    renderFotosTimeline();
+    toast('Foto eliminada');
+  } catch(e) {
+    console.error('Error eliminando foto:', e);
+    toast('Error al eliminar');
+  }
+}
+
+// Calcula diferencia en semanas/meses entre dos fechas (strings YYYY-MM-DD)
+function _deltaTiempo(fechaBase, fechaActual) {
+  var d1 = new Date(fechaBase + 'T00:00:00');
+  var d2 = new Date(fechaActual + 'T00:00:00');
+  if (isNaN(d1) || isNaN(d2) || d1 >= d2) return null;
+  var diff = Math.round((d2 - d1) / (1000*60*60*24));
+  if (diff < 7)   return diff + (diff === 1 ? ' día' : ' días');
+  if (diff < 30)  return Math.round(diff/7) + (Math.round(diff/7) === 1 ? ' semana' : ' semanas');
+  if (diff < 365) return Math.round(diff/30) + (Math.round(diff/30) === 1 ? ' mes' : ' meses');
+  var yrs = +(diff/365).toFixed(1);
+  return yrs + (yrs === 1 ? ' año' : ' años');
+}
+
+function renderFotosTimeline() {
+  var el = document.getElementById('pac-fotos-grid');
+  if (!el) return;
+
+  if (!patientFotos.length) {
+    el.innerHTML = '<div class="empty">Sin fotos de progreso aún</div>';
+    return;
+  }
+
+  var fechaBase = patientFotos[0].fecha;
+  var html = '<div class="fotos-timeline">';
+
+  patientFotos.forEach(function(f, i) {
+    var fechaFmt = '';
+    try { fechaFmt = new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'long',year:'numeric'}); } catch(e){}
+    var delta = i === 0 ? 'Foto inicial' : (_deltaTiempo(fechaBase, f.fecha) ? _deltaTiempo(fechaBase, f.fecha) + ' de tratamiento' : '');
+
+    html += `
+      <div class="foto-entry">
+        <div class="foto-entry-line">
+          <div class="foto-entry-dot"></div>
+          <div class="foto-entry-connector"></div>
+        </div>
+        <div class="foto-entry-body">
+          <div class="foto-entry-meta">
+            <span class="foto-entry-fecha">${fechaFmt}</span>
+            ${delta ? `<span class="foto-entry-delta">${delta}</span>` : ''}
+          </div>
+          ${f.desc ? `<div class="foto-entry-desc">${f.desc}</div>` : ''}
+          ${f.url
+            ? `<img class="foto-entry-img" src="${f.url}" alt="${f.desc||''}" onclick="abrirLightbox('${f.url}','${(f.desc||'').replace(/'/g,"\\'")}','${fechaFmt}')" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
+            : ''}
+          ${f.url ? `<div class="foto-entry-placeholder" style="display:none">No se pudo cargar la imagen</div>` : `<div class="foto-entry-placeholder">Sin imagen</div>`}
+          <div class="foto-entry-del" onclick="eliminarFotoProgreso('${f.id}')">✕ Eliminar foto</div>
+        </div>
+      </div>`;
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function abrirLightbox(url, desc, fecha) {
+  var lb = document.createElement('div');
+  lb.className = 'foto-lightbox';
+  lb.innerHTML =
+    '<span class="foto-lightbox-close" onclick="this.parentElement.remove()">✕</span>' +
+    '<div style="text-align:center">' +
+      '<img src="' + url + '" alt="' + desc + '">' +
+      (desc || fecha ? '<div style="color:rgba(255,255,255,.75);font-size:.82rem;margin-top:.65rem;font-family:Barlow,sans-serif">' + (desc || '') + (fecha ? ' · ' + fecha : '') + '</div>' : '') +
+    '</div>';
+  lb.addEventListener('click', function(e){ if(e.target===lb) lb.remove(); });
+  document.body.appendChild(lb);
+}
 
 function renderPacVideos() {
   var list = document.getElementById('dpd-video-list');
