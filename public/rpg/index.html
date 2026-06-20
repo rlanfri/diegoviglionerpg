@@ -387,7 +387,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAic3h0hrR2lAdZQ0mhEy10MeYDr0zjpGg",
@@ -404,7 +404,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     const provider = new GoogleAuthProvider();
 
     // Expose globally for the main script
-    window._fb = { auth, db, provider, signInWithPopup, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, GoogleAuthProvider };
+    window._fb = { auth, db, provider, signInWithPopup, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, GoogleAuthProvider };
 
 // Función para borrar usuarios de Firebase
     window.eliminarUsuario = async function(id, nombre) {
@@ -2196,7 +2196,7 @@ async function guardarFichaPaciente(tipo) {
       await addDoc(collection(db, 'usuarios/' + currentPacId + '/historialFicha'), {
         ficha: p.ficha,
         fichaTipo: p.fichaTipo || tipo,
-        guardadoPor: currentUser ? (currentUser.displayName || currentUser.email) : 'Desconocido',
+        guardadoPor: profileData ? ((profileData.nombre + ' ' + (profileData.apellido||'')).trim() || 'Desconocido') : 'Desconocido',
         fecha: new Date().toISOString()
       });
     }
@@ -2284,7 +2284,7 @@ async function restaurarVersionFicha(versionId) {
       await addDoc(collection(db, 'usuarios/' + currentPacId + '/historialFicha'), {
         ficha: p.ficha,
         fichaTipo: p.fichaTipo || version.fichaTipo,
-        guardadoPor: currentUser ? (currentUser.displayName || currentUser.email) : 'Desconocido',
+        guardadoPor: profileData ? ((profileData.nombre + ' ' + (profileData.apellido||'')).trim() || 'Desconocido') : 'Desconocido',
         fecha: new Date().toISOString()
       });
     }
