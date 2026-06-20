@@ -894,6 +894,32 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
   </div>
 </div>
 
+<!-- MODAL EDITAR FOTO DE PROGRESO -->
+<div class="mwrap" id="m-foto-edit">
+  <div class="msheet">
+    <div class="mhandle"></div>
+    <div class="m-title">Editar foto</div>
+    <input type="hidden" id="mfe-id">
+    <div class="ff" style="margin-top:.85rem">
+      <label>URL de la imagen</label>
+      <input type="text" id="mfe-url" placeholder="https://drive.google.com/file/d/...">
+      <div style="font-size:.65rem;color:var(--mu);margin-top:.3rem">Pegá el nuevo link de Drive si querés cambiar la imagen</div>
+    </div>
+    <div class="ff">
+      <label>Descripción / Contexto</label>
+      <input type="text" id="mfe-desc" placeholder="Ej: Evaluación inicial, Semana 4, Post-alta...">
+    </div>
+    <div class="ff">
+      <label>Fecha de la foto</label>
+      <input type="date" id="mfe-fecha">
+    </div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeM('m-foto-edit')">Cancelar</button>
+      <button class="btn-ok" onclick="guardarEditFotoProgreso()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL NUEVA EVOLUCIÓN -->
 <div class="mwrap" id="m-evol">
   <div class="msheet">
@@ -994,10 +1020,11 @@ function convertDriveUrl(url) {
   if (!url) return '';
   url = url.trim();
   // https://drive.google.com/file/d/FILE_ID/view?...
-  var match = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-  if (match) return 'https://drive.google.com/uc?export=view&id=' + match[1];
-  // Ya es una URL directa de drive
-  if (url.includes('drive.google.com/uc')) return url;
+  var match = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  if (match) return 'https://drive.google.com/thumbnail?id=' + match[1] + '&sz=w800';
+  // Ya es thumbnail o uc → extraer ID y re-convertir a thumbnail
+  var matchUc = url.match(/[?&]id=([^&]+)/);
+  if (matchUc && url.includes('drive.google.com')) return 'https://drive.google.com/thumbnail?id=' + matchUc[1] + '&sz=w800';
   return url;
 }
 
@@ -2498,6 +2525,44 @@ async function eliminarFotoProgreso(fotoId) {
   }
 }
 
+function openEditFotoProgreso(fotoId) {
+  var f = patientFotos.find(function(x){ return x.id === fotoId; });
+  if (!f) return;
+  document.getElementById('mfe-id').value   = fotoId;
+  document.getElementById('mfe-url').value  = f.rawUrl || f.url || '';
+  document.getElementById('mfe-desc').value = f.desc || '';
+  document.getElementById('mfe-fecha').value = f.fecha || '';
+  limpiarErroresForm(['mfe-url','mfe-desc','mfe-fecha']);
+  document.getElementById('m-foto-edit').classList.add('open');
+}
+
+async function guardarEditFotoProgreso() {
+  if (!validarFormulario([
+    { id:'mfe-url',  label:'URL de imagen', validators:[function(v){ return VALID.required(v,'La URL de la imagen'); }] },
+    { id:'mfe-desc', label:'Descripción',   validators:[function(v){ return VALID.required(v,'La descripción'); }, VALID.minLen(3)] },
+    { id:'mfe-fecha',label:'Fecha',         validators:[function(v){ return VALID.required(v,'La fecha'); }, VALID.dateNotFuture] },
+  ])) return;
+
+  var fotoId  = document.getElementById('mfe-id').value;
+  var rawUrl  = document.getElementById('mfe-url').value.trim();
+  var desc    = document.getElementById('mfe-desc').value.trim();
+  var fecha   = document.getElementById('mfe-fecha').value;
+  var url     = convertDriveUrl(rawUrl) || rawUrl;
+
+  const { db, doc, updateDoc } = fb();
+  try {
+    await updateDoc(doc(db, 'fotos/' + currentPacId + '/items/' + fotoId), { url, rawUrl, desc, fecha });
+    var idx = patientFotos.findIndex(function(f){ return f.id === fotoId; });
+    if (idx > -1) patientFotos[idx] = Object.assign(patientFotos[idx], { url, rawUrl, desc, fecha });
+    closeM('m-foto-edit');
+    renderFotosTimeline();
+    toast('Foto actualizada ✓');
+  } catch(e) {
+    console.error('Error editando foto:', e);
+    toast('Error al guardar los cambios');
+  }
+}
+
 // Calcula diferencia en semanas/meses entre dos fechas (strings YYYY-MM-DD)
 function _deltaTiempo(fechaBase, fechaActual) {
   var d1 = new Date(fechaBase + 'T00:00:00');
@@ -2543,7 +2608,10 @@ function renderFotosTimeline() {
         '<div class="foto-card-body">' +
           '<div class="foto-card-desc">' + (f.desc || '—') + '</div>' +
           '<div class="foto-card-fecha">' + fechaFmt + '</div>' +
-          '<span class="foto-card-del" onclick="event.stopPropagation();eliminarFotoProgreso(\'' + f.id + '\')">✕ Eliminar</span>' +
+          '<div style="display:flex;gap:.6rem;margin-top:.3rem">' +
+            '<span class="foto-card-del" style="color:var(--acc)" onclick="event.stopPropagation();openEditFotoProgreso(\'' + f.id + '\')">✎ Editar</span>' +
+            '<span class="foto-card-del" onclick="event.stopPropagation();eliminarFotoProgreso(\'' + f.id + '\')">✕ Eliminar</span>' +
+          '</div>' +
         '</div>' +
       '</div>';
   });
