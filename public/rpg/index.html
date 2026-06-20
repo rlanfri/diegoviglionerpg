@@ -120,6 +120,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .ex-body.open{display:block}
 .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#111;border-radius:8px;overflow:hidden;margin-bottom:.7rem}
 .video-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.vid-blocker{position:absolute;inset:0;z-index:10;display:none;pointer-events:none}
+.vid-blocker::after{content:'';position:absolute;inset:0;z-index:10}
 .foto-wrap{background:#f0f0f0;border-radius:8px;overflow:hidden;margin-bottom:.7rem;cursor:pointer}
 .foto-wrap img{width:100%;height:auto;max-height:300px;object-fit:cover;display:block}
 .foto-wrap:hover{opacity:.95}
@@ -894,6 +896,19 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
   </div>
 </div>
 
+<!-- MODAL HISTORIAL FICHA -->
+<div class="mwrap" id="m-historial-ficha">
+  <div class="msheet" style="max-height:85vh;overflow-y:auto">
+    <div class="mhandle"></div>
+    <div class="m-title">Historial de ficha clínica</div>
+    <div class="m-sub" id="mhf-pac-name">Paciente</div>
+    <div id="mhf-lista" style="margin-top:1rem"></div>
+    <div class="m-actions">
+      <button class="btn-cancel" onclick="closeM('m-historial-ficha')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR FOTO DE PROGRESO -->
 <div class="mwrap" id="m-foto-edit">
   <div class="msheet">
@@ -1641,7 +1656,8 @@ function renderAccordion() {
         // Renderizar contenido según tipo
         var contentHTML = '';
         if (tipo === 'video' && item.url) {
-          var thumbUrl = getYouTubeThumb(item.url);
+          var isDrive = item.url.includes('drive.google.com');
+          var thumbUrl = isDrive ? null : getYouTubeThumb(item.url);
           var overlayBg = thumbUrl
             ? `background-image:url('${thumbUrl}');background-size:cover;background-position:center`
             : `background:#0d0d0d`;
@@ -1651,7 +1667,12 @@ function renderAccordion() {
                 <div class="play-ring">▶</div>
                 <div class="vid-title-overlay">${title}</div>
               </div>
-              <iframe id="vif-${uid}" src="" frameborder="0" allowfullscreen allow="autoplay; encrypted-media" style="position:absolute;inset:0;width:100%;height:100%;display:none"></iframe>
+              <iframe id="vif-${uid}" src="" frameborder="0"
+                allow="autoplay; encrypted-media"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                referrerpolicy="no-referrer"
+                style="position:absolute;inset:0;width:100%;height:100%;display:none"></iframe>
+              <div class="vid-blocker" id="vbl-${uid}"></div>
             </div>`;
         } else if (tipo === 'foto' && item.fotoUrl) {
           contentHTML = `
@@ -1741,15 +1762,27 @@ function toggleEx(bid, cid) {
 
 function playVid(uid, url, vid) {
   var overlay = document.getElementById('vto-'+uid);
-  var iframe = document.getElementById('vif-'+uid);
-  overlay.style.display='none';
-  iframe.style.display='block';
-  var src = url;
-  if (url.includes('watch?v=')) src='https://www.youtube.com/embed/'+url.split('watch?v=')[1].split('&')[0]+'?autoplay=1';
-  else if (url.includes('youtu.be/')) src='https://www.youtube.com/embed/'+url.split('youtu.be/')[1].split('?')[0]+'?autoplay=1';
-  else if (url.includes('/embed/')) src=url+(url.includes('?')?'&':'?')+'autoplay=1';
+  var iframe  = document.getElementById('vif-'+uid);
+  var blocker = document.getElementById('vbl-'+uid);
+  overlay.style.display = 'none';
+  iframe.style.display  = 'block';
+  if (blocker) blocker.style.display = 'block';
+
+  var src = '';
+  if (url.includes('drive.google.com')) {
+    // Drive: extraer ID y usar URL de preview embebida (sin botón Abrir/Descargar)
+    var m = url.match(/[-\w]{25,}/);
+    var fileId = m ? m[0] : '';
+    src = 'https://drive.google.com/file/d/' + fileId + '/preview';
+  } else {
+    // YouTube: parámetros que eliminan branding, links y videos relacionados
+    var ytParams = '?autoplay=1&rel=0&modestbranding=1&disablekb=1&fs=0&playsinline=1&iv_load_policy=3&color=white';
+    if (url.includes('watch?v='))       src = 'https://www.youtube-nocookie.com/embed/' + url.split('watch?v=')[1].split('&')[0] + ytParams;
+    else if (url.includes('youtu.be/')) src = 'https://www.youtube-nocookie.com/embed/' + url.split('youtu.be/')[1].split('?')[0] + ytParams;
+    else if (url.includes('/embed/'))   src = url.replace('youtube.com','youtube-nocookie.com') + (url.includes('?')?'&':'?') + ytParams.slice(1);
+  }
   iframe.src = src;
-  setTimeout(()=>markSeen(vid, uid), 4000);
+  setTimeout(function(){ markSeen(vid, uid); }, 4000);
 }
 
 function openFotoModal(fotoUrl, title) {
@@ -2098,6 +2131,7 @@ function renderInlineFicha(tipo, datosGuardados) {
         '<div style="display:flex;gap:.5rem;margin-top:.75rem">' +
           '<button class="btn-prim" style="flex:1" onclick="guardarFichaPaciente(\'' + tipo + '\')">Guardar ficha</button>' +
           '<button class="btn-out" style="flex:1;text-align:center" onclick="descargarFichaPDF(\'' + tipo + '\')">Descargar PDF</button>' +
+          '<button class="btn-out" style="flex:1;text-align:center" onclick="abrirHistorialFicha()">Historial</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -2155,14 +2189,119 @@ async function guardarFichaPaciente(tipo) {
 
   var valores = _recolectarFichaValores(tipo);
   try {
-    const { db, doc, updateDoc } = fb();
+    const { db, doc, updateDoc, collection, addDoc } = fb();
+    // Guardar snapshot del estado anterior en historial antes de pisar
+    var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+    if (p && p.ficha) {
+      await addDoc(collection(db, 'usuarios/' + currentPacId + '/historialFicha'), {
+        ficha: p.ficha,
+        fichaTipo: p.fichaTipo || tipo,
+        guardadoPor: currentUser ? (currentUser.displayName || currentUser.email) : 'Desconocido',
+        fecha: new Date().toISOString()
+      });
+    }
     await updateDoc(doc(db, 'usuarios', currentPacId), { ficha: valores, fichaTipo: tipo });
-    var p = pacientesData.find(x => x.id === currentPacId);
     if (p) { p.ficha = valores; p.fichaTipo = tipo; }
     toast('Ficha guardada ✓');
   } catch(e) {
     console.error('Error guardando ficha:', e);
     toast('Error al guardar la ficha');
+  }
+}
+
+// ── HISTORIAL DE FICHA CLÍNICA ──
+
+async function abrirHistorialFicha() {
+  if (!currentPacId) return;
+  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+  var nombre = p ? ((p.nombre||'') + ' ' + (p.apellido||'')).trim() : 'Paciente';
+  document.getElementById('mhf-pac-name').textContent = nombre;
+  document.getElementById('mhf-lista').innerHTML = '<div class="empty">Cargando historial...</div>';
+  document.getElementById('m-historial-ficha').classList.add('open');
+
+  const { db, collection, getDocs, query, orderBy } = fb();
+  try {
+    var snap = await getDocs(query(
+      collection(db, 'usuarios/' + currentPacId + '/historialFicha'),
+      orderBy('fecha', 'desc')
+    ));
+    var versiones = [];
+    snap.forEach(function(d){ versiones.push({ id: d.id, ...d.data() }); });
+    renderHistorialFicha(versiones, p ? (p.fichaTipo || p.tipo || 'rpg') : 'rpg');
+  } catch(e) {
+    // Fallback sin orden si falta índice
+    try {
+      var snap2 = await getDocs(collection(db, 'usuarios/' + currentPacId + '/historialFicha'));
+      var versiones2 = [];
+      snap2.forEach(function(d){ versiones2.push({ id: d.id, ...d.data() }); });
+      versiones2.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+      renderHistorialFicha(versiones2, p ? (p.fichaTipo || p.tipo || 'rpg') : 'rpg');
+    } catch(e2) {
+      document.getElementById('mhf-lista').innerHTML = '<div class="empty">Error cargando historial</div>';
+    }
+  }
+}
+
+function renderHistorialFicha(versiones, tipoActual) {
+  var el = document.getElementById('mhf-lista');
+  if (!versiones.length) {
+    el.innerHTML = '<div class="empty">Sin versiones anteriores guardadas.<br><span style="font-size:.7rem;color:var(--mu)">El historial se crea a partir de la próxima vez que guardés la ficha.</span></div>';
+    return;
+  }
+  var html = '';
+  versiones.forEach(function(v, i) {
+    var fechaFmt = '';
+    try { fechaFmt = new Date(v.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(e){}
+    var tipo = v.fichaTipo || tipoActual;
+    var campos = v.ficha ? Object.entries(v.ficha) : [];
+    var resumen = campos.slice(0,3).map(function(c){ return '<b>' + c[0] + ':</b> ' + (c[1]||'—'); }).join(' · ');
+    html +=
+      '<div style="background:var(--cream);border-radius:10px;padding:.75rem .85rem;margin-bottom:.6rem">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">' +
+          '<span style="font-size:.75rem;font-weight:600;color:var(--t)">Versión ' + (versiones.length - i) + '</span>' +
+          '<span style="font-size:.65rem;color:var(--mu)">' + fechaFmt + '</span>' +
+        '</div>' +
+        (v.guardadoPor ? '<div style="font-size:.65rem;color:var(--mu);margin-bottom:.35rem">Guardado por: ' + v.guardadoPor + '</div>' : '') +
+        (resumen ? '<div style="font-size:.7rem;color:var(--t);line-height:1.5;margin-bottom:.5rem">' + resumen + (campos.length > 3 ? ' …' : '') + '</div>' : '') +
+        '<button class="btn-out" style="font-size:.68rem;padding:.3rem .65rem;width:100%" onclick="restaurarVersionFicha(' + "'" + v.id + "'" + ')">↩ Restaurar esta versión</button>' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
+async function restaurarVersionFicha(versionId) {
+  if (!confirm('¿Restaurar esta versión de la ficha? La versión actual se guardará en el historial antes de restaurar.')) return;
+  const { db, doc, getDoc, updateDoc, collection, addDoc } = fb();
+  try {
+    // Leer la versión a restaurar
+    var snap = await getDoc(doc(db, 'usuarios/' + currentPacId + '/historialFicha/' + versionId));
+    if (!snap.exists()) { toast('Versión no encontrada'); return; }
+    var version = snap.data();
+
+    // Guardar estado actual en historial antes de restaurar
+    var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+    if (p && p.ficha) {
+      await addDoc(collection(db, 'usuarios/' + currentPacId + '/historialFicha'), {
+        ficha: p.ficha,
+        fichaTipo: p.fichaTipo || version.fichaTipo,
+        guardadoPor: currentUser ? (currentUser.displayName || currentUser.email) : 'Desconocido',
+        fecha: new Date().toISOString()
+      });
+    }
+
+    // Restaurar
+    await updateDoc(doc(db, 'usuarios', currentPacId), {
+      ficha: version.ficha,
+      fichaTipo: version.fichaTipo || (p && p.tipo) || 'rpg'
+    });
+    if (p) { p.ficha = version.ficha; p.fichaTipo = version.fichaTipo; }
+
+    closeM('m-historial-ficha');
+    renderInlineFicha(version.fichaTipo || (p && p.tipo) || 'rpg', version.ficha);
+    toast('Versión restaurada ✓');
+  } catch(e) {
+    console.error('Error restaurando versión:', e);
+    toast('Error al restaurar la versión');
   }
 }
 
