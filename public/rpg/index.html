@@ -360,22 +360,18 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
 
 /* ── PROGRESO FOTOGRÁFICO ── */
-.fotos-timeline{display:flex;flex-direction:column;gap:.85rem}
-.foto-entry{display:flex;gap:.75rem;align-items:flex-start}
-.foto-entry-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:36px}
-.foto-entry-dot{width:11px;height:11px;border-radius:50%;background:var(--acc);flex-shrink:0;margin-top:3px}
-.foto-entry-connector{width:2px;flex:1;background:var(--bd);margin-top:3px;min-height:24px}
-.foto-entry:last-child .foto-entry-connector{display:none}
-.foto-entry-body{flex:1;min-width:0}
-.foto-entry-meta{display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem;flex-wrap:wrap}
-.foto-entry-fecha{font-size:.68rem;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:.06em}
-.foto-entry-delta{font-size:.65rem;color:var(--mu);background:var(--cream);border-radius:100px;padding:.1rem .5rem;font-weight:500}
-.foto-entry-desc{font-size:.78rem;color:var(--t);font-weight:400;margin-bottom:.4rem;line-height:1.4}
-.foto-entry-img{width:100%;max-height:200px;object-fit:cover;border-radius:9px;cursor:pointer;display:block;border:1px solid var(--bd)}
-.foto-entry-img:hover{opacity:.9}
-.foto-entry-placeholder{width:100%;height:100px;background:var(--warm);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.75rem;border:1.5px dashed var(--bd)}
-.foto-entry-del{font-size:.65rem;color:var(--red);cursor:pointer;margin-top:.3rem;opacity:.7}
-.foto-entry-del:hover{opacity:1}
+.fotos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.65rem}
+.foto-card{background:#fff;border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s}
+.foto-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.10);transform:translateY(-1px)}
+.foto-card-img-wrap{position:relative;width:100%;aspect-ratio:4/3;background:var(--warm);overflow:hidden}
+.foto-card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-card-no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.72rem;flex-direction:column;gap:.3rem}
+.foto-card-delta{position:absolute;top:.45rem;left:.45rem;background:var(--acc);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.04em;padding:.18rem .5rem;border-radius:100px;line-height:1.4}
+.foto-card-body{padding:.55rem .65rem .5rem}
+.foto-card-desc{font-size:.78rem;font-weight:600;color:var(--t);line-height:1.3;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foto-card-fecha{font-size:.65rem;color:var(--mu);font-weight:400}
+.foto-card-del{font-size:.6rem;color:var(--red);cursor:pointer;opacity:.65;margin-top:.3rem;display:inline-block}
+.foto-card-del:hover{opacity:1}
 /* Lightbox */
 .foto-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
 .foto-lightbox img{max-width:100%;max-height:92vh;border-radius:10px;object-fit:contain}
@@ -2525,32 +2521,31 @@ function renderFotosTimeline() {
   }
 
   var fechaBase = patientFotos[0].fecha;
-  var html = '<div class="fotos-timeline">';
+  var html = '<div class="fotos-grid">';
 
   patientFotos.forEach(function(f, i) {
     var fechaFmt = '';
-    try { fechaFmt = new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'long',year:'numeric'}); } catch(e){}
-    var delta = i === 0 ? 'Foto inicial' : (_deltaTiempo(fechaBase, f.fecha) ? _deltaTiempo(fechaBase, f.fecha) + ' de tratamiento' : '');
+    try { fechaFmt = new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'short',year:'numeric'}); } catch(e){}
+    var delta = i === 0 ? 'Inicial' : (_deltaTiempo(fechaBase, f.fecha) || '');
+    var descEsc = (f.desc || '').replace(/'/g, "\'").replace(/"/g, '&quot;');
+    var urlEsc  = (f.url  || '').replace(/'/g, "\'");
 
-    html += `
-      <div class="foto-entry">
-        <div class="foto-entry-line">
-          <div class="foto-entry-dot"></div>
-          <div class="foto-entry-connector"></div>
-        </div>
-        <div class="foto-entry-body">
-          <div class="foto-entry-meta">
-            <span class="foto-entry-fecha">${fechaFmt}</span>
-            ${delta ? `<span class="foto-entry-delta">${delta}</span>` : ''}
-          </div>
-          ${f.desc ? `<div class="foto-entry-desc">${f.desc}</div>` : ''}
-          ${f.url
-            ? `<img class="foto-entry-img" src="${f.url}" alt="${f.desc||''}" onclick="abrirLightbox('${f.url}','${(f.desc||'').replace(/'/g,"\\'")}','${fechaFmt}')" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`
-            : ''}
-          ${f.url ? `<div class="foto-entry-placeholder" style="display:none">No se pudo cargar la imagen</div>` : `<div class="foto-entry-placeholder">Sin imagen</div>`}
-          <div class="foto-entry-del" onclick="eliminarFotoProgreso('${f.id}')">✕ Eliminar foto</div>
-        </div>
-      </div>`;
+    html +=
+      '<div class="foto-card" onclick="abrirLightbox(\'' + urlEsc + '\',\'' + descEsc + '\',\'' + fechaFmt + '\')">' +
+        '<div class="foto-card-img-wrap">' +
+          (delta ? '<span class="foto-card-delta">' + delta + '</span>' : '') +
+          (f.url
+            ? '<img src="' + f.url + '" alt="' + (f.desc||'') + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+              '<div class="foto-card-no-img" style="display:none">📷<span>Sin vista previa</span></div>'
+            : '<div class="foto-card-no-img">📷<span>Sin imagen</span></div>'
+          ) +
+        '</div>' +
+        '<div class="foto-card-body">' +
+          '<div class="foto-card-desc">' + (f.desc || '—') + '</div>' +
+          '<div class="foto-card-fecha">' + fechaFmt + '</div>' +
+          '<span class="foto-card-del" onclick="event.stopPropagation();eliminarFotoProgreso(\'' + f.id + '\')">✕ Eliminar</span>' +
+        '</div>' +
+      '</div>';
   });
 
   html += '</div>';
