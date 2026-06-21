@@ -362,18 +362,32 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .nu-tipo-btn{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:.55rem .3rem;cursor:pointer;font-family:'Barlow',sans-serif;color:var(--mu);transition:all .18s;text-align:center;line-height:1.2;width:100%}
 
 /* ── PROGRESO FOTOGRÁFICO ── */
-.fotos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.65rem}
-.foto-card{background:#fff;border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s}
-.foto-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.10);transform:translateY(-1px)}
-.foto-card-img-wrap{position:relative;width:100%;aspect-ratio:4/3;background:var(--warm);overflow:hidden}
+.fotos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+@media(max-width:600px){.fotos-grid{grid-template-columns:repeat(2,1fr)}}
+.foto-card{background:#fff;border:1px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s}
+.foto-card:hover{box-shadow:0 3px 12px rgba(0,0,0,.10);transform:translateY(-1px)}
+.foto-card-img-wrap{position:relative;width:100%;aspect-ratio:1/1;background:var(--warm);overflow:hidden}
 .foto-card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
-.foto-card-no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.72rem;flex-direction:column;gap:.3rem}
-.foto-card-delta{position:absolute;top:.45rem;left:.45rem;background:var(--acc);color:#fff;font-size:.6rem;font-weight:700;letter-spacing:.04em;padding:.18rem .5rem;border-radius:100px;line-height:1.4}
-.foto-card-body{padding:.55rem .65rem .5rem}
-.foto-card-desc{font-size:.78rem;font-weight:600;color:var(--t);line-height:1.3;margin-bottom:.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.foto-card-fecha{font-size:.65rem;color:var(--mu);font-weight:400}
+.foto-card-no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:.65rem;flex-direction:column;gap:.25rem}
+.foto-card-delta{position:absolute;top:.35rem;left:.35rem;background:var(--acc);color:#fff;font-size:.55rem;font-weight:700;letter-spacing:.04em;padding:.12rem .4rem;border-radius:100px;line-height:1.4}
+.foto-card-body{padding:.4rem .5rem .38rem}
+.foto-card-desc{font-size:.7rem;font-weight:600;color:var(--t);line-height:1.25;margin-bottom:.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.foto-card-fecha{font-size:.6rem;color:var(--mu);font-weight:400}
 .foto-card-del{font-size:.6rem;color:var(--red);cursor:pointer;opacity:.65;margin-top:.3rem;display:inline-block}
 .foto-card-del:hover{opacity:1}
+/* Historial de versiones de ficha */
+.historial-version{background:var(--cream);border-radius:10px;margin-bottom:.5rem;overflow:hidden}
+.hv-head{display:flex;align-items:center;justify-content:space-between;padding:.6rem .75rem;cursor:pointer;gap:.5rem}
+.hv-head:hover{background:rgba(0,0,0,.03)}
+.hv-titulo{font-size:.77rem;font-weight:600;color:var(--t);display:flex;align-items:center;gap:.4rem}
+.hv-badge{font-size:.6rem;background:var(--acc);color:#fff;border-radius:100px;padding:.1rem .45rem;font-weight:600}
+.hv-meta{font-size:.65rem;color:var(--mu);margin-top:.1rem}
+.hv-body{padding:.1rem .75rem .75rem}
+.hv-campos{background:#fff;border-radius:8px;padding:.5rem .65rem;margin-bottom:.5rem;border:1px solid var(--bd)}
+.hv-campo{display:flex;gap:.5rem;padding:.3rem 0;border-bottom:1px solid var(--bd);font-size:.72rem}
+.hv-campo:last-child{border-bottom:none;padding-bottom:0}
+.hv-campo-label{color:var(--mu);flex-shrink:0;width:110px;line-height:1.35}
+.hv-campo-val{color:var(--t);font-weight:500;line-height:1.35;word-break:break-word}
 /* Lightbox */
 .foto-lightbox{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1.5rem}
 .foto-lightbox img{max-width:100%;max-height:92vh;border-radius:10px;object-fit:contain}
@@ -538,13 +552,30 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <!-- DOC HOME -->
     <div class="page" id="d-home">
       <div class="pg-title">Resumen</div>
-      <div class="pg-sub">Adherencia de tus pacientes</div>
-      <div class="sc">
-        <div class="sc-head"><h3>Adherencia</h3></div>
+      <div class="pg-sub" id="d-home-sub">Vista general</div>
+
+      <!-- Stats strip -->
+      <div class="stat-strip" id="d-home-stats" style="margin-bottom:1rem">
+        <div class="sbox"><div class="sn" id="dhs-pacientes">—</div><div class="sl">Pacientes activos</div></div>
+        <div class="sbox"><div class="sn" id="dhs-adherencia">—</div><div class="sl">Adherencia media</div></div>
+        <div class="sbox"><div class="sn" id="dhs-sinresponder">—</div><div class="sl">Sin responder</div></div>
+      </div>
+
+      <!-- Tabla de profesionales (solo admin) -->
+      <div id="d-home-profs-wrap" style="display:none">
+        <div class="sec-label">Profesionales y pacientes a cargo</div>
+        <div id="d-home-profs"><div class="empty">Cargando...</div></div>
+      </div>
+
+      <!-- Adherencia por paciente -->
+      <div class="sc" style="margin-top:.75rem">
+        <div class="sc-head"><h3>Adherencia por paciente</h3></div>
         <div id="d-home-adherencia"><div class="empty">Cargando...</div></div>
       </div>
-      <div class="sec-label">Comentarios recientes</div>
-      <div id="d-home-comentarios"><div class="empty">Sin comentarios recientes</div></div>
+
+      <!-- Mensajes sin responder -->
+      <div class="sec-label" style="margin-top:1rem">Mensajes sin responder</div>
+      <div id="d-home-comentarios"><div class="empty">Sin mensajes pendientes</div></div>
     </div>
 
     <!-- DOC PACIENTES -->
@@ -2128,13 +2159,30 @@ function renderInlineFicha(tipo, datosGuardados) {
       '</div>' +
       '<div class="fc-inline-body" style="display:none;margin-top:.75rem">' +
         camposHTML +
-        '<div style="display:flex;gap:.5rem;margin-top:.75rem">' +
-          '<button class="btn-prim" style="flex:1" onclick="guardarFichaPaciente(\'' + tipo + '\')">Guardar ficha</button>' +
-          '<button class="btn-out" style="flex:1;text-align:center" onclick="descargarFichaPDF(\'' + tipo + '\')">Descargar PDF</button>' +
-          '<button class="btn-out" style="flex:1;text-align:center" onclick="abrirHistorialFicha()">Historial</button>' +
+        '<div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">' +
+          '<button class="btn-prim" style="flex:1;min-width:120px" onclick="guardarFichaPaciente(\'' + tipo + '\')">Guardar ficha</button>' +
+          '<button class="btn-out" style="flex:1;min-width:120px;text-align:center" onclick="descargarFichaPDF(\'' + tipo + '\')">⬇ PDF actual</button>' +
         '</div>' +
       '</div>' +
+    '</div>' +
+    '<div class="sc" style="padding:.75rem .9rem;margin-top:.5rem">' +
+      '<div class="sc-head" style="cursor:pointer;margin-bottom:0" onclick="toggleHistorialPanel(this)">' +
+        '<h3 style="font-size:.82rem">Historial de versiones</h3>' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" class="fc-inline-chev"><path d="M7 10l5 5 5-5z"/></svg>' +
+      '</div>' +
+      '<div class="historial-panel-body" style="display:none;margin-top:.75rem">' +
+        '<div id="historial-ficha-lista"><div class="empty" style="font-size:.75rem">Cargando historial...</div></div>' +
+      '</div>' +
     '</div>';
+}
+
+function toggleHistorialPanel(headerEl) {
+  var body = headerEl.parentElement.querySelector('.historial-panel-body');
+  var chev = headerEl.querySelector('.fc-inline-chev');
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (!isOpen) cargarHistorialInline();
 }
 
 // Recolecta los valores actuales del formulario según el schema
@@ -2209,64 +2257,225 @@ async function guardarFichaPaciente(tipo) {
   }
 }
 
-// ── HISTORIAL DE FICHA CLÍNICA ──
+// ── HISTORIAL DE FICHA CLÍNICA (panel inline) ──
 
-async function abrirHistorialFicha() {
-  if (!currentPacId) return;
-  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
-  var nombre = p ? ((p.nombre||'') + ' ' + (p.apellido||'')).trim() : 'Paciente';
-  document.getElementById('mhf-pac-name').textContent = nombre;
-  document.getElementById('mhf-lista').innerHTML = '<div class="empty">Cargando historial...</div>';
-  document.getElementById('m-historial-ficha').classList.add('open');
+async function cargarHistorialInline() {
+  var el = document.getElementById('historial-ficha-lista');
+  if (!el || !currentPacId) return;
 
   const { db, collection, getDocs, query, orderBy } = fb();
+  var versiones = [];
   try {
     var snap = await getDocs(query(
       collection(db, 'usuarios/' + currentPacId + '/historialFicha'),
       orderBy('fecha', 'desc')
     ));
-    var versiones = [];
     snap.forEach(function(d){ versiones.push({ id: d.id, ...d.data() }); });
-    renderHistorialFicha(versiones, p ? (p.fichaTipo || p.tipo || 'rpg') : 'rpg');
   } catch(e) {
-    // Fallback sin orden si falta índice
     try {
       var snap2 = await getDocs(collection(db, 'usuarios/' + currentPacId + '/historialFicha'));
-      var versiones2 = [];
-      snap2.forEach(function(d){ versiones2.push({ id: d.id, ...d.data() }); });
-      versiones2.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
-      renderHistorialFicha(versiones2, p ? (p.fichaTipo || p.tipo || 'rpg') : 'rpg');
+      snap2.forEach(function(d){ versiones.push({ id: d.id, ...d.data() }); });
+      versiones.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
     } catch(e2) {
-      document.getElementById('mhf-lista').innerHTML = '<div class="empty">Error cargando historial</div>';
+      el.innerHTML = '<div class="empty" style="font-size:.75rem">Error cargando historial</div>';
+      return;
     }
   }
+  renderHistorialInline(versiones);
 }
 
-function renderHistorialFicha(versiones, tipoActual) {
-  var el = document.getElementById('mhf-lista');
+function renderHistorialInline(versiones) {
+  var el = document.getElementById('historial-ficha-lista');
+  if (!el) return;
+  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+  var tipoActual = p ? (p.fichaTipo || p.tipo || 'rpg') : 'rpg';
+
   if (!versiones.length) {
-    el.innerHTML = '<div class="empty">Sin versiones anteriores guardadas.<br><span style="font-size:.7rem;color:var(--mu)">El historial se crea a partir de la próxima vez que guardés la ficha.</span></div>';
+    el.innerHTML = '<div class="empty" style="font-size:.75rem">Sin versiones anteriores.<br><span style="color:var(--mu)">Se guardan automáticamente cada vez que editás la ficha.</span></div>';
     return;
   }
+
   var html = '';
   versiones.forEach(function(v, i) {
+    var tipo = v.fichaTipo || tipoActual;
+    var schema = FICHA_SCHEMA[tipo] || FICHA_SCHEMA.rpg;
     var fechaFmt = '';
     try { fechaFmt = new Date(v.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch(e){}
-    var tipo = v.fichaTipo || tipoActual;
-    var campos = v.ficha ? Object.entries(v.ficha) : [];
-    var resumen = campos.slice(0,3).map(function(c){ return '<b>' + c[0] + ':</b> ' + (c[1]||'—'); }).join(' · ');
+
+    // Vista previa: todos los campos con valor
+    var ficha = v.ficha || {};
+    var camposConValor = [];
+    schema.secciones.forEach(function(sec) {
+      sec.campos.forEach(function(c) {
+        var val = ficha[c.id];
+        if (val !== undefined && val !== '' && val !== null) {
+          camposConValor.push({ label: c.label, val: val });
+        }
+      });
+    });
+
+    var vId = v.id.replace(/[^a-zA-Z0-9]/g, '_');
+
     html +=
-      '<div style="background:var(--cream);border-radius:10px;padding:.75rem .85rem;margin-bottom:.6rem">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem">' +
-          '<span style="font-size:.75rem;font-weight:600;color:var(--t)">Versión ' + (versiones.length - i) + '</span>' +
-          '<span style="font-size:.65rem;color:var(--mu)">' + fechaFmt + '</span>' +
+      '<div class="historial-version" id="hv-' + vId + '">' +
+        '<div class="hv-head" onclick="toggleVersionDetalle(\'' + vId + '\')">' +
+          '<div>' +
+            '<div class="hv-titulo">Versión ' + (versiones.length - i) + (i === 0 ? ' <span class="hv-badge">más reciente</span>' : '') + '</div>' +
+            '<div class="hv-meta">' + fechaFmt + (v.guardadoPor ? ' · ' + v.guardadoPor : '') + '</div>' +
+          '</div>' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" id="hvchev-' + vId + '" style="flex-shrink:0;color:var(--mu);transition:transform .2s"><path d="M7 10l5 5 5-5z"/></svg>' +
         '</div>' +
-        (v.guardadoPor ? '<div style="font-size:.65rem;color:var(--mu);margin-bottom:.35rem">Guardado por: ' + v.guardadoPor + '</div>' : '') +
-        (resumen ? '<div style="font-size:.7rem;color:var(--t);line-height:1.5;margin-bottom:.5rem">' + resumen + (campos.length > 3 ? ' …' : '') + '</div>' : '') +
-        '<button class="btn-out" style="font-size:.68rem;padding:.3rem .65rem;width:100%" onclick="restaurarVersionFicha(' + "'" + v.id + "'" + ')">↩ Restaurar esta versión</button>' +
+        '<div class="hv-body" id="hvb-' + vId + '" style="display:none">' +
+          // Tabla de campos
+          '<div class="hv-campos">' +
+            (camposConValor.length
+              ? camposConValor.map(function(f){
+                  return '<div class="hv-campo"><span class="hv-campo-label">' + f.label + '</span><span class="hv-campo-val">' + f.val + '</span></div>';
+                }).join('')
+              : '<div style="font-size:.72rem;color:var(--mu);padding:.3rem 0">Sin datos guardados</div>'
+            ) +
+          '</div>' +
+          '<div style="display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap">' +
+            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem" onclick="descargarFichaPDFVersion(\'' + v.id + '\',\'' + tipo + '\')">⬇ Descargar PDF</button>' +
+            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem;color:var(--acc)" onclick="restaurarVersionFicha(\'' + v.id + '\')">↩ Restaurar</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
   });
   el.innerHTML = html;
+}
+
+function toggleVersionDetalle(vId) {
+  var body = document.getElementById('hvb-' + vId);
+  var chev = document.getElementById('hvchev-' + vId);
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+async function descargarFichaPDFVersion(versionId, tipo) {
+  const { db, doc, getDoc } = fb();
+  try {
+    var snap = await getDoc(doc(db, 'usuarios/' + currentPacId + '/historialFicha/' + versionId));
+    if (!snap.exists()) { toast('Versión no encontrada'); return; }
+    var v = snap.data();
+    var fechaFmt = '';
+    try { fechaFmt = new Date(v.fecha).toLocaleDateString('es-AR'); } catch(e){}
+    descargarFichaPDFDesdeValores(v.fichaTipo || tipo, v.ficha || {}, fechaFmt);
+  } catch(e) {
+    console.error(e);
+    toast('Error al descargar el PDF');
+  }
+}
+
+// Genera PDF a partir de valores pasados directamente (no lee el formulario en pantalla)
+function descargarFichaPDFDesdeValores(tipo, valores, fechaVersion) {
+  if (typeof window.jspdf === 'undefined') { toast('No se pudo cargar el generador de PDF'); return; }
+  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+  if (!p) { toast('Seleccioná un paciente primero'); return; }
+
+  var schema = FICHA_SCHEMA[tipo] || FICHA_SCHEMA.rpg;
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  _registrarFuentesBarlow(doc);
+  var useBarlow = !!doc.getFontList()['Barlow'];
+  var FONT = useBarlow ? 'Barlow' : 'helvetica';
+
+  var ACC = [52, 120, 168];
+  var TEXT = [40, 44, 50];
+  var MUTED = [130, 136, 145];
+  var LINE = [225, 229, 234];
+  var pageW = doc.internal.pageSize.getWidth();
+  var pageH = doc.internal.pageSize.getHeight();
+  var marginL = 50, marginR = 50;
+  var contentW = pageW - marginL - marginR;
+  var headerH = 92;
+  var y = 0;
+
+  function setFont(weight, size, color) {
+    doc.setFont(FONT, weight || 'normal');
+    doc.setFontSize(size);
+    if (color) doc.setTextColor(color[0], color[1], color[2]);
+  }
+  function checkPageBreak(needed) {
+    if (y + needed > pageH - 60) {
+      doc.addPage();
+      doc.setFillColor(ACC[0], ACC[1], ACC[2]);
+      doc.rect(0, 0, pageW, 46, 'F');
+      setFont('bold', 11, [255,255,255]);
+      doc.text(schema.titulo, marginL, 29);
+      setFont('normal', 9, [225,238,245]);
+      doc.text((p.nombre||'') + (p.apellido?' '+p.apellido:''), pageW - marginR, 29, { align: 'right' });
+      y = 74;
+    }
+  }
+
+  // Header
+  doc.setFillColor(ACC[0], ACC[1], ACC[2]);
+  doc.rect(0, 0, pageW, headerH, 'F');
+  setFont('bold', 18, [255,255,255]);
+  doc.text(schema.titulo, marginL, 38);
+  setFont('normal', 10, [225,238,245]);
+  doc.text('RPG Viglione · Lic. Diego Viglione', marginL, 56);
+  var nombreCompleto = (p.nombre||'') + (p.apellido ? ' ' + p.apellido : '');
+  setFont('bold', 11, [255,255,255]);
+  doc.text(nombreCompleto, marginL, 78);
+  setFont('normal', 9, [225,238,245]);
+  var fechaLabel = fechaVersion ? 'Versión del: ' + fechaVersion : 'Generado: ' + new Date().toLocaleDateString('es-AR');
+  doc.text('Diagnóstico: ' + (p.diag||'—') + '   ·   ' + fechaLabel, marginL, 92, { maxWidth: contentW });
+  y = headerH + 28;
+
+  // Secciones
+  schema.secciones.forEach(function(sec) {
+    checkPageBreak(32);
+    doc.setFillColor(ACC[0], ACC[1], ACC[2]);
+    doc.rect(marginL - 6, y - 4, 4, 18, 'F');
+    setFont('bold', 11, ACC);
+    doc.text(sec.label, marginL + 4, y + 10);
+    y += 26;
+
+    sec.campos.forEach(function(campo) {
+      var val = String(valores[campo.id] !== undefined && valores[campo.id] !== '' ? valores[campo.id] : '—');
+      checkPageBreak(26);
+      setFont('normal', 9, MUTED);
+      doc.text(campo.label + ':', marginL, y);
+      setFont('normal', 10, TEXT);
+      var lines = doc.splitTextToSize(val, contentW - 120);
+      doc.text(lines, marginL + 130, y);
+      y += Math.max(lines.length * 14, 14) + 8;
+    });
+
+    checkPageBreak(14);
+    doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
+    doc.line(marginL, y, pageW - marginR, y);
+    y += 16;
+  });
+
+  // Footer
+  var totalPages = doc.internal.getNumberOfPages();
+  for (var i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    setFont('normal', 8, MUTED);
+    doc.text('Ficha clínica generada desde RPG Viglione', marginL, pageH - 24);
+    doc.text('Página ' + i + ' de ' + totalPages, pageW - marginR, pageH - 24, { align: 'right' });
+    doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
+    doc.line(marginL, pageH - 34, pageW - marginR, pageH - 34);
+  }
+
+  var nombreArchivo = 'Ficha_' + schema.titulo.replace(/\s+/g,'_') + '_' + (p.nombre||'paciente').replace(/\s+/g,'_') + (fechaVersion ? '_v' + fechaVersion.replace(/\//g,'-') : '') + '.pdf';
+  doc.save(nombreArchivo);
+  toast('PDF descargado ✓');
+}
+
+async function abrirHistorialFicha() {
+  document.getElementById('m-historial-ficha') && document.getElementById('m-historial-ficha').classList.add('open');
+  var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+  var nombre = p ? ((p.nombre||'') + ' ' + (p.apellido||'')).trim() : 'Paciente';
+  var el = document.getElementById('mhf-pac-name');
+  if (el) el.textContent = nombre;
+  var lista = document.getElementById('mhf-lista');
+  if (lista) lista.innerHTML = '<div class="empty">Cargando...</div>';
 }
 
 async function restaurarVersionFicha(versionId) {
@@ -3626,28 +3835,179 @@ function saveFichaDatos() { toast('Datos guardados ✓'); }
 async function cargarProgresoPacientes() {
   var adherencia = document.getElementById('d-home-adherencia');
   if (!adherencia) return;
-  if (!pacientesData.length) { adherencia.innerHTML = '<div class="empty">Sin pacientes</div>'; return; }
-  adherencia.innerHTML = '';
-  for (var p of pacientesData) {
-    if (p.estado === 'eliminado') continue;
+
+  var pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  if (!pacActivos.length) {
+    adherencia.innerHTML = '<div class="empty">Sin pacientes</div>';
+    _actualizarStatsHome(0, 0);
+    return;
+  }
+
+  adherencia.innerHTML = '<div class="empty" style="font-size:.75rem">Calculando adherencia...</div>';
+  var totalPct = 0, count = 0;
+
+  for (var p of pacActivos) {
     try {
       const { db, collection, getDocs, doc, updateDoc } = fb();
-      const planSnap = await getDocs(collection(db, 'planes/' + p.id + '/items'));
-      const total = planSnap.size;
+      const planSnap  = await getDocs(collection(db, 'planes/' + p.id + '/items'));
+      const total     = planSnap.size;
       const vistosSnap = await getDocs(collection(db, 'vistos/' + p.id + '/items'));
-      const vistos = vistosSnap.size;
-      const pct = total ? Math.round(vistos / total * 100) : 0;
+      const vistos    = vistosSnap.size;
+      const pct       = total ? Math.round(vistos / total * 100) : 0;
       await updateDoc(doc(db, 'usuarios', p.id), { pct });
       p.pct = pct;
-      var fill = pct >= 70 ? 'var(--acc)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)';
-      var row = document.createElement('div');
-      row.className = 'prog-row';
-      row.innerHTML = '<span class="prog-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</span>' +
-        '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%;background:' + fill + '"></div></div>' +
-        '<span class="prog-pct" style="color:' + fill + '">' + pct + '%</span>';
-      adherencia.appendChild(row);
+      totalPct += pct; count++;
     } catch(e) { console.error('Error progreso paciente:', p.id, e); }
   }
+
+  var mediaAdh = count ? Math.round(totalPct / count) : 0;
+
+  // Renderizar barras
+  adherencia.innerHTML = '';
+  pacActivos.forEach(function(p) {
+    var pct  = p.pct || 0;
+    var fill = pct >= 70 ? 'var(--acc)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)';
+    var profLabel = p.profNombre ? '<span style="font-size:.6rem;color:var(--mu);margin-left:.3rem">· ' + p.profNombre + '</span>' : '';
+    var row = document.createElement('div');
+    row.className = 'prog-row';
+    row.innerHTML =
+      '<span class="prog-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + profLabel + '</span>' +
+      '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%;background:' + fill + '"></div></div>' +
+      '<span class="prog-pct" style="color:' + fill + '">' + pct + '%</span>';
+    adherencia.appendChild(row);
+  });
+
+  _actualizarStatsHome(pacActivos.length, mediaAdh);
+
+  // Tabla de profesionales si es admin
+  if (role === 'admin') {
+    _renderTablaProfs(pacActivos);
+  }
+}
+
+function _actualizarStatsHome(nPac, mediaAdh) {
+  var elP = document.getElementById('dhs-pacientes');
+  var elA = document.getElementById('dhs-adherencia');
+  if (elP) elP.textContent = nPac;
+  if (elA) elA.textContent = mediaAdh + '%';
+}
+
+function _renderTablaProfs(pacActivos) {
+  var wrap = document.getElementById('d-home-profs-wrap');
+  var el   = document.getElementById('d-home-profs');
+  if (!wrap || !el) return;
+  wrap.style.display = 'block';
+
+  // Agrupar pacientes por profesional
+  var byProf = {};
+  pacActivos.forEach(function(p) {
+    var profId = p.profId || '_sin_asignar';
+    var profNombre = p.profNombre || 'Sin profesional';
+    if (!byProf[profId]) byProf[profId] = { nombre: profNombre, pacs: [] };
+    byProf[profId].pacs.push(p);
+  });
+
+  var html = '';
+  Object.keys(byProf).forEach(function(profId) {
+    var g = byProf[profId];
+    var pacs = g.pacs;
+    var media = pacs.length ? Math.round(pacs.reduce(function(s,p){ return s+(p.pct||0); },0) / pacs.length) : 0;
+    var fill  = media >= 70 ? 'var(--acc)' : media >= 40 ? 'var(--yellow)' : 'var(--red)';
+    html +=
+      '<div style="background:var(--cream);border-radius:10px;padding:.6rem .75rem;margin-bottom:.5rem">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem">' +
+          '<span style="font-size:.8rem;font-weight:600;color:var(--t)">' + g.nombre + '</span>' +
+          '<div style="display:flex;gap:.5rem;align-items:center">' +
+            '<span style="font-size:.65rem;color:var(--mu)">' + pacs.length + ' paciente' + (pacs.length!==1?'s':'') + '</span>' +
+            '<span style="font-size:.72rem;font-weight:700;color:' + fill + '">' + media + '%</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="background:var(--bd);border-radius:100px;height:5px;overflow:hidden">' +
+          '<div style="height:100%;width:' + media + '%;background:' + fill + ';border-radius:100px;transition:width .4s"></div>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.45rem">' +
+          pacs.map(function(p){
+            var pc = p.pct || 0;
+            var fc = pc >= 70 ? 'var(--acc)' : pc >= 40 ? 'var(--yellow)' : 'var(--red)';
+            return '<span style="font-size:.62rem;background:#fff;border:1px solid var(--bd);border-radius:100px;padding:.1rem .45rem;color:var(--t)">' +
+              (p.nombre||'') + ' <span style="color:' + fc + ';font-weight:600">' + pc + '%</span></span>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  });
+  el.innerHTML = html || '<div class="empty">Sin datos de profesionales</div>';
+}
+
+async function renderComentariosProfesional() {
+  var container = document.getElementById('d-home-comentarios');
+  if (!container) return;
+  container.innerHTML = '<div class="empty" style="font-size:.75rem">Cargando mensajes...</div>';
+
+  var sinResponder = [];
+  var pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+
+  for (var p of pacActivos) {
+    try {
+      var cmts = await cargarComentariosPaciente(p.id);
+      // Solo mensajes del paciente sin respuesta del profesional
+      var pendientes = cmts.filter(function(c){
+        return c.tipo !== 'profesional' && !c.respuesta;
+      });
+      pendientes.forEach(function(c){
+        sinResponder.push(Object.assign({}, c, { pacNombre: p.nombre, pacApellido: p.apellido||'', pacId: p.id }));
+      });
+    } catch(e) { console.error('Error comentarios:', p.id, e); }
+  }
+
+  // Actualizar badge de sin responder
+  var elSR = document.getElementById('dhs-sinresponder');
+  if (elSR) elSR.textContent = sinResponder.length;
+
+  sinResponder.sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
+
+  if (!sinResponder.length) {
+    container.innerHTML = '<div class="empty">✓ Sin mensajes pendientes</div>';
+    return;
+  }
+
+  container.innerHTML = '';
+  sinResponder.forEach(function(c) {
+    var badgeClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? 'bg-r' : c.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
+    var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    var alertClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? ' alert' : '';
+    var div = document.createElement('div');
+    div.className = 'cmt-card' + alertClass;
+    var html =
+      '<div class="cmt-head">' +
+        '<span class="cmt-who">' + c.pacNombre + ' ' + c.pacApellido + '</span>' +
+        '<span class="cmt-date">' + fechaFmt + '</span>' +
+      '</div>' +
+      '<div class="cmt-video">' + (c.ejercicioTitle || 'Sin ejercicio') + '</div>' +
+      (c.dolor ? '<div style="margin-bottom:.28rem"><span class="badge ' + badgeClass + '">' + c.dolor + '</span></div>' : '') +
+      '<div class="cmt-text">' + (c.texto || '') + '</div>' +
+      '<div class="reply-area" id="ra-' + c.id + '" style="display:none;margin-top:.55rem">' +
+        '<textarea class="reply-input" id="ri-' + c.id + '" placeholder="Responder..." rows="2"></textarea>' +
+        '<div style="display:flex;gap:.4rem;margin-top:.32rem">' +
+          '<button class="btn-reply-cancel" onclick="closeReply(\'' + c.id + '\')">Cancelar</button>' +
+          '<button class="btn-reply-send" onclick="sendReplyFirestore(\'' + c.id + '\',\'' + c.pacId + '\',\'' + c.pacNombre + '\')">Enviar</button>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')">' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder' +
+      '</button>';
+    div.innerHTML = html;
+    container.appendChild(div);
+  });
+}
+async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle, tipo) {
+  const { db, collection, addDoc } = fb();
+  await addDoc(collection(db, 'comentarios/' + pacienteUid + '/items'), {
+    itemId: itemId || '',
+    dolor: dolor || '',
+    texto, ejercicioTitle,
+    fecha: new Date().toISOString(),
+    tipo: tipo || 'paciente'
+  });
 }
 
 async function guardarComentario(pacienteUid, itemId, dolor, texto, ejercicioTitle, tipo) {
