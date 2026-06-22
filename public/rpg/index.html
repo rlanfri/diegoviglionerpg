@@ -101,6 +101,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .acc-chevron.open{transform:rotate(180deg)}
 .acc-month-body{display:none;padding:0 .75rem .75rem}
 .acc-month-body.open{display:block}
+.acc-month-pct{font-size:.65rem;font-weight:600;background:var(--cream);color:var(--mu);border-radius:100px;padding:.15rem .55rem;border:1px solid var(--bd);white-space:nowrap}
 .acc-week{border:1.5px solid var(--bd);border-radius:10px;margin-bottom:.45rem;overflow:hidden;background:var(--cream)}
 .acc-week-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem .85rem;cursor:pointer}
 .acc-week-head:active{background:var(--acc-l)}
@@ -1677,10 +1678,14 @@ function renderAccordion() {
     byMes[mesKey][semKey].push(item);
   });
 
-  Object.keys(byMes).forEach((mes, mi) => {
+  var mesList = Object.keys(byMes);
+  var lastMesIdx = mesList.length - 1; // el último mes es el más reciente
+
+  mesList.forEach((mes, mi) => {
     var mesData = byMes[mes];
     var totalM = Object.values(mesData).flat().length;
-    var seenM = Object.values(mesData).flat().filter(i=>seenSet.has(i.id || i.vid)).length;
+    var seenM = Object.values(mesData).flat().filter(function(i){ return seenSet.has(i.id || i.vid); }).length;
+    var pctM = totalM ? Math.round(seenM / totalM * 100) : 0;
     var div = document.createElement('div');
     div.className = 'acc-month';
 
@@ -1773,16 +1778,22 @@ function renderAccordion() {
       </div>`;
     });
 
-    var isFirst = mi === 0;
-    div.innerHTML = `
-      <div class="acc-month-head" onclick="toggleMonth('mb-${mi}','mc-${mi}')">
-        <div>
-          <div class="acc-month-title">${mes}</div>
-          <div class="acc-month-meta">${totalM} ejercicios · ${seenM} vistos</div>
-        </div>
-        <span class="acc-chevron${isFirst?' open':''}" id="mc-${mi}">▾</span>
-      </div>
-      <div class="acc-month-body${isFirst?' open':''}" id="mb-${mi}">${weeksHTML}</div>`;
+    var isLast = mi === lastMesIdx; // solo el más reciente abierto
+    var pctBadge = !isLast
+      ? '<span class="acc-month-pct" id="pct-' + mi + '">' + pctM + '% completado</span>'
+      : '';
+    div.innerHTML =
+      '<div class="acc-month-head" onclick="toggleMonth(\' mb-' + mi + '\',\'mc-' + mi + '\')">'+
+        '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">'+
+          '<div class="acc-month-title">' + mes + '</div>'+
+          pctBadge +
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:.5rem">'+
+          '<span class="acc-month-meta">' + totalM + ' ejercicio' + (totalM!==1?'s':'') + '</span>'+
+          '<span class="acc-chevron' + (isLast?' open':'') + '" id="mc-' + mi + '">▾</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="acc-month-body' + (isLast?' open':'') + '" id="mb-' + mi + '">' + weeksHTML + '</div>';
     container.appendChild(div);
   });
 
@@ -1852,14 +1863,28 @@ function markSeen(itemId, uid) {
 }
 
 function updateStats() {
-  var total = patientPlan.length;
-  var seen = patientPlan.filter(i => seenSet.has(i.id || i.vid)).length;
-  var pct = total ? Math.round(seen/total*100) : 0;
+  // Identificar el mes más reciente del plan
+  var meses = [];
+  patientPlan.forEach(function(i){
+    var m = i.mes || 'Sin mes asignado';
+    if (meses.indexOf(m) === -1) meses.push(m);
+  });
+  var mesActual = meses.length ? meses[meses.length - 1] : null;
+
+  // Filtrar solo items del mes actual
+  var itemsMes = mesActual
+    ? patientPlan.filter(function(i){ return (i.mes || 'Sin mes asignado') === mesActual; })
+    : patientPlan;
+
+  var total = itemsMes.length;
+  var seen  = itemsMes.filter(function(i){ return seenSet.has(i.id || i.vid); }).length;
+  var pct   = total ? Math.round(seen / total * 100) : 0;
+
   document.getElementById('ph-total').textContent = total;
-  document.getElementById('ph-seen').textContent = seen;
-  document.getElementById('ph-pct').textContent = pct+'%';
-  document.getElementById('pp-seen').textContent = seen;
-  document.getElementById('pp-pct').textContent = pct+'%';
+  document.getElementById('ph-seen').textContent  = seen;
+  document.getElementById('ph-pct').textContent   = pct + '%';
+  document.getElementById('pp-seen').textContent  = seen;
+  document.getElementById('pp-pct').textContent   = pct + '%';
 }
 
 // ── COMMENT ──
@@ -3880,13 +3905,39 @@ async function cargarProgresoPacientes() {
   for (var p of pacActivos) {
     try {
       const { db, collection, getDocs, doc, updateDoc } = fb();
-      const planSnap  = await getDocs(collection(db, 'planes/' + p.id + '/items'));
-      const total     = planSnap.size;
+
+      // Cargar plan completo para detectar el mes más reciente
+      const planSnap = await getDocs(collection(db, 'planes/' + p.id + '/items'));
+      var todosItems = [];
+      planSnap.forEach(function(d){ todosItems.push(Object.assign({ _id: d.id }, d.data())); });
+
+      // Identificar el mes actual: el último mes con items (orden natural de inserción)
+      var meses = [];
+      todosItems.forEach(function(it){
+        var m = it.mes || 'Sin mes asignado';
+        if (meses.indexOf(m) === -1) meses.push(m);
+      });
+      var mesActual = meses.length ? meses[meses.length - 1] : null;
+
+      // Filtrar solo items del mes actual
+      var itemsMesActual = mesActual
+        ? todosItems.filter(function(it){ return (it.mes || 'Sin mes asignado') === mesActual; })
+        : todosItems;
+
+      var idsDelMes = itemsMesActual.map(function(it){ return it._id; });
+
+      // Vistos: solo los que pertenecen al mes actual
       const vistosSnap = await getDocs(collection(db, 'vistos/' + p.id + '/items'));
-      const vistos    = vistosSnap.size;
-      const pct       = total ? Math.round(vistos / total * 100) : 0;
-      await updateDoc(doc(db, 'usuarios', p.id), { pct });
+      var vistosIds = [];
+      vistosSnap.forEach(function(d){ vistosIds.push(d.id); });
+      var vistosMes = vistosIds.filter(function(vid){ return idsDelMes.indexOf(vid) > -1; }).length;
+
+      var total = idsDelMes.length;
+      var pct   = total ? Math.round(vistosMes / total * 100) : 0;
+
+      await updateDoc(doc(db, 'usuarios', p.id), { pct, mesActual: mesActual || '' });
       p.pct = pct;
+      p.mesActual = mesActual;
       totalPct += pct; count++;
     } catch(e) { console.error('Error progreso paciente:', p.id, e); }
   }
@@ -3899,10 +3950,11 @@ async function cargarProgresoPacientes() {
     var pct  = p.pct || 0;
     var fill = pct >= 70 ? 'var(--acc)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)';
     var profLabel = p.profNombre ? '<span style="font-size:.6rem;color:var(--mu);margin-left:.3rem">· ' + p.profNombre + '</span>' : '';
+    var mesLabel  = p.mesActual  ? '<span style="font-size:.6rem;color:var(--mu);margin-left:.3rem">' + p.mesActual + '</span>' : '';
     var row = document.createElement('div');
     row.className = 'prog-row';
     row.innerHTML =
-      '<span class="prog-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + profLabel + '</span>' +
+      '<span class="prog-name">' + (p.nombre||'') + ' ' + (p.apellido||'') + profLabel + mesLabel + '</span>' +
       '<div class="prog-track"><div class="prog-fill" style="width:' + pct + '%;background:' + fill + '"></div></div>' +
       '<span class="prog-pct" style="color:' + fill + '">' + pct + '%</span>';
     adherencia.appendChild(row);
@@ -3910,7 +3962,6 @@ async function cargarProgresoPacientes() {
 
   _actualizarStatsHome(pacActivos.length, mediaAdh);
 
-  // Tabla de profesionales si es admin
   if (role === 'admin') {
     _renderTablaProfs(pacActivos);
   }
