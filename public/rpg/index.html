@@ -1088,6 +1088,7 @@ let currentCommentVideo = '';
 let currentCommentItemId = '';
 let patientComments = []; // comentarios del paciente actualmente abierto (doctor) o propio (paciente)
 let editingVidId = null;
+let editingBiblioId = null; // ID del ejercicio de biblioteca en edición (null = nuevo)
 let profileData = {};
 let prevPage = '';
 let estadoMenuTarget = null;
@@ -1365,26 +1366,39 @@ async function addVideo() {
   if (nuevoTipo === 'foto') fotoUrl = convertDriveUrl(fotoUrl);
   const desc = document.getElementById('nv-desc').value.trim();
 
-  const { db, collection, addDoc } = fb();
+  var datosEj = {
+    tipo: nuevoTipo,
+    title: titulo,
+    url: url || '',
+    fotoUrl: fotoUrl || '',
+    cat: document.getElementById('nv-cat').value,
+    series: document.getElementById('nv-series').value,
+    reps: document.getElementById('nv-reps').value,
+    dur: document.getElementById('nv-dur').value,
+    desc: desc,
+  };
+  const { db, collection, addDoc, doc, updateDoc } = fb();
   try {
-    await addDoc(collection(db, 'ejercicios'), {
-      tipo: nuevoTipo,
-      title: titulo,
-      url: url || '',
-      fotoUrl: fotoUrl || '',
-      cat: document.getElementById('nv-cat').value,
-      series: document.getElementById('nv-series').value,
-      reps: document.getElementById('nv-reps').value,
-      dur: document.getElementById('nv-dur').value,
-      desc: desc,
-    });
+    if (editingBiblioId) {
+      // Editar ejercicio existente
+      await updateDoc(doc(db, 'ejercicios', editingBiblioId), datosEj);
+      var idx = videos.findIndex(function(v){ return v.id === editingBiblioId; });
+      if (idx > -1) videos[idx] = Object.assign(videos[idx], datosEj);
+      editingBiblioId = null;
+      var btn = document.querySelector('#d-videos .btn-prim');
+      if (btn) btn.textContent = 'Guardar ejercicio';
+      toast('Ejercicio actualizado ✓');
+    } else {
+      // Nuevo ejercicio
+      await addDoc(collection(db, 'ejercicios'), datosEj);
+      toast('Ejercicio guardado ✓');
+    }
     limpiarErroresForm(['nv-titulo','nv-url','nv-foto-url','nv-desc']);
-    ['nv-titulo','nv-url','nv-foto-url','nv-series','nv-reps','nv-dur','nv-desc'].forEach(id => {
-      const el = document.getElementById(id); if(el) el.value = '';
+    ['nv-titulo','nv-url','nv-foto-url','nv-series','nv-reps','nv-dur','nv-desc'].forEach(function(id) {
+      var el = document.getElementById(id); if(el) el.value = '';
     });
     await cargarEjercicios();
     renderDocVideos();
-    toast('Ejercicio guardado ✓');
   } catch(err) {
     console.error(err);
     toast('Error al guardar ejercicio');
@@ -1885,27 +1899,44 @@ function saveComment() {
 function renderDocVideos() {
   var list = document.getElementById('d-video-list');
   list.innerHTML = '';
-  if (!videos.length) { list.innerHTML='<div class="empty">Sin contenido cargado</div>'; return; }
-  videos.forEach(v => {
-    var pills = [v.cat,v.series,v.reps,v.dur].filter(Boolean).map(p=>`<span class="pill pill-g">${p}</span>`).join('');
+  if (!videos.length) { list.innerHTML = '<div class="empty">Sin contenido cargado</div>'; return; }
+  videos.forEach(function(v) {
+    var pills = [v.cat,v.series,v.reps,v.dur].filter(Boolean).map(function(p){ return '<span class="pill pill-g">'+p+'</span>'; }).join('');
+    var thumbBg, thumbContent;
+    if (v.tipo === 'foto' && v.fotoUrl) {
+      thumbBg = 'background:var(--warm);padding:0;overflow:hidden';
+      thumbContent = '<img src="' + v.fotoUrl + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">';
+    } else if (v.tipo === 'video' && v.url) {
+      thumbBg = 'background:#111;padding:0;overflow:hidden';
+      var ytThumb = getYouTubeThumb(v.url);
+      if (ytThumb) {
+        thumbContent = '<img src="' + ytThumb + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">';
+      } else {
+        thumbContent = '<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+      }
+    } else if (v.tipo === 'indicacion') {
+      thumbBg = 'background:var(--cream)';
+      thumbContent = '<svg viewBox="0 0 24 24" fill="var(--acc)" width="16" height="16"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>';
+    } else {
+      thumbBg = 'background:var(--acc)';
+      thumbContent = '<svg viewBox="0 0 24 24" fill="white" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+    }
     var row = document.createElement('div');
     row.className = 'vrow';
-    row.innerHTML = `
-      <div class="vrow-thumb" style="background:var(--acc)"><svg viewBox="0 0 24 24" fill="white" width="16" height="16"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg></div>
-      <div class="vrow-info">
-        <div class="vrow-title">${v.title}</div>
-        <div style="display:flex;gap:.28rem;flex-wrap:wrap;margin-top:2px">${pills}</div>
-        <div class="vrow-meta" style="margin-top:3px">${v.desc.slice(0,55)}…</div>
-      </div>
-      <div class="vrow-acts">
-        <div class="ico-btn" onclick="editDocVideo('${v.id}')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>
-        <div class="ico-btn" onclick="deleteDocVideo('${v.id}')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>
-      </div>`;
+    row.innerHTML =
+      '<div class="vrow-thumb" style="' + thumbBg + '">' + thumbContent + '</div>' +
+      '<div class="vrow-info">' +
+        '<div class="vrow-title">' + (v.title||'') + '</div>' +
+        '<div style="display:flex;gap:.28rem;flex-wrap:wrap;margin-top:2px">' + pills + '</div>' +
+        '<div class="vrow-meta" style="margin-top:3px">' + (v.desc||'').slice(0,55) + '&hellip;</div>' +
+      '</div>' +
+      '<div class="vrow-acts">' +
+        '<div class="ico-btn" onclick="editDocVideo(\'' + v.id + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>' +
+        '<div class="ico-btn" onclick="deleteDocVideo(\'' + v.id + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>' +
+      '</div>';
     list.appendChild(row);
   });
 }
-
-// current tipo for new exercise form
 let nuevoTipo = 'video';
 
 function selNuevoTipo(el, panelId) {
@@ -1919,25 +1950,25 @@ function selNuevoTipo(el, panelId) {
 // addVideo local eliminada — usa versión Firestore
 
 function editDocVideo(id) {
-  var v = videos.find(dv=>dv.id===id);
+  var v = videos.find(function(dv){ return dv.id === id; });
   if (!v) return;
+  editingBiblioId = id;
   var tipo = v.tipo || 'video';
-  // switch tipo pill
   var panels = {video:'nt-video', foto:'nt-foto', indicacion:'nt-indicacion'};
   var pill = document.querySelector('#d-videos .tipo-pill:nth-child('+(tipo==='video'?1:tipo==='foto'?2:3)+')');
-  selNuevoTipo(pill, panels[tipo]);
-  document.getElementById('nv-titulo').value  = v.title || '';
-  document.getElementById('nv-url').value     = v.url || '';
+  if (pill) selNuevoTipo(pill, panels[tipo]);
+  document.getElementById('nv-titulo').value   = v.title || '';
+  document.getElementById('nv-url').value      = v.url || '';
   document.getElementById('nv-foto-url').value = v.fotoUrl || '';
-  document.getElementById('nv-cat').value     = v.cat || 'General';
-  document.getElementById('nv-series').value  = v.series || '';
-  document.getElementById('nv-reps').value    = v.reps || '';
-  document.getElementById('nv-dur').value     = v.dur || '';
-  document.getElementById('nv-desc').value    = v.desc || '';
-  videos.splice(videos.indexOf(v),1);
-  renderDocVideos();
+  document.getElementById('nv-cat').value      = v.cat || 'General';
+  document.getElementById('nv-series').value   = v.series || '';
+  document.getElementById('nv-reps').value     = v.reps || '';
+  document.getElementById('nv-dur').value      = v.dur || '';
+  document.getElementById('nv-desc').value     = v.desc || '';
+  var btn = document.querySelector('#d-videos .btn-prim');
+  if (btn) btn.textContent = 'Guardar cambios';
   document.querySelector('#d-videos .sc').scrollIntoView({behavior:'smooth'});
-  toast('Editando — guardá para confirmar');
+  toast('Editando ejercicio — guardá para confirmar');
 }
 
 // deleteDocVideo local eliminada — usa versión Firestore
@@ -3977,6 +4008,9 @@ async function renderComentariosProfesional() {
     var alertClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? ' alert' : '';
     var div = document.createElement('div');
     div.className = 'cmt-card' + alertClass;
+    div.style.cursor = 'pointer';
+    div.title = 'Ir al paciente';
+    div.onclick = (function(pid){ return function(e){ if(!e.target.closest('button') && !e.target.closest('textarea')) irAlHilo(pid); }; })(c.pacId);
     var html =
       '<div class="cmt-head">' +
         '<span class="cmt-who">' + c.pacNombre + ' ' + c.pacApellido + '</span>' +
@@ -4030,48 +4064,34 @@ async function cargarComentariosPaciente(pacienteUid) {
   return cmts;
 }
 
-async function renderComentariosProfesional() {
-  var container = document.getElementById('d-home-comentarios');
-  if (!container) return;
-  container.innerHTML = '<div class="empty">Cargando...</div>';
-  var todos = [];
-  for (var p of pacientesData) {
-    if (p.estado === 'eliminado') continue;
-    try {
-      var cmts = await cargarComentariosPaciente(p.id);
-      cmts.forEach(function(c) { todos.push(Object.assign({}, c, { pacNombre: p.nombre, pacId: p.id })); });
-    } catch(e) { console.error('Error comentarios:', p.id, e); }
-  }
-  todos.sort(function(a,b) { return b.fecha.localeCompare(a.fecha); });
-  if (!todos.length) { container.innerHTML = '<div class="empty">Sin comentarios recientes</div>'; return; }
-  container.innerHTML = '';
-  todos.slice(0,10).forEach(function(c) {
-    var badgeClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? 'bg-r' : c.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
-    var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '';
-    var alertClass = (c.dolor === 'Mucho dolor' || c.dolor === 'Fuerte') ? ' alert' : '';
-    var div = document.createElement('div');
-    div.className = 'cmt-card' + alertClass;
-    var html = '<div class="cmt-head"><span class="cmt-who">' + c.pacNombre + '</span><span class="cmt-date">' + fechaFmt + '</span></div>';
-    html += '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>';
-    html += '<div style="margin-bottom:.28rem"><span class="badge ' + badgeClass + '">' + c.dolor + '</span></div>';
-    html += '<div class="cmt-text">' + (c.texto || '') + '</div>';
-    if (c.respuesta) {
-      html += '<div class="reply-bubble"><div class="reply-bubble-label">Tu respuesta</div><div class="reply-bubble-text">' + c.respuesta + '</div></div>';
-    } else {
-      html += '<div class="reply-area" id="ra-' + c.id + '" style="display:none;margin-top:.55rem">';
-      html += '<textarea class="reply-input" id="ri-' + c.id + '" placeholder="Responder..." rows="2"></textarea>';
-      html += '<div style="display:flex;gap:.4rem;margin-top:.32rem">';
-      html += '<button class="btn-reply-cancel" onclick="closeReply(\'' + c.id + '\')">' + 'Cancelar</button>';
-      html += '<button class="btn-reply-send" onclick="sendReplyFirestore(\'' + c.id + '\',\'' + c.pacId + '\',\'' + c.pacNombre + '\')">' + 'Enviar</button>';
-      html += '</div></div>';
-      html += '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')">';
-      html += '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder</button>';
-    }
-    div.innerHTML = html;
-    container.appendChild(div);
-  });
+
+
+
+// Navegar desde comentario (resumen doctor) → pestaña pacientes → acordeón del paciente
+async function irAlHilo(pacId) {
+  switchTab(
+    document.querySelector('#nav-d .ni:nth-child(2)'),
+    'd-pacientes', 'nav-d'
+  );
+  renderPacientesList();
+  await new Promise(function(r){ setTimeout(r, 80); });
+  await togglePacAccordion(pacId);
+  var chip = document.getElementById('chip-' + pacId);
+  if (chip) chip.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// Navegar desde nota del licenciado (vista paciente) → tab progreso → ejercicio específico
+function irAlEjercicioPaciente(itemId) {
+  switchTab(
+    document.querySelector('#nav-p .ni:nth-child(2)'),
+    'p-progreso', 'nav-p'
+  );
+  setTimeout(function() {
+    var el = document.getElementById('plan-item-' + itemId)
+           || document.querySelector('[data-item-id="' + itemId + '"]');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 120);
+}
 
 async function sendReplyFirestore(cmtId, pacId, pacNombre) {
   var text = document.getElementById('ri-' + cmtId).value.trim();
@@ -4096,9 +4116,13 @@ async function cargarNotasProfesional(uid) {
     if (!respuestas.length) { container.innerHTML = '<div class="empty">Sin notas aún</div>'; return; }
     container.innerHTML = respuestas.map(function(c) {
       var fechaFmt = c.fecha ? new Date(c.fecha).toLocaleDateString('es-AR') : '';
-      return '<div class="cmt-card" style="border-left-color:var(--acc)">' +
+      var itemId = c.itemId || '';
+      var onclick = itemId
+        ? 'onclick="irAlEjercicioPaciente(\'' + itemId + '\')" style="cursor:pointer;border-left-color:var(--acc)"'
+        : 'style="border-left-color:var(--acc)"';
+      return '<div class="cmt-card" ' + onclick + '>' +
         '<div class="cmt-head"><span class="cmt-who">Lic. Viglione</span><span class="cmt-date">' + fechaFmt + '</span></div>' +
-        '<div class="cmt-video">' + (c.ejercicioTitle || '') + '</div>' +
+        '<div class="cmt-video">' + (c.ejercicioTitle || '') + (itemId ? ' <span style="font-size:.6rem;color:var(--acc)">→ ver ejercicio</span>' : '') + '</div>' +
         '<div class="cmt-text">' + c.respuesta + '</div></div>';
     }).join('');
   } catch(e) { console.error('Error notas prof:', e); }
