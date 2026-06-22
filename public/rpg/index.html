@@ -345,6 +345,11 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
 /* HILO DE COMENTARIOS POR EJERCICIO */
 .hilo-wrap{margin-top:.55rem;padding-top:.55rem;border-top:1px dashed var(--bd)}
+.hilo-toggle{display:flex;align-items:center;gap:.45rem;font-size:.72rem;color:var(--mu);cursor:pointer;padding:.5rem .8rem;margin:.4rem -.8rem 0;border-top:1px dashed var(--bd);user-select:none;transition:background .15s}
+.hilo-toggle:hover,.hilo-toggle.active{background:var(--cream);color:var(--acc)}
+.hilo-toggle-empty{opacity:.6}
+.hilo-collapse{display:none;padding:.5rem 0 .2rem}
+.hilo-collapse.open{display:block}
 .hilo-label{font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem}
 .hilo-msgs{display:flex;flex-direction:column;gap:.4rem;margin-bottom:.5rem}
 .hilo-msg{max-width:85%;border-radius:10px;padding:.45rem .65rem;font-size:.78rem;line-height:1.5}
@@ -1741,27 +1746,39 @@ function renderAccordion() {
           return `<span class="pill pill-g">${pill}</span>`;
         }).join('');
 
-        exHTML += `
-        <div class="ex-card" id="exc-${uid}">
-          <div class="ex-card-head" onclick="toggleEx('exb-${uid}','ecc-${uid}')">
-            <span class="ex-title">${title}</span>
-            <span class="${seen?'seen-badge':'unseen-badge'}" id="sb-${uid}">${seen?'✓ Visto':'Por ver'}</span>
-            <span class="acc-chevron" id="ecc-${uid}">▾</span>
-          </div>
-          <div class="ex-body" id="exb-${uid}">
-            ${contentHTML}
-            <div class="ex-pills">${pills}</div>
-            ${desc ? `<div class="ex-desc">${desc}</div>` : ''}
-            <div class="ex-actions">
-              <button class="btn-seen${seen?' done':''}" id="bseen-${uid}" onclick="markSeen('${itemId}','${uid}')">${seen?'✓ Visto':'Marcar como visto'}</button>
-              ${msgsCount < 4 ? `<button class="btn-cmt" onclick="openCmt('${title}','${itemId}')">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
-                Comentar
-              </button>` : ''}
-            </div>
-            <div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-p-${itemId}"></div></div>
-          </div>
-        </div>`;
+        var cmtLabel = msgsCount > 0
+          ? '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="flex-shrink:0"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> ' + msgsCount + ' comentario' + (msgsCount !== 1 ? 's' : '')
+          : '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="flex-shrink:0"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> Comentar';
+
+        var titleEsc = title.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        exHTML +=
+          '<div class="ex-card" id="exc-' + uid + '">' +
+            '<div class="ex-card-head" onclick="toggleEx(&quot;exb-' + uid + '&quot;,&quot;ecc-' + uid + '&quot;)">' +
+              '<span class="ex-title">' + title + '</span>' +
+              '<div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">' +
+                '<span class="' + (seen ? 'seen-badge' : 'unseen-badge') + '" id="sb-' + uid + '">' + (seen ? '✓ Visto' : 'Por ver') + '</span>' +
+                '<span class="acc-chevron" id="ecc-' + uid + '">▾</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="ex-body" id="exb-' + uid + '">' +
+              contentHTML +
+              '<div class="ex-pills">' + pills + '</div>' +
+              (desc ? '<div class="ex-desc">' + desc + '</div>' : '') +
+              '<div class="ex-actions">' +
+                '<button class="btn-seen' + (seen ? ' done' : '') + '" id="bseen-' + uid + '" onclick="markSeen(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;)">' + (seen ? '✓ Visto' : 'Marcar como visto') + '</button>' +
+                (msgsCount < 4
+                  ? '<button class="btn-cmt" onclick="toggleHiloPaciente(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;,&quot;' + titleEsc + '&quot;)">Comentar</button>'
+                  : '') +
+              '</div>' +
+              '<div class="hilo-toggle' + (msgsCount > 0 ? '' : ' hilo-toggle-empty') + '" id="hiloToggle-' + uid + '" onclick="toggleHiloPaciente(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;,&quot;' + titleEsc + '&quot;)">' +
+                cmtLabel +
+                '<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" id="hilochev-' + uid + '" style="margin-left:auto;flex-shrink:0;transition:transform .2s"><path d="M7 10l5 5 5-5z"/></svg>' +
+              '</div>' +
+              '<div class="hilo-collapse" id="hiloBody-' + uid + '">' +
+                '<div class="hilo-comentarios" id="hilo-p-' + itemId + '"></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
         itemIdsForHilosPac.push({ id: itemId, title: title });
       });
 
@@ -1797,10 +1814,7 @@ function renderAccordion() {
     container.appendChild(div);
   });
 
-  // Render hilos de comentarios por ejercicio (vista paciente)
-  itemIdsForHilosPac.forEach(function(it) {
-    renderHiloComentarios(it.id, 'hilo-p-' + it.id, true, it.title);
-  });
+  // Los hilos de comentarios se cargan lazy al abrir cada uno (toggleHiloPaciente)
 }
 
 function toggleMonth(bid, cid) {
@@ -1814,6 +1828,21 @@ function toggleWeek(bid, cid) {
 function toggleEx(bid, cid) {
   document.getElementById(bid).classList.toggle('open');
   document.getElementById(cid).classList.toggle('open');
+}
+
+function toggleHiloPaciente(itemId, uid, title) {
+  var body = document.getElementById('hiloBody-' + uid);
+  var chev = document.getElementById('hilochev-' + uid);
+  var tog  = document.getElementById('hiloToggle-' + uid);
+  if (!body) return;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open');
+  if (chev) chev.style.transform = isOpen ? '' : 'rotate(180deg)';
+  if (tog)  tog.classList.toggle('active', !isOpen);
+  // Renderizar el hilo solo la primera vez que se abre
+  if (!isOpen) {
+    renderHiloComentarios(itemId, 'hilo-p-' + itemId, true, title);
+  }
 }
 
 function playVid(uid, url, vid) {
