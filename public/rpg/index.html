@@ -2117,11 +2117,12 @@ function openFotoModal(fotoUrl, title) {
 function markSeen(itemId, uid) {
   if (seenSet.has(itemId)) return;
   seenSet.add(itemId);
-  var sb = document.getElementById('sb-' + uid);
-  if (sb) { sb.className = 'seen-badge'; sb.textContent = '✓ Visto'; }
-  var btn = document.getElementById('bseen-' + uid);
-  if (btn) { btn.textContent = '✓ Visto'; btn.classList.add('done'); }
+
+  // Re-renderizar el acordeón completo para actualizar contadores y badges
+  renderAccordion();
   updateStats();
+
+  // Guardar en Firestore
   var currentUid = profileData && profileData.uid;
   if (currentUid) {
     guardarVisto(currentUid, itemId).catch(function(e) { console.error('Error guardando visto:', e); });
