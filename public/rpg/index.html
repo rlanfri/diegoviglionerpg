@@ -832,6 +832,13 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <div class="ff"><label>Apellido</label><input type="text" id="ep-apellido" placeholder="Apellido"></div>
     <div class="ff"><label>Diagnóstico</label><input type="text" id="ep-diag" placeholder="Diagnóstico"></div>
     <div class="ff"><label>Teléfono</label><input type="tel" id="ep-tel" placeholder="Teléfono (opcional)"></div>
+    <div class="ff"><label>Tipo de programa</label>
+      <select id="ep-tipo" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
+        <option value="rpg">RPG Postural</option>
+        <option value="neuro">Neurológico</option>
+        <option value="general">General</option>
+      </select>
+    </div>
     <button class="btn-prim" style="margin-top:.5rem" onclick="guardarEditarPaciente()">Guardar cambios</button>
   </div>
 </div>
@@ -3517,6 +3524,7 @@ function abrirEditarPaciente(id) {
   document.getElementById('ep-apellido').value = p.apellido || '';
   document.getElementById('ep-diag').value = p.diag || '';
   document.getElementById('ep-tel').value = p.tel || '';
+  document.getElementById('ep-tipo').value = p.tipo || 'rpg';
   document.getElementById('m-edit-pac').classList.add('open');
 }
 
@@ -3527,13 +3535,14 @@ async function guardarEditarPaciente() {
   var diag = document.getElementById('ep-diag').value.trim();
   var tel = document.getElementById('ep-tel').value.trim();
   if (!nombre) { toast('El nombre es obligatorio'); return; }
+  var tipo = document.getElementById('ep-tipo').value || 'rpg';
   var ini = ((nombre[0]||'') + (apellido ? apellido[0] : '')).toUpperCase();
   const { db, doc, updateDoc } = fb();
   try {
-    await updateDoc(doc(db, 'usuarios', id), { nombre, apellido, diag, tel, ini });
+    await updateDoc(doc(db, 'usuarios', id), { nombre, apellido, diag, tel, ini, tipo });
     // Actualizar local
     var p = pacientesData.find(function(x){ return x.id === id; });
-    if (p) { p.nombre = nombre; p.apellido = apellido; p.diag = diag; p.tel = tel; p.ini = ini; }
+    if (p) { p.nombre = nombre; p.apellido = apellido; p.diag = diag; p.tel = tel; p.ini = ini; p.tipo = tipo; }
     closeM('m-edit-pac');
     renderUsuariosList();
     renderPacientesList();
