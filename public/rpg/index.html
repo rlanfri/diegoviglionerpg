@@ -72,6 +72,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
 /* BOTTOM NAV */
 .bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;z-index:200;padding-bottom:max(env(safe-area-inset-bottom,0px),20px)}
+@supports (-webkit-touch-callout: none){.bnav{padding-bottom:max(env(safe-area-inset-bottom,0px),34px)}.app-content{padding-bottom:calc(74px + max(env(safe-area-inset-bottom,0px),100px))!important}}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.52rem .25rem .42rem;cursor:pointer;color:#bbb;border:none;background:none;font-family:'Barlow',sans-serif;transition:color .15s}
 .ni.on{color:var(--t)}
 .ni-icon{margin-bottom:3px;line-height:1;display:flex;align-items:center;justify-content:center}
