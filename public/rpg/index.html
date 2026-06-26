@@ -610,18 +610,67 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     </div>
 
     <!-- PAC PROGRESO -->
-    <div class="page" id="p-progreso">
-      <div class="pg-title">Mi progreso</div>
-      <div class="pg-sub">Historial y comentarios</div>
-      <div class="stat-strip">
+    <div class="page" id="p-progreso" style="padding:.75rem">
+
+      <!-- Header motivacional -->
+      <div id="pp-motivacion" style="background:linear-gradient(135deg,var(--acc),#1a6fa8);color:#fff;border-radius:14px;padding:1.1rem 1.2rem;margin-bottom:1rem;position:relative;overflow:hidden">
+        <div style="font-size:.7rem;font-weight:500;opacity:.8;text-transform:uppercase;letter-spacing:.08em">Tu progreso</div>
+        <div id="pp-msg" style="font-size:1.15rem;font-weight:600;margin:.2rem 0 .1rem">Cargando...</div>
+        <div id="pp-submsg" style="font-size:.78rem;opacity:.85"></div>
+        <div style="position:absolute;right:-10px;bottom:-10px;opacity:.1;font-size:5rem">🏃</div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stat-strip" style="margin-bottom:1rem">
         <div class="sbox"><div class="sn" id="pp-weeks">0</div><div class="sl">Semanas</div></div>
         <div class="sbox"><div class="sn" id="pp-seen">0</div><div class="sl">Vistos</div></div>
         <div class="sbox"><div class="sn" id="pp-pct">0%</div><div class="sl">Adherencia</div></div>
       </div>
-      <div class="sec-label">Mis comentarios</div>
-      <div id="p-cmt-list"><div class="empty">Sin comentarios aún</div></div>
-      <div class="sec-label" style="margin-top:1.1rem">Notas del licenciado</div>
+
+      <!-- Barra de progreso del mes -->
+      <div style="background:#fff;border:1px solid var(--bd);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <div style="font-size:.78rem;font-weight:600;color:var(--t)" id="pp-mes-label">Este mes</div>
+          <div style="font-size:.78rem;color:var(--mu)" id="pp-mes-sub">0 de 0 ejercicios</div>
+        </div>
+        <div style="height:10px;background:var(--cream);border-radius:100px;overflow:hidden">
+          <div id="pp-barra" style="height:100%;background:linear-gradient(90deg,var(--acc),#38b2d8);border-radius:100px;transition:width .6s ease;width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Gráfico adherencia por mes -->
+      <div style="background:#fff;border:1px solid var(--bd);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem">
+        <div style="font-size:.78rem;font-weight:600;color:var(--t);margin-bottom:.65rem">Adherencia por mes</div>
+        <div id="pp-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:60px"></div>
+      </div>
+
+      <!-- Racha -->
+      <div id="pp-racha-wrap" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem">
+        <div style="font-size:1.6rem">🔥</div>
+        <div>
+          <div style="font-size:.8rem;font-weight:600;color:#9a3412" id="pp-racha-num">— días</div>
+          <div style="font-size:.72rem;color:#c2410c">racha activa de días con ejercicios</div>
+        </div>
+      </div>
+
+      <!-- Ejercicios (acordeón) -->
+      <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Mis ejercicios</div>
+      <div id="p-accordion-prog" style="margin-bottom:1rem"></div>
+
+      <!-- Fotos de progreso -->
+      <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Fotos de progreso</div>
+      <div id="pp-fotos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem">
+        <div class="empty" style="grid-column:1/-1;font-size:.78rem">Sin fotos aún</div>
+      </div>
+
+      <!-- Comentarios -->
+      <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Mis comentarios</div>
+      <div id="p-cmt-list" style="margin-bottom:1rem"><div class="empty">Sin comentarios aún</div></div>
+
+      <!-- Notas del licenciado -->
+      <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Notas del licenciado</div>
       <div id="p-notas-prof"><div class="empty">Sin notas aún</div></div>
+
     </div>
 
     <!-- DOC HOME -->
@@ -1851,8 +1900,7 @@ function switchTab(el, pid, navId) {
   }
   // Al abrir progreso del paciente: refrescar stats y acordeón con datos frescos
   if (pid === 'p-progreso' && role === 'paciente') {
-    renderAccordion();
-    updateStats();
+    renderProgresoPage();
   }
 }
 
@@ -3791,6 +3839,163 @@ function _togMes(el) {
   if (chev) chev.classList.toggle('open');
 }
 
+
+// ════════════════════════════════════════
+// ── PÁGINA DE PROGRESO DEL PACIENTE ─────
+// ════════════════════════════════════════
+async function renderProgresoPage() {
+  updateStats();
+  _renderProgresoStats();
+  _renderProgresoChart();
+  _renderProgresoRacha();
+  _renderProgresoAcordeon();
+  _renderProgresoFotos();
+  _renderProgresoCmt();
+  // Notas del licenciado
+  if (profileData && profileData.uid) {
+    try { await cargarNotasProfesional(profileData.uid); } catch(e) {}
+  }
+}
+
+function _renderProgresoStats() {
+  var meses = [];
+  patientPlan.forEach(function(i){
+    var m = i.mes || 'Sin mes';
+    if (meses.indexOf(m) === -1) meses.push(m);
+  });
+  var mesActual = meses.length ? meses[meses.length - 1] : null;
+  var itemsMes = mesActual ? patientPlan.filter(function(i){ return (i.mes||'Sin mes') === mesActual; }) : patientPlan;
+  var total = itemsMes.length;
+  var seen  = itemsMes.filter(function(i){ return seenSet.has(i.id || i.vid); }).length;
+  var pct   = total ? Math.round(seen / total * 100) : 0;
+
+  // Barra de progreso
+  var barra = document.getElementById('pp-barra');
+  var mesLbl = document.getElementById('pp-mes-label');
+  var mesSub = document.getElementById('pp-mes-sub');
+  if (barra) barra.style.width = pct + '%';
+  if (barra) barra.style.background = pct >= 80 ? 'linear-gradient(90deg,#27ae60,#2ecc71)' : pct >= 50 ? 'linear-gradient(90deg,var(--acc),#38b2d8)' : 'linear-gradient(90deg,#e67e22,#f39c12)';
+  if (mesLbl) mesLbl.textContent = mesActual || 'Este mes';
+  if (mesSub) mesSub.textContent = seen + ' de ' + total + ' ejercicios completados';
+
+  // Mensaje motivacional
+  var msg = document.getElementById('pp-msg');
+  var sub = document.getElementById('pp-submsg');
+  var emoji = pct >= 80 ? '💪' : pct >= 50 ? '👍' : pct > 0 ? '🎯' : '🏁';
+  var texto = pct >= 80 ? '¡Excelente trabajo!' : pct >= 50 ? 'Vas muy bien, seguí así' : pct > 0 ? 'Buen comienzo, no pares' : 'Empezá tu primer ejercicio';
+  var subtexto = total ? (pct + '% del mes completado · ' + (total - seen) + ' ejercicio' + (total-seen!==1?'s':'') + ' restante' + (total-seen!==1?'s':'')) : 'Todavía no tenés ejercicios este mes';
+  if (msg) msg.textContent = emoji + ' ' + texto;
+  if (sub) sub.textContent = subtexto;
+}
+
+function _renderProgresoChart() {
+  var chart = document.getElementById('pp-chart');
+  if (!chart) return;
+  // Agrupar por mes
+  var byMes = {};
+  patientPlan.forEach(function(i){
+    var m = i.mes || 'Sin mes';
+    if (!byMes[m]) byMes[m] = { total: 0, seen: 0 };
+    byMes[m].total++;
+    if (seenSet.has(i.id || i.vid)) byMes[m].seen++;
+  });
+  var keys = Object.keys(byMes);
+  if (!keys.length) { chart.innerHTML = '<div class="empty" style="font-size:.75rem">Sin datos aún</div>'; return; }
+  var html = '';
+  keys.forEach(function(m) {
+    var d = byMes[m];
+    var pct = d.total ? Math.round(d.seen / d.total * 100) : 0;
+    var h = Math.max(4, Math.round(pct * 0.55)); // max 55px
+    var color = pct >= 80 ? '#27ae60' : pct >= 50 ? 'var(--acc)' : '#e67e22';
+    var label = m.split(' ')[0].slice(0,3); // "Ene", "Feb"...
+    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem">' +
+      '<div style="font-size:.6rem;color:var(--mu)">' + pct + '%</div>' +
+      '<div style="width:100%;height:' + h + 'px;background:' + color + ';border-radius:4px 4px 0 0;min-height:4px"></div>' +
+      '<div style="font-size:.6rem;color:var(--mu);white-space:nowrap">' + label + '</div>' +
+    '</div>';
+  });
+  chart.innerHTML = html;
+}
+
+function _renderProgresoRacha() {
+  // Calcular racha: días consecutivos donde el paciente marcó al menos 1 ejercicio como visto
+  // Simplificado: contar semanas consecutivas con ejercicios vistos
+  var semsConVistos = new Set();
+  patientPlan.forEach(function(i){
+    if (seenSet.has(i.id || i.vid) && i.sem) semsConVistos.add((i.mes||'') + i.sem);
+  });
+  var racha = semsConVistos.size;
+  var wrap = document.getElementById('pp-racha-wrap');
+  var num = document.getElementById('pp-racha-num');
+  if (num) num.textContent = racha + ' semana' + (racha!==1?'s':'');
+  if (wrap) wrap.querySelector('div:first-child').textContent = racha > 3 ? '🔥' : racha > 0 ? '⚡' : '💤';
+  if (wrap) wrap.style.display = racha === 0 ? 'none' : 'flex';
+}
+
+function _renderProgresoAcordeon() {
+  // Renderizar el acordeón en p-accordion-prog (igual que p-accordion pero con distinto container)
+  var orig = document.getElementById('p-accordion');
+  var copy = document.getElementById('p-accordion-prog');
+  if (!copy) return;
+  // Renderizar primero en p-accordion (que es el que usa renderAccordion)
+  renderAccordion();
+  // Luego clonar el contenido al de progreso
+  copy.innerHTML = orig ? orig.innerHTML : '';
+}
+
+function _renderProgresoFotos() {
+  var grid = document.getElementById('pp-fotos-grid');
+  if (!grid) return;
+  // Cargar fotos del paciente desde Firestore
+  if (!profileData || !profileData.uid) return;
+  var uid = profileData.uid;
+  var fb_ = fb();
+  fb_.getDocs(fb_.collection(fb_.db, 'fotos/' + uid + '/items')).then(function(snap) {
+    if (snap.empty) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1;font-size:.78rem">Sin fotos aún</div>'; return; }
+    var fotos = [];
+    snap.forEach(function(d){ fotos.push({ id: d.id, ...d.data() }); });
+    fotos.sort(function(a,b){ return (b.creadoEn||b.fecha||'').localeCompare(a.creadoEn||a.fecha||''); });
+    var html = '';
+    fotos.slice(0,6).forEach(function(f) {
+      var imgUrl = f.url || '';
+      var fecha = '';
+      try { fecha = new Date(f.creadoEn || f.fecha).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'2-digit'}); } catch(e) {}
+      html += '<div class="foto-prog-card" onclick="abrirLightbox(\'' + imgUrl + '\')">' +
+        '<div class="foto-prog-thumb">' +
+          (imgUrl ? '<img src="' + imgUrl + '" onerror="this.style.opacity=0.2">' : '<span style="font-size:1.5rem;opacity:.4">📷</span>') +
+        '</div>' +
+        '<div class="foto-prog-info">' +
+          '<div class="foto-prog-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (f.desc || 'Sin título') + '</div>' +
+          '<div class="foto-prog-fecha">' + fecha + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    grid.innerHTML = html;
+  }).catch(function(){ grid.innerHTML = '<div class="empty" style="grid-column:1/-1;font-size:.78rem">Sin fotos aún</div>'; });
+}
+
+function _renderProgresoCmt() {
+  var list = document.getElementById('p-cmt-list');
+  if (!list) return;
+  var cmts = (patientComments || []).filter(function(c){ return c.tipo !== 'profesional'; });
+  cmts.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+  if (!cmts.length) { list.innerHTML = '<div class="empty">Sin comentarios aún</div>'; return; }
+  var html = '';
+  cmts.forEach(function(c) {
+    var fecha = '';
+    try { fecha = new Date(c.fecha).toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e) {}
+    var badgeClass = (c.dolor === 'Mucho dolor') ? 'bg-r' : c.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
+    html += '<div style="background:#fff;border:1px solid var(--bd);border-radius:10px;padding:.65rem .85rem;margin-bottom:.4rem">' +
+      (c.dolor && c.dolor !== 'Sin dolor' ? '<span class="badge ' + badgeClass + '" style="margin-bottom:.3rem;display:inline-block">' + c.dolor + '</span>' : '') +
+      '<div style="font-size:.78rem;color:var(--t);margin-bottom:.2rem">' + (c.texto || '') + '</div>' +
+      (c.ejercicioTitle ? '<div style="font-size:.68rem;color:var(--mu)">En: ' + c.ejercicioTitle + '</div>' : '') +
+      '<div style="font-size:.65rem;color:var(--mu);margin-top:.2rem">' + fecha + '</div>' +
+      (c.respuesta ? '<div style="background:var(--acc-l);border-left:3px solid var(--acc);border-radius:0 6px 6px 0;padding:.4rem .6rem;margin-top:.4rem;font-size:.75rem;color:var(--acc-d)"><span style="font-size:.65rem;font-weight:600;display:block;margin-bottom:.15rem">Respuesta del profesional</span>' + c.respuesta + '</div>' : '') +
+    '</div>';
+  });
+  list.innerHTML = html;
+}
+
 function sendNota() {
   if (!validarFormulario([
     { id:'dpd-nota', label:'La nota', validators:[
@@ -4762,6 +4967,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     updateStats();
     mostrarTipoPaciente(profileData.tipo || 'rpg');
     try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
+    try { renderProgresoPage(); } catch(e) {}
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
