@@ -94,18 +94,18 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .sec-label{font-size:.63rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.45rem;margin-top:.9rem}
 
 /* ACCORDION */
-.acc-month{background:#fff;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:.6rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.acc-month-head{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1rem;cursor:pointer}
+.acc-month{background:#f8f9fa;border:1px solid var(--bd);border-radius:var(--r);margin-bottom:.85rem;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.acc-month-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.1rem;cursor:pointer;background:#f0f4f8;border-bottom:1px solid var(--bd)}
 .acc-month-head:active{background:var(--acc-l)}
-.acc-month-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;color:var(--acc);font-weight:400;letter-spacing:.06em;text-transform:uppercase}
+.acc-month-title{font-family:'Barlow Condensed',sans-serif;font-size:1.15rem;color:var(--acc);font-weight:500;letter-spacing:.08em;text-transform:uppercase}
 .acc-month-meta{font-size:.7rem;color:var(--mu);margin-top:2px;font-weight:300}
 .acc-chevron{font-size:13px;color:var(--mu);transition:transform .22s;flex-shrink:0;line-height:1}
 .acc-chevron.open{transform:rotate(180deg)}
-.acc-month-body{display:none;padding:0 .75rem .75rem}
+.acc-month-body{display:none;padding:.5rem .75rem .85rem}
 .acc-month-body.open{display:block}
 .acc-month-pct{font-size:.65rem;font-weight:600;background:var(--cream);color:var(--mu);border-radius:100px;padding:.15rem .55rem;border:1px solid var(--bd);white-space:nowrap}
-.acc-week{border:1.5px solid var(--bd);border-radius:10px;margin-bottom:.45rem;overflow:hidden;background:var(--cream)}
-.acc-week-head{display:flex;align-items:center;justify-content:space-between;padding:.7rem .85rem;cursor:pointer}
+.acc-week{border:1.5px solid var(--bd);border-radius:10px;margin-bottom:.6rem;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.acc-week-head{display:flex;align-items:center;justify-content:space-between;padding:.8rem .95rem;cursor:pointer;border-bottom:1px solid transparent;transition:background .15s}
 .acc-week-head:active{background:var(--acc-l)}
 .acc-week-title{font-size:.88rem;font-weight:500;color:var(--t)}
 .acc-week-meta{font-size:.68rem;color:var(--mu);margin-top:1px;font-weight:300}
@@ -1976,6 +1976,8 @@ function renderAccordion() {
         itemIdsForHilosPac.push({ id: itemId, title: title });
       });
 
+      // Solo abrir la primera semana del mes más reciente
+      var weekOpen = (mi === lastMesIdx && si === 0);
       weeksHTML += `
       <div class="acc-week">
         <div class="acc-week-head" onclick="toggleWeek('wb-${mi}-${si}','wc-${mi}-${si}')">
@@ -1983,9 +1985,9 @@ function renderAccordion() {
             <div class="acc-week-title">${sem}</div>
             <div class="acc-week-meta">${items.length} ejercicio${items.length!==1?'s':''} · ${seenW}/${items.length} vistos</div>
           </div>
-          <span class="acc-chevron" id="wc-${mi}-${si}">▾</span>
+          <span class="acc-chevron${weekOpen?' open':''}" id="wc-${mi}-${si}">▾</span>
         </div>
-        <div class="acc-week-body" id="wb-${mi}-${si}">${exHTML}</div>
+        <div class="acc-week-body${weekOpen?' open':''}" id="wb-${mi}-${si}">${exHTML}</div>
       </div>`;
     });
 
