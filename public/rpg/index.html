@@ -26,7 +26,7 @@
   --bd:rgba(0,0,0,0.09);
   --r:12px;
 }
-html,body{height:100%;height:100dvh;overflow:hidden;background:#fff}
+html,body{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;overflow:hidden;background:#fff}
 body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:400}
 
 /* SCREENS */
@@ -55,7 +55,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .demo-tip{margin-top:.85rem;background:var(--acc-l);border-radius:8px;padding:.6rem .85rem;font-size:.72rem;color:var(--acc-d);line-height:1.55}
 
 /* APP SHELL */
-#app{position:fixed;top:0;left:0;right:0;height:100%;height:100dvh;flex-direction:column;z-index:5;background:var(--cream);display:none}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;flex-direction:column;z-index:5;background:var(--cream);display:none}
 #app.visible{display:flex}
 .app-bar{background:#fff;border-bottom:1px solid var(--bd);padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;height:52px;position:relative;z-index:201}
 .bar-left{display:flex;align-items:center;gap:9px}
