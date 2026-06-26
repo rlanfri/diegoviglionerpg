@@ -459,16 +459,37 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) return; // login screen handles this
         try {
-          const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
-          if (!snap.exists() || snap.data().estado !== 'activo') {
-            await signOut(auth);
-            window._showAccessError(snap.exists() ? 'sin-acceso' : 'no-registrado');
+          // Primero intentar por UID directo (usuarios creados con setDoc + UID de Auth)
+          var snapDirect = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+          if (snapDirect.exists() && snapDirect.data().estado === 'activo') {
+            const perfil = snapDirect.data();
+            window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
             return;
           }
-          const perfil = snap.data();
-          window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
+
+          // Fallback: buscar por email (usuarios creados con addDoc y ID auto)
+          const { query: fsQuery, where: fsWhere, getDocs: fsGetDocs, collection: fsCol, updateDoc: fsUpdate } = window._fb;
+          const q = fsQuery(fsCol(db, 'usuarios'), fsWhere('email', '==', firebaseUser.email));
+          const querySnap = await fsGetDocs(q);
+          if (querySnap.empty) {
+            await signOut(auth);
+            window._showAccessError('no-registrado');
+            return;
+          }
+          const docSnap = querySnap.docs[0];
+          const perfil = docSnap.data();
+          if (perfil.estado !== 'activo') {
+            await signOut(auth);
+            window._showAccessError('sin-acceso');
+            return;
+          }
+          // Usar el ID del documento Firestore (no el UID de Google Auth)
+          // Así el plan se busca en planes/{docId}/items correctamente
+          const docId = docSnap.id;
+          window._initAppWithUser(docId, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
         } catch(e) {
           console.error('Auth error:', e);
+          window._showAccessError('no-registrado');
         }
       });
     }
