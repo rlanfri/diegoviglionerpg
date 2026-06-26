@@ -61,7 +61,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .bar-left{display:flex;align-items:center;gap:9px}
 .back-btn{width:30px;height:30px;border-radius:50%;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;color:var(--acc);font-size:18px;line-height:1;flex-shrink:0;font-family:'Barlow',sans-serif}
 .av-btn{width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:600;cursor:pointer;border:none;font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em}
-.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(74px + max(env(safe-area-inset-bottom,0px),20px));width:100%}
+.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(74px + max(env(safe-area-inset-bottom,0px),32px));width:100%}
 
 /* HEADER LOGO */
 .brand-logo{display:flex;align-items:center;gap:8px}
@@ -1430,16 +1430,18 @@ async function cargarPlanPaciente(uid) {
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // Paginación: si hay más de 60 items, mostrar solo los 2 meses más recientes
-  if (patientPlan.length > 60) {
+  if (patientPlan.length > 200) {
     var meses = [...new Set(patientPlan.map(i => i.mes).filter(Boolean))].sort();
-    var mesesRecientes = meses.slice(-2);
+    var mesesRecientes = meses.slice(-3);
     patientPlan = patientPlan.filter(i => !i.mes || mesesRecientes.includes(i.mes));
-    console.log('[PLAN] Paginado a últimos 2 meses:', mesesRecientes);
+    console.log('[PLAN] Paginado a últimos 3 meses:', mesesRecientes);
   }
   // cargar seenSet desde vistos/{uid}/items
   const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
+  console.log('[SEEN] uid:', uid, '| vistos:', snapSeen.size, '| ids:', [...seenSet].join(','));
+  console.log('[PLAN] item ids:', patientPlan.map(i=>i.id||i.vid).join(','));
 }
 
 async function guardarVisto(uid, itemId) {
@@ -2038,7 +2040,7 @@ function renderAccordion() {
       ? '<span class="acc-month-pct" id="pct-' + mi + '">' + pctM + '% completado</span>'
       : '';
     div.innerHTML =
-      '<div class="acc-month-head" onclick="toggleMonth(\' mb-' + mi + '\',\'mc-' + mi + '\')">'+
+      '<div class="acc-month-head" onclick="toggleMonth(\'mb-' + mi + '\',\'mc-' + mi + '\')">'+
         '<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">'+
           '<div class="acc-month-title">' + mes + '</div>'+
           pctBadge +
@@ -2128,33 +2130,28 @@ function markSeen(itemId, uid) {
 }
 
 function updateStats() {
-  // Identificar el mes más reciente del plan
-  var meses = [];
-  patientPlan.forEach(function(i){
-    var m = i.mes || 'Sin mes asignado';
-    if (meses.indexOf(m) === -1) meses.push(m);
-  });
-  var mesActual = meses.length ? meses[meses.length - 1] : null;
+  // Usar el mes del calendario actual, no el último del array
+  var mesList = [...new Set(patientPlan.map(function(i){ return i.mes || 'Sin mes'; }))];
+  var mesActual = _idxMesActual ? mesList[_idxMesActual(mesList)] : mesList[mesList.length - 1];
 
   // Filtrar solo items del mes actual
   var itemsMes = mesActual
-    ? patientPlan.filter(function(i){ return (i.mes || 'Sin mes asignado') === mesActual; })
+    ? patientPlan.filter(function(i){ return (i.mes || 'Sin mes') === mesActual; })
     : patientPlan;
 
   var total = itemsMes.length;
   var seen  = itemsMes.filter(function(i){ return seenSet.has(i.id || i.vid); }).length;
   var pct   = total ? Math.round(seen / total * 100) : 0;
-
-  // Calcular semanas únicas del mes actual
-  var semsSet = new Set();
-  itemsMes.forEach(function(i){ if (i.sem) semsSet.add(i.sem); });
-  var nSems = semsSet.size || (total > 0 ? 1 : 0);
-
   var porVer = total - seen;
-  document.getElementById('ph-total').textContent = porVer;
-  document.getElementById('ph-pct').textContent   = pct + '%';
-  document.getElementById('pp-seen').textContent  = porVer;
-  document.getElementById('pp-pct').textContent   = pct + '%';
+
+  var phTotal = document.getElementById('ph-total');
+  var phPct   = document.getElementById('ph-pct');
+  var ppSeen  = document.getElementById('pp-seen');
+  var ppPct   = document.getElementById('pp-pct');
+  if (phTotal) phTotal.textContent = porVer;
+  if (phPct)   phPct.textContent   = pct + '%';
+  if (ppSeen)  ppSeen.textContent  = porVer;
+  if (ppPct)   ppPct.textContent   = pct + '%';
 }
 
 // ── COMMENT ──
