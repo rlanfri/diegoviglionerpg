@@ -721,8 +721,13 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 
     <!-- DOC USUARIOS -->
     <div class="page" id="d-usuarios">
-      <div class="pg-title">Usuarios</div>
-      <div class="pg-sub">Gestioná accesos y pacientes</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="pg-title">Usuarios</div>
+          <div class="pg-sub">Gestioná accesos y pacientes</div>
+        </div>
+        <button id="btn-mantenimiento" onclick="abrirMantenimiento()" style="display:none;background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.4rem .85rem;font-size:.75rem;cursor:pointer;color:var(--mu);font-family:'Barlow',sans-serif">🛠 Mantenimiento</button>
+      </div>
       <div class="sc">
         <div class="sc-head"><h3>Nuevo usuario</h3></div>
         <div class="ff"><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Nombre del paciente"></div>
@@ -842,6 +847,45 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       </select>
     </div>
     <button class="btn-prim" style="margin-top:.5rem" onclick="guardarEditarPaciente()">Guardar cambios</button>
+  </div>
+</div>
+
+<div class="mwrap" id="m-mantenimiento">
+  <div class="msheet" style="max-height:85vh;overflow-y:auto">
+    <div class="mhead">
+      <div class="mtitle">🛠 Mantenimiento</div>
+      <button class="mclose" onclick="closeM('m-mantenimiento')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem">
+
+      <div style="background:#f8f9fa;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">Historial de fichas</div>
+        <div style="font-size:.78rem;color:#666;margin-bottom:.6rem">Deja solo las últimas 5 versiones por paciente. Libera espacio sin perder el historial reciente.</div>
+        <button class="btn-prim" style="font-size:.8rem;padding:.5rem 1rem" onclick="limpiarHistorialFichas(5)">Limpiar historial → guardar últimas 5</button>
+      </div>
+
+      <div style="background:#f8f9fa;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">Planes viejos</div>
+        <div style="font-size:.78rem;color:#666;margin-bottom:.6rem">Borra ejercicios asignados hace más de 6 meses. Los pacientes ya los completaron.</div>
+        <button class="btn-prim" style="font-size:.8rem;padding:.5rem 1rem" onclick="limpiarPlanesViejos(6)">Borrar planes de más de 6 meses</button>
+      </div>
+
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">⚠ Archivar pacientes inactivos</div>
+        <div style="font-size:.78rem;color:#666;margin-bottom:.6rem">Mueve los pacientes inactivos a un archivo. Sus datos se conservan pero no aparecen en el dashboard.</div>
+        <button class="btn-prim" style="font-size:.8rem;padding:.5rem 1rem;background:#e67e22" onclick="archivarPacientesInactivos()">Archivar inactivos</button>
+      </div>
+
+      <div style="background:#f8f9fa;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">Estado del almacenamiento</div>
+        <div style="font-size:.78rem;color:#666;margin-bottom:.6rem">Límite gratuito Firebase: 1 GB · 50.000 lecturas/día · 20.000 escrituras/día</div>
+        <div style="font-size:.78rem">
+          <span style="background:#e8f5e9;color:#2e7d32;padding:2px 10px;border-radius:100px">Pacientes: ${window._statsCache ? window._statsCache.totalPac : '—'}</span>
+          <span style="background:#e3f2fd;color:#1565c0;padding:2px 10px;border-radius:100px;margin-left:.4rem">Plan gratuito activo</span>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -1342,6 +1386,13 @@ async function cargarPlanPaciente(uid) {
   console.log('[PLAN] Items encontrados:', snap.size);
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
+  // Paginación: si hay más de 60 items, mostrar solo los 2 meses más recientes
+  if (patientPlan.length > 60) {
+    var meses = [...new Set(patientPlan.map(i => i.mes).filter(Boolean))].sort();
+    var mesesRecientes = meses.slice(-2);
+    patientPlan = patientPlan.filter(i => !i.mes || mesesRecientes.includes(i.mes));
+    console.log('[PLAN] Paginado a últimos 2 meses:', mesesRecientes);
+  }
   // cargar seenSet desde vistos/{uid}/items
   const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
   seenSet = new Set();
@@ -3598,6 +3649,105 @@ async function enviarEmailNotificacion(tipo, to, data) {
   }
 }
 
+
+// ════════════════════════════════════════════════════════
+// ── MANTENIMIENTO / LIMPIEZA DE BASE DE DATOS ──────────
+// ════════════════════════════════════════════════════════
+
+// Limpia historial de fichas → deja solo las últimas N versiones por paciente
+async function limpiarHistorialFichas(maxVersiones) {
+  maxVersiones = maxVersiones || 5;
+  var total = 0;
+  const { db, collection, getDocs, deleteDoc, doc, query, orderBy } = fb();
+  for (var pac of pacientesData) {
+    try {
+      var q = query(collection(db, 'usuarios/' + pac.id + '/historialFicha'), orderBy('fecha', 'desc'));
+      var snap = await getDocs(q);
+      var docs = snap.docs;
+      if (docs.length > maxVersiones) {
+        var aEliminar = docs.slice(maxVersiones);
+        for (var d of aEliminar) {
+          await deleteDoc(doc(db, 'usuarios/' + pac.id + '/historialFicha/' + d.id));
+          total++;
+        }
+      }
+    } catch(e) { console.warn('Error limpiando historial de ' + pac.id, e); }
+  }
+  toast('Historial limpiado: ' + total + ' versiones eliminadas ✓');
+  console.log('[MANT] Historial fichas: ' + total + ' docs eliminados');
+}
+
+// Archiva pacientes inactivos → mueve a colección pacientes_archivo
+async function archivarPacientesInactivos() {
+  var inactivos = pacientesData.filter(function(p){ return p.estado === 'inactivo'; });
+  if (!inactivos.length) { toast('No hay pacientes inactivos para archivar'); return; }
+  if (!confirm('Archivar ' + inactivos.length + ' paciente(s) inactivo(s)? Podrás verlos en el archivo.')) return;
+  const { db, collection, addDoc, getDocs, deleteDoc, doc, setDoc } = fb();
+  var total = 0;
+  for (var pac of inactivos) {
+    try {
+      // Copiar datos del paciente a pacientes_archivo
+      await setDoc(doc(db, 'pacientes_archivo', pac.id), { ...pac, archivadoEn: new Date().toISOString() });
+      // Borrar subcolecciones
+      var subCols = ['planes/' + pac.id + '/items', 'vistos/' + pac.id + '/items',
+                     'comentarios/' + pac.id + '/items', 'fotos/' + pac.id + '/items',
+                     'usuarios/' + pac.id + '/historialFicha'];
+      for (var col of subCols) {
+        try {
+          var snap = await getDocs(collection(db, col));
+          for (var d of snap.docs) await deleteDoc(doc(db, col + '/' + d.id));
+        } catch(e2) {}
+      }
+      await deleteDoc(doc(db, 'usuarios', pac.id));
+      total++;
+    } catch(e) { console.warn('Error archivando ' + pac.id, e); }
+  }
+  await cargarUsuarios();
+  renderUsuariosList();
+  renderPacientesList();
+  try { await cargarProgresoPacientes(); } catch(e) {}
+  toast(total + ' paciente(s) archivado(s) ✓');
+}
+
+// Limpia planes viejos → borra ejercicios de más de N meses atrás
+async function limpiarPlanesViejos(mesesAtras) {
+  mesesAtras = mesesAtras || 6;
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var ahora = new Date();
+  // Calcular la fecha límite
+  var limite = new Date(ahora.getFullYear(), ahora.getMonth() - mesesAtras, 1);
+  var total = 0;
+  const { db, collection, getDocs, deleteDoc, doc } = fb();
+  for (var pac of pacientesData) {
+    try {
+      var snap = await getDocs(collection(db, 'planes/' + pac.id + '/items'));
+      for (var d of snap.docs) {
+        var item = d.data();
+        if (!item.mes) continue;
+        // Parsear "Enero 2024" → fecha
+        var parts = item.mes.split(' ');
+        var mesIdx = meses.indexOf(parts[0]);
+        var anio = parseInt(parts[1]);
+        if (mesIdx >= 0 && anio) {
+          var fechaItem = new Date(anio, mesIdx, 1);
+          if (fechaItem < limite) {
+            await deleteDoc(doc(db, 'planes/' + pac.id + '/items/' + d.id));
+            total++;
+          }
+        }
+      }
+    } catch(e) { console.warn('Error limpiando planes de ' + pac.id, e); }
+  }
+  toast('Planes viejos: ' + total + ' ejercicios eliminados ✓');
+  console.log('[MANT] Planes viejos: ' + total + ' docs eliminados');
+}
+
+// Panel de mantenimiento (solo admin)
+function abrirMantenimiento() {
+  document.getElementById('m-mantenimiento').classList.add('open');
+}
+
 function sendNota() {
   if (!validarFormulario([
     { id:'dpd-nota', label:'La nota', validators:[
@@ -4579,6 +4729,9 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     renderUsuariosList();
     _restringirFormUsuario();
     _llenarSelectMeses();
+    // Mostrar botón de mantenimiento solo para admin
+    var btnMant = document.getElementById('btn-mantenimiento');
+    if (btnMant && role === 'admin') btnMant.style.display = 'block';
     try { await cargarProgresoPacientes(); } catch(e) { console.error('Error cargando progreso:', e); }
     try { await renderComentariosProfesional(); } catch(e) { console.error('Error cargando comentarios:', e); }
     showPage('d-home');
