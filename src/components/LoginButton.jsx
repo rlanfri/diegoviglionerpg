@@ -45,7 +45,8 @@ export default function LoginButton() {
   if (user && perfil) return (
     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
       <span style={{fontSize:'0.85rem',color:'#374151'}}>Hola, {perfil.nombre}</span>
-      <button onClick={() => signOut(auth)} style={btn}>Salir</button>
+      <button onClick={() => router.push('/dashboard')} style={btn}>Ir al dashboard</button>
+      <button onClick={() => signOut(auth)} style={{...btn, background:'#6b7280'}}>Salir</button>
     </div>
   );
 
