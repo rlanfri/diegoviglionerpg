@@ -1832,11 +1832,8 @@ function renderAccordion() {
                 <div class="vid-title-overlay">${title}</div>
               </div>
               <iframe id="vif-${uid}" src="" frameborder="0"
-                allow="autoplay; encrypted-media"
-                sandbox="allow-scripts allow-same-origin allow-presentation"
-                referrerpolicy="no-referrer"
+                allow="autoplay; encrypted-media; fullscreen"
                 style="position:absolute;inset:0;width:100%;height:100%;display:none"></iframe>
-              <div class="vid-blocker" id="vbl-${uid}"></div>
             </div>`;
         } else if (tipo === 'foto' && item.fotoUrl) {
           contentHTML = `
@@ -1876,7 +1873,7 @@ function renderAccordion() {
               '<div class="ex-actions">' +
                 '<button class="btn-seen' + (seen ? ' done' : '') + '" id="bseen-' + uid + '" onclick="markSeen(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;)">' + (seen ? '✓ Visto' : 'Marcar como visto') + '</button>' +
                 (msgsCount < 4
-                  ? '<button class="btn-cmt" onclick="toggleHiloPaciente(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;,&quot;' + titleEsc + '&quot;)">Comentar</button>'
+                  ? '<button class="btn-cmt" onclick="openCmt(&quot;' + titleEsc + '&quot;,&quot;' + itemId + '&quot;)">Comentar</button>'
                   : '') +
               '</div>' +
               '<div class="hilo-toggle' + (msgsCount > 0 ? '' : ' hilo-toggle-empty') + '" id="hiloToggle-' + uid + '" onclick="toggleHiloPaciente(&quot;' + itemId + '&quot;,&quot;' + uid + '&quot;,&quot;' + titleEsc + '&quot;)">' +
@@ -1957,10 +1954,8 @@ function toggleHiloPaciente(itemId, uid, title) {
 function playVid(uid, url, vid) {
   var overlay = document.getElementById('vto-'+uid);
   var iframe  = document.getElementById('vif-'+uid);
-  var blocker = document.getElementById('vbl-'+uid);
   overlay.style.display = 'none';
   iframe.style.display  = 'block';
-  if (blocker) blocker.style.display = 'block';
 
   var src = '';
   if (url.includes('drive.google.com')) {
@@ -3295,16 +3290,42 @@ function renderHiloComentarios(itemId, mountId, isPaciente, title) {
   }
 
   if (msgs.length >= 4) {
-    html += '<div class="hilo-limite">Llegaron al límite de mensajes para este ejercicio. Comunicate directamente con ' +
+    html += '<div class="hilo-limite">Llegaron al límite de mensajes. Comunicate directamente con ' +
       (isPaciente ? 'tu profesional' : 'el paciente') + ' para profundizar.</div>';
   } else if (!isPaciente) {
+    // Doctor responde desde el hilo
     html += '<div class="hilo-reply">' +
       '<textarea id="hilo-input-' + itemId + '" placeholder="Responder al paciente..." rows="1"></textarea>' +
       '<button onclick="enviarMensajeHilo(\'' + itemId + '\')">Enviar</button>' +
     '</div>';
+  } else {
+    // Paciente puede comentar desde el hilo también
+    html += '<div class="hilo-reply">' +
+      '<textarea id="hilo-pac-input-' + itemId + '" placeholder="Escribí tu comentario..." rows="2"></textarea>' +
+      '<button onclick="enviarComentarioPaciente(\'' + itemId + '\',\'' + title.replace(/'/g,"\\\'" ) + '\')" style="background:var(--acc);color:#fff;border:none;padding:.4rem .9rem;border-radius:8px;cursor:pointer;font-family:\'Barlow\',sans-serif;font-size:.78rem">Enviar</button>' +
+    '</div>';
   }
 
   el.innerHTML = html;
+}
+
+async function enviarComentarioPaciente(itemId, title) {
+  var input = document.getElementById('hilo-pac-input-' + itemId);
+  if (!input) return;
+  var texto = input.value.trim();
+  if (!texto) { toast('Escribí un comentario'); return; }
+  var uid = profileData && profileData.uid;
+  if (!uid) { toast('Error: no hay sesión'); return; }
+  try {
+    await guardarComentario(uid, itemId, '', texto, title, 'paciente');
+    patientComments = await cargarComentariosPaciente(uid);
+    renderHiloComentarios(itemId, 'hilo-p-' + itemId, true, title);
+    input.value = '';
+    toast('Comentario enviado ✓');
+  } catch(e) {
+    console.error('Error enviando comentario:', e);
+    toast('Error al enviar comentario');
+  }
 }
 
 async function enviarMensajeHilo(itemId) {
