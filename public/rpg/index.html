@@ -3276,11 +3276,14 @@ function renderPacVideos() {
     return;
   }
 
-  var byKey = {};
+  // Agrupar por mes → semana
+  var byMes = {};
   patientPlan.forEach(function(item) {
-    var k = (item.mes || 'Sin mes') + ' · ' + (item.sem || 'Sin semana');
-    if (!byKey[k]) byKey[k] = [];
-    byKey[k].push(item);
+    var mes = item.mes || 'Sin mes';
+    var sem = item.sem || 'General';
+    if (!byMes[mes]) byMes[mes] = {};
+    if (!byMes[mes][sem]) byMes[mes][sem] = [];
+    byMes[mes][sem].push(item);
   });
 
   var iconSVG = {
@@ -3290,48 +3293,72 @@ function renderPacVideos() {
   };
 
   var itemIdsForHilos = [];
+  var mesList = Object.keys(byMes);
+  var lastMesIdx = mesList.length - 1;
 
-  Object.keys(byKey).forEach(function(key) {
-    var items = byKey[key];
-    var lbl = document.createElement('div');
-    lbl.className = 'sec-label';
-    lbl.style.marginTop = '.4rem';
-    lbl.textContent = key;
-    list.appendChild(lbl);
+  mesList.forEach(function(mes, mi) {
+    var semData = byMes[mes];
+    var totalM = Object.values(semData).reduce(function(acc, arr){ return acc + arr.length; }, 0);
+    var isLastMes = mi === lastMesIdx;
 
-    items.forEach(function(item) {
-      var itemId = item.id || item.vid || '';
-      var tipo   = item.tipo || 'video';
-      var title  = item.title || '—';
-      var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
-      var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+    var weeksHTML = '';
+    Object.keys(semData).forEach(function(sem, si) {
+      var items = semData[sem];
+      var isFirstWeekOfLast = isLastMes && si === 0;
 
-      var wrap = document.createElement('div');
-      wrap.className = 'ex-item-doc';
-      wrap.innerHTML =
-        '<div class="vrow">' +
-          '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
-          '<div class="vrow-info">' +
-            '<div class="vrow-title">' + title + '</div>' +
-            '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
-            (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
-          '</div>' +
-          '<div class="vrow-acts">' +
-            '<div class="ico-btn" onclick="openEditModal(\'' + itemId + '\')">' +
-              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>' +
+      var itemsHTML = '';
+      items.forEach(function(item) {
+        var itemId = item.id || item.vid || '';
+        var tipo   = item.tipo || 'video';
+        var title  = item.title || '—';
+        var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
+        var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+        itemsHTML +=
+          '<div class="ex-item-doc">' +
+            '<div class="vrow">' +
+              '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
+              '<div class="vrow-info">' +
+                '<div class="vrow-title">' + title + '</div>' +
+                '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
+                (item.desc ? '<div class="vrow-meta" style="font-style:italic;margin-top:1px">' + item.desc.slice(0,55) + '…</div>' : '') +
+              '</div>' +
+              '<div class="vrow-acts">' +
+                '<div class="ico-btn" onclick="openEditModal(\'' + itemId + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>' +
+                '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>' +
+              '</div>' +
             '</div>' +
-            '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')">' +
-              '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+            '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>' +
+          '</div>';
+        if (itemId) itemIdsForHilos.push({ id: itemId, title: title });
+      });
+
+      weeksHTML +=
+        '<div class="acc-week">' +
+          '<div class="acc-week-head" onclick="_togWeek(this)">' +
+            '<div>' +
+              '<div class="acc-week-title">' + sem + '</div>' +
+              '<div class="acc-week-meta">' + items.length + ' ejercicio' + (items.length!==1?'s':'') + '</div>' +
             '</div>' +
+            '<span class="acc-chevron' + (isFirstWeekOfLast?' open':'') + '">▾</span>' +
           '</div>' +
-        '</div>' +
-        '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>';
-      list.appendChild(wrap);
-      if (itemId) itemIdsForHilos.push({ id: itemId, title: title });
+          '<div class="acc-week-body' + (isFirstWeekOfLast?' open':'') + '">' + itemsHTML + '</div>' +
+        '</div>';
     });
+
+    var mesDiv = document.createElement('div');
+    mesDiv.className = 'acc-month';
+    mesDiv.innerHTML =
+      '<div class="acc-month-head" onclick="_togMes(this)">' +
+        '<div style="display:flex;align-items:center;gap:.6rem">' +
+          '<div class="acc-month-title">' + mes + '</div>' +
+          '<span style="font-size:.65rem;color:var(--mu);background:var(--cream);border:1px solid var(--bd);border-radius:100px;padding:.1rem .5rem">' + totalM + ' ejercicio' + (totalM!==1?'s':'') + '</span>' +
+        '</div>' +
+        '<span class="acc-chevron' + (isLastMes?' open':'') + '">▾</span>' +
+      '</div>' +
+      '<div class="acc-month-body' + (isLastMes?' open':'') + '">' + weeksHTML + '</div>';
+    list.appendChild(mesDiv);
   });
 
-  // Render hilos de comentarios por ejercicio (vista doctor)
   itemIdsForHilos.forEach(function(it) {
     renderHiloComentarios(it.id, 'hilo-' + it.id, false, it.title);
   });
@@ -3748,6 +3775,20 @@ async function limpiarPlanesViejos(mesesAtras) {
 // Panel de mantenimiento (solo admin)
 function abrirMantenimiento() {
   document.getElementById('m-mantenimiento').classList.add('open');
+}
+
+
+function _togWeek(el) {
+  var body = el.nextElementSibling;
+  var chev = el.querySelector('.acc-chevron');
+  body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
+}
+function _togMes(el) {
+  var body = el.nextElementSibling;
+  var chev = el.querySelector('.acc-chevron');
+  body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
 }
 
 function sendNota() {
