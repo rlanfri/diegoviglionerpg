@@ -458,44 +458,51 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       // Standalone mode — use Firebase Auth directly
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) return;
+        console.log('[AUTH] Usuario logueado:', firebaseUser.email, '| UID:', firebaseUser.uid);
         try {
-          // Estrategia 1: buscar por campo uid== (usuarios que ya tienen el UID de Auth guardado)
+          // Estrategia 1: buscar por campo uid en Firestore
           var q1 = query(collection(db, 'usuarios'), where('uid', '==', firebaseUser.uid));
           var snap1 = await getDocs(q1);
+          console.log('[AUTH] Estrategia 1 (uid):', snap1.size, 'resultado(s)');
           if (!snap1.empty) {
             var d1 = snap1.docs[0];
             var p1 = d1.data();
+            console.log('[AUTH] Encontrado por uid → docId:', d1.id, '| rol:', p1.rol);
             if (p1.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
             window._initAppWithUser(d1.id, p1.rol, p1.nombre || firebaseUser.displayName || '');
             return;
           }
 
-          // Estrategia 2: buscar por email (usuarios sin uid guardado)
+          // Estrategia 2: buscar por email
           var q2 = query(collection(db, 'usuarios'), where('email', '==', firebaseUser.email));
           var snap2 = await getDocs(q2);
+          console.log('[AUTH] Estrategia 2 (email):', snap2.size, 'resultado(s)');
           if (!snap2.empty) {
             var d2 = snap2.docs[0];
             var p2 = d2.data();
+            console.log('[AUTH] Encontrado por email → docId:', d2.id, '| rol:', p2.rol);
             if (p2.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
-            // Guardar el uid de Auth en el documento para la próxima vez
-            try { await updateDoc(doc(db, 'usuarios', d2.id), { uid: firebaseUser.uid }); } catch(e2) {}
+            try { await updateDoc(doc(db, 'usuarios', d2.id), { uid: firebaseUser.uid }); console.log('[AUTH] uid guardado en doc'); } catch(e2) { console.warn('[AUTH] No se pudo guardar uid:', e2.message); }
             window._initAppWithUser(d2.id, p2.rol, p2.nombre || firebaseUser.displayName || '');
             return;
           }
 
-          // Estrategia 3: buscar por docId directo (por si coincide con el uid)
+          // Estrategia 3: docId directo
+          console.log('[AUTH] Estrategia 3: buscando doc usuarios/' + firebaseUser.uid);
           var snap3 = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
           if (snap3.exists()) {
             var p3 = snap3.data();
+            console.log('[AUTH] Encontrado por docId directo | rol:', p3.rol);
             if (p3.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
             window._initAppWithUser(firebaseUser.uid, p3.rol, p3.nombre || firebaseUser.displayName || '');
             return;
           }
 
+          console.warn('[AUTH] Usuario no encontrado en Firestore. email:', firebaseUser.email);
           await signOut(auth);
           window._showAccessError('no-registrado');
         } catch(e) {
-          console.error('Auth error:', e);
+          console.error('[AUTH] Error:', e);
         }
       });
     }
@@ -1274,8 +1281,10 @@ async function cargarEjercicios() {
 }
 
 async function cargarPlanPaciente(uid) {
+  console.log('[PLAN] Cargando plan para uid/docId:', uid);
   const { db, collection, getDocs } = fb();
   const snap = await getDocs(collection(db, `planes/${uid}/items`));
+  console.log('[PLAN] Items encontrados:', snap.size);
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // cargar seenSet desde vistos/{uid}/items
