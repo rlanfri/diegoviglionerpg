@@ -547,7 +547,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <div class="pg-title">Mi progreso</div>
       <div class="pg-sub">Historial y comentarios</div>
       <div class="stat-strip">
-        <div class="sbox"><div class="sn">3</div><div class="sl">Semanas</div></div>
+        <div class="sbox"><div class="sn" id="pp-weeks">0</div><div class="sl">Semanas</div></div>
         <div class="sbox"><div class="sn" id="pp-seen">0</div><div class="sl">Vistos</div></div>
         <div class="sbox"><div class="sn" id="pp-pct">0%</div><div class="sl">Adherencia</div></div>
       </div>
@@ -1691,8 +1691,15 @@ function switchTab(el, pid, navId) {
   document.querySelectorAll('#'+navId+' .ni').forEach(n=>n.classList.remove('on'));
   el.classList.add('on');
   showPage(pid);
-  if (pid==='d-pacientes') {
+  if (pid === 'd-pacientes') {
     renderPacientesList();
+  }
+  // Al abrir progreso del paciente: refrescar stats y acordeón con datos frescos
+  if (pid === 'p-progreso' && role === 'paciente' && profileData && profileData.uid) {
+    cargarPlanPaciente(profileData.uid).then(function() {
+      renderAccordion();
+      updateStats();
+    }).catch(function(e){ console.error('Error recargando plan:', e); });
   }
 }
 
@@ -1946,11 +1953,18 @@ function updateStats() {
   var seen  = itemsMes.filter(function(i){ return seenSet.has(i.id || i.vid); }).length;
   var pct   = total ? Math.round(seen / total * 100) : 0;
 
+  // Calcular semanas únicas del mes actual
+  var semsSet = new Set();
+  itemsMes.forEach(function(i){ if (i.sem) semsSet.add(i.sem); });
+  var nSems = semsSet.size || (total > 0 ? 1 : 0);
+
   document.getElementById('ph-total').textContent = total;
   document.getElementById('ph-seen').textContent  = seen;
   document.getElementById('ph-pct').textContent   = pct + '%';
   document.getElementById('pp-seen').textContent  = seen;
   document.getElementById('pp-pct').textContent   = pct + '%';
+  var ppw = document.getElementById('pp-weeks');
+  if (ppw) ppw.textContent = nSems;
 }
 
 // ── COMMENT ──
@@ -3324,33 +3338,46 @@ async function saveEdit() {
 function renderUsuariosList() {
   var list = document.getElementById('u-list');
   var isAdmin = role === 'admin';
+  var isProf  = role === 'profesional';
   var html = '';
 
-  html += '<div class="u-section-lbl">Profesionales</div>';
-  profesionalesData.forEach(p => {
-    html += `<div class="u-row">
-      <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;background:var(--acc);flex-shrink:0;${p.estado==='inactivo'?'opacity:.45':''}">${p.ini}</div>
-      <div style="flex:1;min-width:0">
-        <div class="u-name" style="${p.estado==='inactivo'?'opacity:.45':''}">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
-        <div class="u-meta">${p.email} · Profesional</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
-        ${isAdmin ? `
-        <select class="estado-select" onchange="cambiarEstado(this,'prof','${p.id}')">
-          <option value="activo" ${p.estado==='activo'?'selected':''}>Activo</option>
-          <option value="inactivo" ${p.estado==='inactivo'?'selected':''}>Inactivo</option>
-        </select>
-        <button class="btn-del-user" onclick="confirmarEliminar('prof','${p.id}','${p.nombre}')" title="Eliminar usuario">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-        </button>` : `<span class="estado-badge ${p.estado}">${p.estado==='activo'?'Activo':'Inactivo'}</span>`}
-      </div>
-    </div>`;
-  });
+  // Profesional: solo ve la sección de sus pacientes, no los otros profesionales
+  if (!isProf) {
+    html += '<div class="u-section-lbl">Profesionales</div>';
+    profesionalesData.forEach(p => {
+      html += `<div class="u-row">
+        <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;background:var(--acc);flex-shrink:0;${p.estado==='inactivo'?'opacity:.45':''}">${p.ini}</div>
+        <div style="flex:1;min-width:0">
+          <div class="u-name" style="${p.estado==='inactivo'?'opacity:.45':''}">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
+          <div class="u-meta">${p.email} · Profesional</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+          ${isAdmin ? `
+          <select class="estado-select" onchange="cambiarEstado(this,'prof','${p.id}')">
+            <option value="activo" ${p.estado==='activo'?'selected':''}>Activo</option>
+            <option value="inactivo" ${p.estado==='inactivo'?'selected':''}>Inactivo</option>
+          </select>
+          <button class="btn-del-user" onclick="confirmarEliminar('prof','${p.id}','${p.nombre}')" title="Eliminar usuario">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button>` : `<span class="estado-badge ${p.estado}">${p.estado==='activo'?'Activo':'Inactivo'}</span>`}
+        </div>
+      </div>`;
+    });
+  }
 
-  html += '<div class="u-section-lbl" style="margin-top:.75rem">Pacientes</div>';
-  var pacs = isAdmin
-    ? pacientesData.filter(p => p.estado !== 'eliminado')
-    : pacientesData.filter(p => p.estado === 'activo');
+  html += '<div class="u-section-lbl" style="margin-top:.75rem">Mis pacientes</div>';
+  var pacs;
+  if (isAdmin) {
+    pacs = pacientesData.filter(p => p.estado !== 'eliminado');
+  } else if (isProf) {
+    // Profesional: solo sus propios pacientes
+    pacs = pacientesData.filter(p => p.estado === 'activo' && p.profId === profileData.uid);
+  } else {
+    pacs = pacientesData.filter(p => p.estado === 'activo');
+  }
+  if (!pacs.length) {
+    html += '<div class="empty" style="font-size:.8rem">No tenés pacientes asignados aún</div>';
+  }
   pacs.forEach(p => {
     html += `<div class="u-row">
       <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;flex-shrink:0;${p.estado==='inactivo'?'opacity:.45':''}">${p.ini}</div>
