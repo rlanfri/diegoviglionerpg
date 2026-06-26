@@ -85,7 +85,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .pg-sub{font-size:.78rem;color:var(--mu);margin-bottom:1rem;font-weight:300}
 
 /* STAT STRIP */
-.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.stat-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:1rem}
 .sbox{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:.75rem .4rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
 .sn{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;color:var(--acc);font-weight:600;line-height:1}
 .sl{font-size:.63rem;color:var(--mu);margin-top:2px;line-height:1.2;font-weight:400}
@@ -602,9 +602,8 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       </div>
       <div class="pg-sub" id="p-home-sub">Tu programa de ejercicios</div>
       <div class="stat-strip">
-        <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Ejercicios</div></div>
-        <div class="sbox"><div class="sn" id="ph-seen">0</div><div class="sl">Vistos</div></div>
-        <div class="sbox"><div class="sn" id="ph-pct">0%</div><div class="sl">Completado</div></div>
+        <div class="sbox"><div class="sn" id="ph-pct">0%</div><div class="sl">Adherencia</div></div>
+        <div class="sbox"><div class="sn" id="ph-total">0</div><div class="sl">Por ver</div></div>
       </div>
       <div id="p-accordion"></div>
     </div>
@@ -621,10 +620,9 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       </div>
 
       <!-- Stats strip -->
-      <div class="stat-strip" style="margin-bottom:1rem">
-        <div class="sbox"><div class="sn" id="pp-weeks">0</div><div class="sl">Semanas</div></div>
-        <div class="sbox"><div class="sn" id="pp-seen">0</div><div class="sl">Vistos</div></div>
+      <div class="stat-strip" style="margin-bottom:1rem;grid-template-columns:repeat(2,1fr)">
         <div class="sbox"><div class="sn" id="pp-pct">0%</div><div class="sl">Adherencia</div></div>
+        <div class="sbox"><div class="sn" id="pp-seen">0</div><div class="sl">Por ver</div></div>
       </div>
 
       <!-- Barra de progreso del mes -->
@@ -2152,13 +2150,11 @@ function updateStats() {
   itemsMes.forEach(function(i){ if (i.sem) semsSet.add(i.sem); });
   var nSems = semsSet.size || (total > 0 ? 1 : 0);
 
-  document.getElementById('ph-total').textContent = total;
-  document.getElementById('ph-seen').textContent  = seen;
+  var porVer = total - seen;
+  document.getElementById('ph-total').textContent = porVer;
   document.getElementById('ph-pct').textContent   = pct + '%';
-  document.getElementById('pp-seen').textContent  = seen;
+  document.getElementById('pp-seen').textContent  = porVer;
   document.getElementById('pp-pct').textContent   = pct + '%';
-  var ppw = document.getElementById('pp-weeks');
-  if (ppw) ppw.textContent = nSems;
 }
 
 // ── COMMENT ──
@@ -3833,18 +3829,25 @@ function _mesActualKey() {
 // Dado un array de keys de mes, devuelve el índice del mes actual (o el más reciente si no existe)
 function _idxMesActual(mesList) {
   var key = _mesActualKey();
+  // Comparación exacta primero
   var idx = mesList.indexOf(key);
+  if (idx >= 0) return idx;
+  // Comparación case-insensitive y sin espacios extra
+  var keyNorm = key.trim().toLowerCase();
+  idx = mesList.findIndex(function(k){ return k.trim().toLowerCase() === keyNorm; });
   if (idx >= 0) return idx;
   // Si no hay mes actual, devolver el más reciente que no sea futuro
   var ahora = new Date();
   var mejor = -1;
   mesList.forEach(function(k, i) {
-    var parts = k.split(' ');
-    var mIdx = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-                'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].indexOf(parts[0]);
+    var parts = k.trim().split(/\s+/);
+    var mIdx = ['enero','febrero','marzo','abril','mayo','junio',
+                'julio','agosto','septiembre','octubre','noviembre','diciembre'].indexOf((parts[0]||'').toLowerCase());
     var anio = parseInt(parts[1]);
-    var fecha = new Date(anio, mIdx, 1);
-    if (fecha <= ahora) mejor = i;
+    if (mIdx >= 0 && anio) {
+      var fecha = new Date(anio, mIdx, 1);
+      if (fecha <= ahora) mejor = i;
+    }
   });
   return mejor >= 0 ? mejor : mesList.length - 1;
 }
