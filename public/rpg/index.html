@@ -638,10 +638,10 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
         </div>
       </div>
 
-      <!-- Gráfico adherencia por mes -->
+      <!-- Progreso por semana -->
       <div style="background:#fff;border:1px solid var(--bd);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem">
-        <div style="font-size:.78rem;font-weight:600;color:var(--t);margin-bottom:.65rem">Adherencia por mes</div>
-        <div id="pp-chart" style="display:flex;align-items:flex-end;gap:.4rem;height:60px"></div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--t);margin-bottom:.65rem">Progreso por semana</div>
+        <div id="pp-sems"></div>
       </div>
 
       <!-- Racha -->
@@ -652,10 +652,6 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
           <div style="font-size:.72rem;color:#c2410c">racha activa de días con ejercicios</div>
         </div>
       </div>
-
-      <!-- Ejercicios (acordeón) -->
-      <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Mis ejercicios</div>
-      <div id="p-accordion-prog" style="margin-bottom:1rem"></div>
 
       <!-- Fotos de progreso -->
       <div style="font-size:.7rem;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem">Fotos de progreso</div>
@@ -1929,7 +1925,7 @@ function renderAccordion() {
   });
 
   var mesList = Object.keys(byMes);
-  var lastMesIdx = mesList.length - 1; // el último mes es el más reciente
+  var lastMesIdx = _idxMesActual(mesList); // mes del calendario actual
 
   mesList.forEach((mes, mi) => {
     var mesData = byMes[mes];
@@ -3342,7 +3338,7 @@ function renderPacVideos() {
 
   var itemIdsForHilos = [];
   var mesList = Object.keys(byMes);
-  var lastMesIdx = mesList.length - 1;
+  var lastMesIdx = _idxMesActual(mesList);
 
   mesList.forEach(function(mes, mi) {
     var semData = byMes[mes];
@@ -3826,6 +3822,33 @@ function abrirMantenimiento() {
 }
 
 
+
+// Devuelve el key "Mes YYYY" del mes calendario actual
+function _mesActualKey() {
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var ahora = new Date();
+  return meses[ahora.getMonth()] + ' ' + ahora.getFullYear();
+}
+// Dado un array de keys de mes, devuelve el índice del mes actual (o el más reciente si no existe)
+function _idxMesActual(mesList) {
+  var key = _mesActualKey();
+  var idx = mesList.indexOf(key);
+  if (idx >= 0) return idx;
+  // Si no hay mes actual, devolver el más reciente que no sea futuro
+  var ahora = new Date();
+  var mejor = -1;
+  mesList.forEach(function(k, i) {
+    var parts = k.split(' ');
+    var mIdx = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].indexOf(parts[0]);
+    var anio = parseInt(parts[1]);
+    var fecha = new Date(anio, mIdx, 1);
+    if (fecha <= ahora) mejor = i;
+  });
+  return mejor >= 0 ? mejor : mesList.length - 1;
+}
+
 function _togWeek(el) {
   var body = el.nextElementSibling;
   var chev = el.querySelector('.acc-chevron');
@@ -3846,12 +3869,10 @@ function _togMes(el) {
 async function renderProgresoPage() {
   updateStats();
   _renderProgresoStats();
-  _renderProgresoChart();
+  _renderProgresoSemanas();
   _renderProgresoRacha();
-  _renderProgresoAcordeon();
   _renderProgresoFotos();
   _renderProgresoCmt();
-  // Notas del licenciado
   if (profileData && profileData.uid) {
     try { await cargarNotasProfesional(profileData.uid); } catch(e) {}
   }
@@ -3932,15 +3953,40 @@ function _renderProgresoRacha() {
   if (wrap) wrap.style.display = racha === 0 ? 'none' : 'flex';
 }
 
-function _renderProgresoAcordeon() {
-  // Renderizar el acordeón en p-accordion-prog (igual que p-accordion pero con distinto container)
-  var orig = document.getElementById('p-accordion');
-  var copy = document.getElementById('p-accordion-prog');
-  if (!copy) return;
-  // Renderizar primero en p-accordion (que es el que usa renderAccordion)
-  renderAccordion();
-  // Luego clonar el contenido al de progreso
-  copy.innerHTML = orig ? orig.innerHTML : '';
+function _renderProgresoSemanas() {
+  var el = document.getElementById('pp-sems');
+  if (!el) return;
+  // Agrupar por mes actual → semanas
+  var mesKey = _mesActualKey();
+  var itemsMes = patientPlan.filter(function(i){ return (i.mes || 'Sin mes') === mesKey; });
+  if (!itemsMes.length) {
+    el.innerHTML = '<div class="empty" style="font-size:.78rem">Sin ejercicios este mes</div>';
+    return;
+  }
+  var bySem = {};
+  itemsMes.forEach(function(i) {
+    var s = i.sem || 'General';
+    if (!bySem[s]) bySem[s] = { total: 0, seen: 0 };
+    bySem[s].total++;
+    if (seenSet.has(i.id || i.vid)) bySem[s].seen++;
+  });
+  var html = '';
+  Object.keys(bySem).forEach(function(sem) {
+    var d = bySem[sem];
+    var pct = d.total ? Math.round(d.seen / d.total * 100) : 0;
+    var color = pct >= 80 ? '#27ae60' : pct >= 50 ? 'var(--acc)' : pct > 0 ? '#e67e22' : 'var(--bd)';
+    html +=
+      '<div style="margin-bottom:.55rem">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:.25rem">' +
+          '<span style="font-size:.75rem;color:var(--t);font-weight:500">' + sem + '</span>' +
+          '<span style="font-size:.72rem;color:var(--mu)">' + d.seen + '/' + d.total + '</span>' +
+        '</div>' +
+        '<div style="height:8px;background:var(--cream);border-radius:100px;overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:100px;transition:width .5s ease"></div>' +
+        '</div>' +
+      '</div>';
+  });
+  el.innerHTML = html;
 }
 
 function _renderProgresoFotos() {
