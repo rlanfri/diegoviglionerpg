@@ -449,17 +449,45 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     const photoParam = params.get('photo');
 
     if (uidParam && rolParam) {
-      // Came from Next.js — already authenticated, skip login screen
+      // Came from Next.js — buscar el docId real en Firestore por uid o email
       window._fbUser = { uid: uidParam, rol: rolParam, nombre: decodeURIComponent(nombreParam || ''), photoURL: decodeURIComponent(photoParam || '') };
-      window.addEventListener('DOMContentLoaded', () => {
-        window._initAppWithUser(uidParam, rolParam, decodeURIComponent(nombreParam || ''));
+      window.addEventListener('DOMContentLoaded', async () => {
+        // Intentar resolver el docId real (el Google UID puede ser distinto al docId de Firestore)
+        try {
+          // Buscar por campo uid == uidParam
+          var q1 = query(collection(db, 'usuarios'), where('uid', '==', uidParam));
+          var s1 = await getDocs(q1);
+          if (!s1.empty) {
+            var docId = s1.docs[0].id;
+            var data1 = s1.docs[0].data();
+            console.log('[URL] Encontrado por uid → docId:', docId);
+            window._appInitialized = true;
+            window._initAppWithUser(docId, data1.rol || rolParam, data1.nombre || decodeURIComponent(nombreParam || ''));
+            return;
+          }
+          // Buscar por docId directo (por si el uidParam ya es el docId)
+          var s2 = await getDoc(doc(db, 'usuarios', uidParam));
+          if (s2.exists()) {
+            var data2 = s2.data();
+            console.log('[URL] Encontrado por docId directo:', uidParam);
+            window._initAppWithUser(uidParam, data2.rol || rolParam, data2.nombre || decodeURIComponent(nombreParam || ''));
+            return;
+          }
+          // Fallback: usar tal cual (puede fallar si hay discrepancia)
+          console.warn('[URL] No se encontró el docId, usando uidParam directo');
+          window._initAppWithUser(uidParam, rolParam, decodeURIComponent(nombreParam || ''));
+        } catch(e) {
+          console.error('[URL] Error resolviendo docId:', e);
+          window._initAppWithUser(uidParam, rolParam, decodeURIComponent(nombreParam || ''));
+        }
       });
     } else {
       // Standalone mode — use Firebase Auth directly
-      var _authInitialized = false;
+      window._appInitialized = false;
       onAuthStateChanged(auth, async (firebaseUser) => {
-        if (!firebaseUser) { _authInitialized = false; return; }
-        if (_authInitialized) return; // evitar múltiples disparos
+        if (!firebaseUser) { window._appInitialized = false; return; }
+        if (window._appInitialized) { console.log('[AUTH] Ya inicializado, skip'); return; }
+        window._appInitialized = true;
         _authInitialized = true;
         console.log('[AUTH] Usuario logueado:', firebaseUser.email, '| UID:', firebaseUser.uid);
         try {
