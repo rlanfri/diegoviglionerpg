@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>RPG Diego Viglione</title>
+<link rel="icon" type="image/png" href="/Favicon.png">
+<link rel="apple-touch-icon" href="/Favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -1571,6 +1573,16 @@ async function doAssign() {
         renderPacVideos();
         toast('✓ Asignado: ' + item.title + ' → ' + sem);
 
+        // Notificar al paciente por email
+        var pac = pacientesData.find(function(x){ return x.id === currentPacId; });
+        if (pac && pac.email) {
+          enviarEmailNotificacion('ejercicio_asignado', pac.email, {
+            pacienteNombre: pac.nombre,
+            ejercicioTitle: item.title,
+            profesionalNombre: (profileData.nombre || '') + ' ' + (profileData.apellido || '')
+          });
+        }
+
     } catch(err) {
         console.error('Error al asignar:', err);
         toast('Error al guardar la asignación');
@@ -1585,6 +1597,7 @@ async function cambiarEstado(sel, tipo, id) {
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
+    try { await cargarProgresoPacientes(); } catch(e) {}
     toast(val === 'activo' ? 'Acceso habilitado ✓' : 'Acceso suspendido');
   } catch(err) {
     console.error(err);
@@ -1618,6 +1631,7 @@ async function confirmarEliminar(tipo, id, nombre) {
     await cargarUsuarios();
     renderUsuariosList();
     renderPacientesList();
+    try { await cargarProgresoPacientes(); } catch(e) {}
     toast(nombre + ' eliminado ✓');
   } catch(err) {
     console.error(err);
@@ -1641,6 +1655,7 @@ async function asignarProfesional() {
     renderUsuariosList();
     currentPacId = null; // togglePacAccordion espera que esté cerrado para reabrir
     await togglePacAccordion(reopenId);
+    try { await cargarProgresoPacientes(); } catch(e) {}
     toast('Profesional asignado ✓');
   } catch(err) {
     console.error(err);
@@ -3344,6 +3359,20 @@ async function enviarComentarioPaciente(itemId, title) {
     renderHiloComentarios(itemId, 'hilo-p-' + itemId, true, title);
     input.value = '';
     toast('Comentario enviado ✓');
+
+    // Notificar al doctor por email
+    if (profileData.profId) {
+      var prof = profesionalesData.find(function(x){ return x.id === profileData.profId; });
+      if (prof && prof.email) {
+        enviarEmailNotificacion('comentario_paciente', prof.email, {
+          doctorNombre: prof.nombre,
+          pacienteNombre: profileData.nombre,
+          ejercicioTitle: title,
+          texto: texto,
+          dolor: ''
+        });
+      }
+    }
   } catch(e) {
     console.error('Error enviando comentario:', e);
     toast('Error al enviar comentario');
@@ -3550,6 +3579,22 @@ async function guardarEditarPaciente() {
   } catch(e) {
     console.error('Error editando paciente:', e);
     toast('Error al guardar');
+  }
+}
+
+
+// ── Notificaciones por email via Next.js API ──
+async function enviarEmailNotificacion(tipo, to, data) {
+  if (!to) return; // sin email, no enviar
+  try {
+    await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, to, data })
+    });
+  } catch(e) {
+    console.warn('Email no enviado:', e.message);
+    // No bloquear el flujo si falla el email
   }
 }
 
@@ -4430,6 +4475,20 @@ async function saveComment() {
     patientComments = await cargarComentariosPaciente(profileData.uid);
     renderAccordion();
     toast('Comentario enviado ✓');
+
+  // Notificar al doctor por email
+  if (profileData.profId) {
+    var profEmail = profesionalesData.find(function(x){ return x.id === profileData.profId; });
+    if (profEmail && profEmail.email) {
+      enviarEmailNotificacion('comentario_paciente', profEmail.email, {
+        doctorNombre: profEmail.nombre,
+        pacienteNombre: profileData.nombre,
+        ejercicioTitle: currentCommentVideo || '',
+        texto: text || '',
+        dolor: label !== 'Sin dolor' ? label : ''
+      });
+    }
+  }
   } catch(e) {
     console.error('Error guardando comentario:', e);
     toast('Comentario guardado ✓');
