@@ -821,6 +821,21 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 </div>
 
 <!-- MODAL COMENTARIO -->
+<div class="mwrap" id="m-edit-pac">
+  <div class="msheet">
+    <div class="mhead">
+      <div class="mtitle">Editar paciente</div>
+      <button class="mclose" onclick="closeM('m-edit-pac')">✕</button>
+    </div>
+    <input type="hidden" id="ep-id">
+    <div class="ff"><label>Nombre</label><input type="text" id="ep-nombre" placeholder="Nombre"></div>
+    <div class="ff"><label>Apellido</label><input type="text" id="ep-apellido" placeholder="Apellido"></div>
+    <div class="ff"><label>Diagnóstico</label><input type="text" id="ep-diag" placeholder="Diagnóstico"></div>
+    <div class="ff"><label>Teléfono</label><input type="tel" id="ep-tel" placeholder="Teléfono (opcional)"></div>
+    <button class="btn-prim" style="margin-top:.5rem" onclick="guardarEditarPaciente()">Guardar cambios</button>
+  </div>
+</div>
+
 <div class="mwrap" id="m-comment">
   <div class="msheet">
     <div class="mhandle"></div>
@@ -3472,14 +3487,17 @@ function renderUsuariosList() {
         <div class="u-meta">${p.diag} · <span style="color:var(--acc);font-weight:500">${p.profNombre||'Sin asignar'}</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
-        ${isAdmin ? `
+        ${(isAdmin || isProf) ? `
+        <button class="btn-edit-user" onclick="abrirEditarPaciente('${p.id}')" title="Editar paciente" style="background:var(--acc-l);border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:.25rem .5rem;cursor:pointer;font-size:.7rem;display:flex;align-items:center">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+        </button>
         <select class="estado-select" onchange="cambiarEstado(this,'pac','${p.id}')">
           <option value="activo" ${p.estado==='activo'?'selected':''}>Activo</option>
           <option value="inactivo" ${p.estado==='inactivo'?'selected':''}>Inactivo</option>
         </select>
-        <button class="btn-del-user" onclick="confirmarEliminar('pac','${p.id}','${p.nombre}')" title="Eliminar usuario">
+        ${isAdmin ? `<button class="btn-del-user" onclick="confirmarEliminar('pac','${p.id}','${p.nombre}')" title="Eliminar usuario">
           <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-        </button>` : `<span class="estado-badge ${p.estado}">${p.estado==='activo'?'Activo':'Inactivo'}</span>`}
+        </button>` : ''}` : `<span class="estado-badge ${p.estado}">${p.estado==='activo'?'Activo':'Inactivo'}</span>`}
       </div>
     </div>`;
   });
@@ -3488,6 +3506,43 @@ function renderUsuariosList() {
 }
 
 
+
+
+// ── Editar paciente (admin y profesional) ──
+function abrirEditarPaciente(id) {
+  var p = pacientesData.find(function(x){ return x.id === id; });
+  if (!p) return;
+  document.getElementById('ep-id').value = id;
+  document.getElementById('ep-nombre').value = p.nombre || '';
+  document.getElementById('ep-apellido').value = p.apellido || '';
+  document.getElementById('ep-diag').value = p.diag || '';
+  document.getElementById('ep-tel').value = p.tel || '';
+  document.getElementById('m-edit-pac').classList.add('open');
+}
+
+async function guardarEditarPaciente() {
+  var id = document.getElementById('ep-id').value;
+  var nombre = document.getElementById('ep-nombre').value.trim();
+  var apellido = document.getElementById('ep-apellido').value.trim();
+  var diag = document.getElementById('ep-diag').value.trim();
+  var tel = document.getElementById('ep-tel').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio'); return; }
+  var ini = ((nombre[0]||'') + (apellido ? apellido[0] : '')).toUpperCase();
+  const { db, doc, updateDoc } = fb();
+  try {
+    await updateDoc(doc(db, 'usuarios', id), { nombre, apellido, diag, tel, ini });
+    // Actualizar local
+    var p = pacientesData.find(function(x){ return x.id === id; });
+    if (p) { p.nombre = nombre; p.apellido = apellido; p.diag = diag; p.tel = tel; p.ini = ini; }
+    closeM('m-edit-pac');
+    renderUsuariosList();
+    renderPacientesList();
+    toast('Paciente actualizado ✓');
+  } catch(e) {
+    console.error('Error editando paciente:', e);
+    toast('Error al guardar');
+  }
+}
 
 function sendNota() {
   if (!validarFormulario([
