@@ -407,9 +407,9 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
   <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-    import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+    import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAic3h0hrR2lAdZQ0mhEy10MeYDr0zjpGg",
@@ -456,8 +456,11 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       });
     } else {
       // Standalone mode — use Firebase Auth directly
+      var _authInitialized = false;
       onAuthStateChanged(auth, async (firebaseUser) => {
-        if (!firebaseUser) return;
+        if (!firebaseUser) { _authInitialized = false; return; }
+        if (_authInitialized) return; // evitar múltiples disparos
+        _authInitialized = true;
         console.log('[AUTH] Usuario logueado:', firebaseUser.email, '| UID:', firebaseUser.uid);
         try {
           // Estrategia 1: buscar por campo uid en Firestore
@@ -1731,11 +1734,9 @@ function switchTab(el, pid, navId) {
     renderPacientesList();
   }
   // Al abrir progreso del paciente: refrescar stats y acordeón con datos frescos
-  if (pid === 'p-progreso' && role === 'paciente' && profileData && profileData.uid) {
-    cargarPlanPaciente(profileData.uid).then(function() {
-      renderAccordion();
-      updateStats();
-    }).catch(function(e){ console.error('Error recargando plan:', e); });
+  if (pid === 'p-progreso' && role === 'paciente') {
+    renderAccordion();
+    updateStats();
   }
 }
 
