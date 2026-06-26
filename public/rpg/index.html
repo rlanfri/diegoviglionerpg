@@ -457,39 +457,45 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     } else {
       // Standalone mode — use Firebase Auth directly
       onAuthStateChanged(auth, async (firebaseUser) => {
-        if (!firebaseUser) return; // login screen handles this
+        if (!firebaseUser) return;
         try {
-          // Primero intentar por UID directo (usuarios creados con setDoc + UID de Auth)
-          var snapDirect = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
-          if (snapDirect.exists() && snapDirect.data().estado === 'activo') {
-            const perfil = snapDirect.data();
-            window._initAppWithUser(firebaseUser.uid, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
+          // Estrategia 1: buscar por campo uid== (usuarios que ya tienen el UID de Auth guardado)
+          var q1 = query(collection(db, 'usuarios'), where('uid', '==', firebaseUser.uid));
+          var snap1 = await getDocs(q1);
+          if (!snap1.empty) {
+            var d1 = snap1.docs[0];
+            var p1 = d1.data();
+            if (p1.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
+            window._initAppWithUser(d1.id, p1.rol, p1.nombre || firebaseUser.displayName || '');
             return;
           }
 
-          // Fallback: buscar por email (usuarios creados con addDoc y ID auto)
-          const { query: fsQuery, where: fsWhere, getDocs: fsGetDocs, collection: fsCol, updateDoc: fsUpdate } = window._fb;
-          const q = fsQuery(fsCol(db, 'usuarios'), fsWhere('email', '==', firebaseUser.email));
-          const querySnap = await fsGetDocs(q);
-          if (querySnap.empty) {
-            await signOut(auth);
-            window._showAccessError('no-registrado');
+          // Estrategia 2: buscar por email (usuarios sin uid guardado)
+          var q2 = query(collection(db, 'usuarios'), where('email', '==', firebaseUser.email));
+          var snap2 = await getDocs(q2);
+          if (!snap2.empty) {
+            var d2 = snap2.docs[0];
+            var p2 = d2.data();
+            if (p2.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
+            // Guardar el uid de Auth en el documento para la próxima vez
+            try { await updateDoc(doc(db, 'usuarios', d2.id), { uid: firebaseUser.uid }); } catch(e2) {}
+            window._initAppWithUser(d2.id, p2.rol, p2.nombre || firebaseUser.displayName || '');
             return;
           }
-          const docSnap = querySnap.docs[0];
-          const perfil = docSnap.data();
-          if (perfil.estado !== 'activo') {
-            await signOut(auth);
-            window._showAccessError('sin-acceso');
+
+          // Estrategia 3: buscar por docId directo (por si coincide con el uid)
+          var snap3 = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+          if (snap3.exists()) {
+            var p3 = snap3.data();
+            if (p3.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
+            window._initAppWithUser(firebaseUser.uid, p3.rol, p3.nombre || firebaseUser.displayName || '');
             return;
           }
-          // Usar el ID del documento Firestore (no el UID de Google Auth)
-          // Así el plan se busca en planes/{docId}/items correctamente
-          const docId = docSnap.id;
-          window._initAppWithUser(docId, perfil.rol, perfil.nombre || firebaseUser.displayName || '');
+
+          await signOut(auth);
+          window._showAccessError('no-registrado');
         } catch(e) {
           console.error('Auth error:', e);
-          window._showAccessError('no-registrado');
         }
       });
     }
