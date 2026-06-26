@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>RPG Diego Viglione</title>
 <link rel="icon" type="image/png" href="/Favicon.png">
 <link rel="apple-touch-icon" href="/Favicon.png">
@@ -55,13 +55,13 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .demo-tip{margin-top:.85rem;background:var(--acc-l);border-radius:8px;padding:.6rem .85rem;font-size:.72rem;color:var(--acc-d);line-height:1.55}
 
 /* APP SHELL */
-#app{position:fixed;inset:0;flex-direction:column;z-index:5;background:var(--cream);display:none;height:100dvh}
+#app{position:fixed;top:0;left:0;right:0;bottom:0;flex-direction:column;z-index:5;background:var(--cream);display:none}
 #app.visible{display:flex}
 .app-bar{background:#fff;border-bottom:1px solid var(--bd);padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;height:52px;position:relative;z-index:201}
 .bar-left{display:flex;align-items:center;gap:9px}
 .back-btn{width:30px;height:30px;border-radius:50%;background:var(--acc-l);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;color:var(--acc);font-size:18px;line-height:1;flex-shrink:0;font-family:'Barlow',sans-serif}
 .av-btn{width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:600;cursor:pointer;border:none;font-family:'Barlow Condensed',sans-serif;letter-spacing:.02em}
-.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(74px + max(env(safe-area-inset-bottom,0px),48px));width:100%}
+.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(74px + max(env(safe-area-inset-bottom,0px),90px));width:100%}
 
 /* HEADER LOGO */
 .brand-logo{display:flex;align-items:center;gap:8px}
@@ -71,7 +71,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .brand-sub{font-family:'Barlow',sans-serif;font-size:.57rem;color:var(--mu);font-weight:300;letter-spacing:.04em;text-transform:uppercase;line-height:1;margin-top:1px}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;z-index:200;padding-bottom:max(env(safe-area-inset-bottom,0px),20px);padding-bottom:max(env(safe-area-inset-bottom,0px),max(20px,env(keyboard-inset-height,0px)))}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;z-index:200;padding-bottom:max(env(safe-area-inset-bottom,0px),20px)}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.52rem .25rem .42rem;cursor:pointer;color:#bbb;border:none;background:none;font-family:'Barlow',sans-serif;transition:color .15s}
 .ni.on{color:var(--t)}
 .ni-icon{margin-bottom:3px;line-height:1;display:flex;align-items:center;justify-content:center}
@@ -1909,6 +1909,7 @@ function goBack() {
     showPage(role === 'paciente' ? 'p-home' : 'd-home');
   }
 }
+
 
 // ── ACCORDION ──
 function renderAccordion() {
