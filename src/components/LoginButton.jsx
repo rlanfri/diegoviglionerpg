@@ -16,21 +16,62 @@ export default function LoginButton() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const uid = result.user.uid;
-      const email = result.user.email;
-      // Buscar por UID primero
+      const email = (result.user.email || '').trim().toLowerCase();
+      console.log('[LOGIN] uid:', uid, '| email:', email);
+
+      // 1) Buscar por UID directo (docId == uid)
       let snap = await getDoc(doc(db, 'usuarios', uid));
-      let docRef = null;
+      let docRef = snap.exists() ? snap.ref : null;
+
+      // 2) Buscar por campo uid == uid
       if (!snap.exists()) {
-        // Buscar por email
+        const qUid = query(collection(db, 'usuarios'), where('uid', '==', uid));
+        const qsnapUid = await getDocs(qUid);
+        if (!qsnapUid.empty) {
+          snap = qsnapUid.docs[0];
+          docRef = qsnapUid.docs[0].ref;
+          console.log('[LOGIN] Encontrado por campo uid');
+        }
+      }
+
+      // 3) Buscar por email exacto
+      if (!snap.exists() && !docRef) {
         const q = query(collection(db, 'usuarios'), where('email', '==', email));
         const qsnap = await getDocs(q);
-        if (qsnap.empty) { await signOut(auth); setError('no-registrado'); return; }
-        snap = qsnap.docs[0];
-        docRef = qsnap.docs[0].ref;
-        // Actualizar el doc con el UID real para la próxima vez
-        await updateDoc(docRef, { uid });
+        if (!qsnap.empty) {
+          snap = qsnap.docs[0];
+          docRef = qsnap.docs[0].ref;
+          await updateDoc(docRef, { uid });
+          console.log('[LOGIN] Encontrado por email exacto');
+        }
       }
-      const data = snap.data();
+
+      // 4) Buscar recorriendo todos y comparando email normalizado (case-insensitive)
+      if (!snap.exists() && !docRef) {
+        console.log('[LOGIN] Buscando por email normalizado...');
+        const allSnap = await getDocs(collection(db, 'usuarios'));
+        let found = null;
+        allSnap.forEach((d) => {
+          const dEmail = (d.data().email || '').trim().toLowerCase();
+          if (dEmail === email) found = d;
+        });
+        if (found) {
+          snap = found;
+          docRef = found.ref;
+          await updateDoc(docRef, { uid });
+          console.log('[LOGIN] Encontrado por email normalizado');
+        }
+      }
+
+      // Si no se encontró de ninguna forma → no registrado
+      if (!docRef) {
+        console.warn('[LOGIN] Usuario NO encontrado. email:', email);
+        await signOut(auth);
+        setError('no-registrado');
+        return;
+      }
+
+      const data = (snap.data ? snap.data() : snap);
       if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); return; }
       router.push('/dashboard');
     } catch(e) {
