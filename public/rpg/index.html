@@ -4037,6 +4037,30 @@ function actualizarRecordatorioPaciente() {
   }
 }
 
+
+// ── Cargar datos del profesional asignado al paciente (para botón WhatsApp) ──
+async function cargarProfesionalDelPaciente() {
+  if (!profileData) return;
+  var profIds = _profsDelPaciente(profileData);
+  if (!profIds.length) { console.log('[WA] Paciente sin profesional asignado'); return; }
+  const { db, doc, getDoc } = fb();
+  // Cargar el primer profesional asignado
+  for (var pid of profIds) {
+    try {
+      var snap = await getDoc(doc(db, 'usuarios', pid));
+      if (snap.exists()) {
+        var profData = { id: snap.id, ...snap.data() };
+        // Agregar a profesionalesData si no está, para que el botón WhatsApp lo encuentre
+        if (!profesionalesData.find(function(x){ return x.id === profData.id; })) {
+          profesionalesData.push(profData);
+        }
+        console.log('[WA] Profesional cargado:', profData.nombre, '| tel:', profData.tel || 'sin teléfono');
+        if (profData.tel) break; // si tiene teléfono, usamos ese
+      }
+    } catch(e) { console.error('[WA] Error cargando prof', pid, e); }
+  }
+}
+
 function _togWeek(el) {
   var body = el.nextElementSibling;
   var chev = el.querySelector('.acc-chevron');
@@ -5209,6 +5233,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     if (role === 'paciente') {
       await cargarPlanPaciente(uid);
       try { patientComments = await cargarComentariosPaciente(uid); } catch(e) { console.error('Error cargando comentarios:', e); }
+      try { await cargarProfesionalDelPaciente(); } catch(e) { console.error('Error cargando profesional:', e); }
     }
   } catch(err) {
     console.error('Error cargando datos Firestore:', err);
