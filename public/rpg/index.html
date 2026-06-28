@@ -4084,14 +4084,28 @@ function _formatearTelWhatsApp(tel) {
 function _actualizarBotonWhatsApp() {
   var waBtn = document.getElementById('p-whatsapp-btn');
   if (!waBtn || !profileData) return;
-  // Buscar el profesional asignado en la lista (ya cargado por cargarProfesionalDelPaciente)
   var profIds = _profsDelPaciente(profileData);
+  console.log('[WA] profIds del paciente:', profIds);
+  console.log('[WA] profesionalesData disponibles:', profesionalesData.map(function(p){ return p.nombre + '(' + p.id + ', tel:' + (p.tel||'-') + ')'; }));
+
   var prof = null;
+  // 1) Buscar profesional asignado con teléfono
   for (var pid of profIds) {
     var found = profesionalesData.find(function(x){ return x.id === pid; });
     if (found && found.tel) { prof = found; break; }
-    if (found && !prof) prof = found; // guardar el primero aunque no tenga tel
+    if (found && !prof) prof = found;
   }
+  // 2) Fallback: cualquier admin con teléfono
+  if (!prof || !prof.tel) {
+    var admin = profesionalesData.find(function(x){ return x.rol === 'admin' && x.tel; });
+    if (admin) prof = admin;
+  }
+  // 3) Fallback final: cualquier profesional con teléfono
+  if (!prof || !prof.tel) {
+    var anyProf = profesionalesData.find(function(x){ return x.tel; });
+    if (anyProf) prof = anyProf;
+  }
+
   var tel = (prof && prof.tel) ? _formatearTelWhatsApp(prof.tel) : '';
   console.log('[WA] Botón → prof:', prof ? prof.nombre : 'ninguno', '| tel original:', prof ? prof.tel : '-', '| tel formateado:', tel);
   if (tel) {
@@ -4107,25 +4121,42 @@ function _actualizarBotonWhatsApp() {
 // ── Cargar datos del profesional asignado al paciente (para botón WhatsApp) ──
 async function cargarProfesionalDelPaciente() {
   if (!profileData) return;
+  const { db, doc, getDoc, collection, getDocs, query, where } = fb();
   var profIds = _profsDelPaciente(profileData);
-  if (!profIds.length) { console.log('[WA] Paciente sin profesional asignado'); return; }
-  const { db, doc, getDoc } = fb();
-  // Cargar el primer profesional asignado
+
+  // Cargar los profesionales asignados
   for (var pid of profIds) {
     try {
       var snap = await getDoc(doc(db, 'usuarios', pid));
       if (snap.exists()) {
         var profData = { id: snap.id, ...snap.data() };
-        // Agregar a profesionalesData si no está, para que el botón WhatsApp lo encuentre
         if (!profesionalesData.find(function(x){ return x.id === profData.id; })) {
           profesionalesData.push(profData);
         }
         console.log('[WA] Profesional cargado:', profData.nombre, '| tel:', profData.tel || 'sin teléfono');
-        if (profData.tel) break; // si tiene teléfono, usamos ese
       }
     } catch(e) { console.error('[WA] Error cargando prof', pid, e); }
   }
-  // Actualizar el botón de WhatsApp ahora que tenemos los datos del profesional
+
+  // Si no hay profesional con teléfono, cargar el admin como fallback
+  var hayProfConTel = profesionalesData.some(function(x){
+    return profIds.indexOf(x.id) !== -1 && x.tel;
+  });
+  if (!hayProfConTel) {
+    console.log('[WA] Sin profesional con teléfono, cargando admin...');
+    try {
+      var qAdmin = query(collection(db, 'usuarios'), where('rol', '==', 'admin'));
+      var snapAdmin = await getDocs(qAdmin);
+      snapAdmin.forEach(function(d){
+        var adminData = { id: d.id, ...d.data() };
+        if (!profesionalesData.find(function(x){ return x.id === adminData.id; })) {
+          profesionalesData.push(adminData);
+        }
+        console.log('[WA] Admin cargado:', adminData.nombre, '| tel:', adminData.tel || 'sin teléfono');
+      });
+    } catch(e) { console.error('[WA] Error cargando admin', e); }
+  }
+
   try { _actualizarBotonWhatsApp(); } catch(e) {}
 }
 
@@ -5319,6 +5350,7 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     mostrarTipoPaciente(profileData.tipo || 'rpg');
     try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
     try { renderProgresoPage(); } catch(e) {}
+    try { _actualizarBotonWhatsApp(); } catch(e) {}
     showPage('p-home');
     setActiveNav('nav-p', 0);
   } else {
