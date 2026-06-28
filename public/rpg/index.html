@@ -896,6 +896,11 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <input type="hidden" id="ep-id">
     <div class="ff"><label>Nombre</label><input type="text" id="ep-nombre" placeholder="Nombre"></div>
     <div class="ff"><label>Apellido</label><input type="text" id="ep-apellido" placeholder="Apellido"></div>
+    <div class="ff" id="ep-email-wrap" style="display:none">
+      <label>Email Google <span style="color:var(--mu);font-weight:400;font-size:.7rem">(con el que inicia sesión)</span></label>
+      <input type="email" id="ep-email" placeholder="email@gmail.com">
+      <div style="font-size:.68rem;color:#9a3412;margin-top:.25rem;line-height:1.4">⚠ El paciente deberá iniciar sesión con esta cuenta de Google. Cambialo solo si perdió el acceso al email anterior.</div>
+    </div>
     <div class="ff"><label>Diagnóstico</label><input type="text" id="ep-diag" placeholder="Diagnóstico"></div>
     <div class="ff"><label>Teléfono</label><input type="tel" id="ep-tel" placeholder="Teléfono (opcional)"></div>
     <div class="ff"><label>Tipo de programa</label>
@@ -3768,6 +3773,16 @@ function abrirEditarPaciente(id) {
   document.getElementById('ep-diag').value = p.diag || '';
   document.getElementById('ep-tel').value = p.tel || '';
   document.getElementById('ep-tipo').value = p.tipo || 'rpg';
+  // Email: solo visible y editable para admin
+  var emailWrap = document.getElementById('ep-email-wrap');
+  if (emailWrap) {
+    if (role === 'admin') {
+      emailWrap.style.display = 'block';
+      document.getElementById('ep-email').value = p.email || '';
+    } else {
+      emailWrap.style.display = 'none';
+    }
+  }
   document.getElementById('m-edit-pac').classList.add('open');
 }
 
@@ -3780,16 +3795,38 @@ async function guardarEditarPaciente() {
   if (!nombre) { toast('El nombre es obligatorio'); return; }
   var tipo = document.getElementById('ep-tipo').value || 'rpg';
   var ini = ((nombre[0]||'') + (apellido ? apellido[0] : '')).toUpperCase();
+
+  // Construir objeto de actualización
+  var updateObj = { nombre, apellido, diag, tel, ini, tipo };
+
+  // Email: solo el admin puede cambiarlo
+  if (role === 'admin') {
+    var nuevoEmail = (document.getElementById('ep-email').value || '').trim().toLowerCase();
+    var p0 = pacientesData.find(function(x){ return x.id === id; });
+    if (nuevoEmail && nuevoEmail !== (p0 && p0.email)) {
+      // Validar formato básico
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(nuevoEmail)) {
+        toast('Email inválido'); return;
+      }
+      updateObj.email = nuevoEmail;
+      // Limpiar el uid viejo para que se revincule al nuevo Google login
+      updateObj.uid = '';
+    }
+  }
+
   const { db, doc, updateDoc } = fb();
   try {
-    await updateDoc(doc(db, 'usuarios', id), { nombre, apellido, diag, tel, ini, tipo });
+    await updateDoc(doc(db, 'usuarios', id), updateObj);
     // Actualizar local
     var p = pacientesData.find(function(x){ return x.id === id; });
-    if (p) { p.nombre = nombre; p.apellido = apellido; p.diag = diag; p.tel = tel; p.ini = ini; p.tipo = tipo; }
+    if (p) {
+      p.nombre = nombre; p.apellido = apellido; p.diag = diag; p.tel = tel; p.ini = ini; p.tipo = tipo;
+      if (updateObj.email) { p.email = updateObj.email; p.uid = ''; }
+    }
     closeM('m-edit-pac');
     renderUsuariosList();
     renderPacientesList();
-    toast('Paciente actualizado ✓');
+    toast(updateObj.email ? 'Paciente actualizado ✓ (nuevo email vinculado)' : 'Paciente actualizado ✓');
   } catch(e) {
     console.error('Error editando paciente:', e);
     toast('Error al guardar');
