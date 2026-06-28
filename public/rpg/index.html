@@ -4060,17 +4060,46 @@ function actualizarRecordatorioPaciente() {
   }
 
   // Botón WhatsApp → al profesional asignado
+  _actualizarBotonWhatsApp();
+}
+
+// Formatea un teléfono argentino para WhatsApp (agrega 549 si falta)
+function _formatearTelWhatsApp(tel) {
+  if (!tel) return '';
+  var num = tel.replace(/[^0-9]/g, '');
+  if (!num) return '';
+  // Si ya empieza con 54, asumimos que está completo
+  if (num.startsWith('54')) {
+    // Asegurar el 9 después del 54 (móviles Argentina)
+    if (num.charAt(2) !== '9') num = '549' + num.slice(2);
+    return num;
+  }
+  // Si empieza con 0 (formato nacional), quitarlo
+  if (num.startsWith('0')) num = num.slice(1);
+  // Si empieza con 15 (prefijo móvil viejo), quitarlo
+  // Número típico: 3512535213 (10 dígitos) → 549 + 3512535213
+  return '549' + num;
+}
+
+function _actualizarBotonWhatsApp() {
   var waBtn = document.getElementById('p-whatsapp-btn');
-  if (waBtn && profileData) {
-    var prof = profesionalesData.find(function(x){ return _profsDelPaciente(profileData).indexOf(x.id) !== -1; });
-    var tel = (prof && prof.tel) ? prof.tel.replace(/[^0-9]/g,'') : '';
-    if (tel) {
-      var msg = encodeURIComponent('Hola! Soy ' + (profileData.nombre||'') + ', tengo una consulta sobre mis ejercicios.');
-      waBtn.href = 'https://wa.me/' + tel + '?text=' + msg;
-      waBtn.style.display = 'flex';
-    } else {
-      waBtn.style.display = 'none';
-    }
+  if (!waBtn || !profileData) return;
+  // Buscar el profesional asignado en la lista (ya cargado por cargarProfesionalDelPaciente)
+  var profIds = _profsDelPaciente(profileData);
+  var prof = null;
+  for (var pid of profIds) {
+    var found = profesionalesData.find(function(x){ return x.id === pid; });
+    if (found && found.tel) { prof = found; break; }
+    if (found && !prof) prof = found; // guardar el primero aunque no tenga tel
+  }
+  var tel = (prof && prof.tel) ? _formatearTelWhatsApp(prof.tel) : '';
+  console.log('[WA] Botón → prof:', prof ? prof.nombre : 'ninguno', '| tel original:', prof ? prof.tel : '-', '| tel formateado:', tel);
+  if (tel) {
+    var msg = encodeURIComponent('Hola! Soy ' + (profileData.nombre||'') + ', tengo una consulta sobre mis ejercicios.');
+    waBtn.href = 'https://wa.me/' + tel + '?text=' + msg;
+    waBtn.style.display = 'flex';
+  } else {
+    waBtn.style.display = 'none';
   }
 }
 
@@ -4096,6 +4125,8 @@ async function cargarProfesionalDelPaciente() {
       }
     } catch(e) { console.error('[WA] Error cargando prof', pid, e); }
   }
+  // Actualizar el botón de WhatsApp ahora que tenemos los datos del profesional
+  try { _actualizarBotonWhatsApp(); } catch(e) {}
 }
 
 function _togWeek(el) {
