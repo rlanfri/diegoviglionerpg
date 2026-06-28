@@ -1524,6 +1524,7 @@ async function addUser() {
       estado: 'activo',
       pct: 0,
       profId: profIdDefault,
+      profIds: profIdDefault ? [profIdDefault] : [],
       profNombre: profNombreDefault,
       tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
     });
@@ -1737,22 +1738,30 @@ async function confirmarEliminar(tipo, id, nombre) {
 
 // ── OVERRIDE asignarProfesional → escribe en Firestore ──
 async function asignarProfesional() {
-  const profId = document.getElementById('dpd-prof-sel').value;
   const p = pacientesData.find(x => x.id === currentPacId);
   if (!p) return;
-  const prof = profesionalesData.find(x => x.id === profId);
-  const profNombre = prof ? prof.nombre : 'Sin asignar';
+  // Leer todos los checkboxes marcados
+  var checks = document.querySelectorAll('.dpd-prof-check:checked');
+  var profIds = [];
+  checks.forEach(function(c){ profIds.push(c.value); });
+
+  // profId = el primero (compatibilidad), profIds = todos
+  var profIdPrincipal = profIds.length ? profIds[0] : '';
+  var profPrincipal = profesionalesData.find(x => x.id === profIdPrincipal);
+  var profNombre = profPrincipal ? ((profPrincipal.nombre||'') + (profPrincipal.apellido?' '+profPrincipal.apellido:'')) : 'Sin asignar';
+  if (profIds.length > 1) profNombre += ' +' + (profIds.length - 1);
+
   const { db, doc, updateDoc } = fb();
   const reopenId = currentPacId;
   try {
-    await updateDoc(doc(db, 'usuarios', currentPacId), { profId, profNombre });
+    await updateDoc(doc(db, 'usuarios', currentPacId), { profId: profIdPrincipal, profIds: profIds, profNombre: profNombre });
     await cargarUsuarios();
     renderPacientesList();
     renderUsuariosList();
-    currentPacId = null; // togglePacAccordion espera que esté cerrado para reabrir
+    currentPacId = null;
     await togglePacAccordion(reopenId);
     try { await cargarProgresoPacientes(); } catch(e) {}
-    toast('Profesional asignado ✓');
+    toast(profIds.length ? 'Profesionales asignados ✓' : 'Asignación actualizada ✓');
   } catch(err) {
     console.error(err);
     toast('Error al asignar profesional');
@@ -3018,9 +3027,13 @@ function toggleInlineFicha(headerEl) {
 function renderPacientesList() {
   var list = document.getElementById('d-pac-list');
   var isAdmin = role === 'admin';
-  var visible = isAdmin
-    ? pacientesData.filter(p => p.estado !== 'eliminado')
-    : pacientesData.filter(p => p.estado === 'activo');
+  var visible;
+  if (isAdmin) {
+    visible = pacientesData.filter(p => p.estado !== 'eliminado');
+  } else {
+    // Profesional: solo sus pacientes asignados
+    visible = pacientesData.filter(p => p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid));
+  }
 
   if (!visible.length) { list.innerHTML = '<div class="empty">Sin pacientes asignados</div>'; return; }
 
@@ -3066,10 +3079,8 @@ function renderPacDetailHTML(p) {
   var profSelWrap = role === 'admin' ? `
     <div id="dpd-asignar-prof-wrap" style="margin-bottom:.65rem">
       <div class="ff" style="margin-bottom:.4rem">
-        <label>Profesional asignado</label>
-        <select id="dpd-prof-sel" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .8rem;font-size:.85rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
-          <option value="">Sin asignar</option>
-        </select>
+        <label>Profesionales asignados</label>
+        <div id="dpd-prof-checks" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .7rem;display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto"></div>
       </div>
       <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
     </div>` : '';
@@ -3118,17 +3129,24 @@ async function togglePacAccordion(id) {
   det.innerHTML = renderPacDetailHTML(p);
   det.style.display = 'block';
 
-  // Llenar selector de profesional (admin)
+  // Llenar checkboxes de profesionales (admin)
   if (role === 'admin') {
-    var sel = document.getElementById('dpd-prof-sel');
-    sel.innerHTML = '<option value="">Sin asignar</option>';
-    profesionalesData.forEach(function(prof) {
-      var opt = document.createElement('option');
-      opt.value = prof.id;
-      opt.textContent = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
-      sel.appendChild(opt);
-    });
-    sel.value = p.profId || '';
+    var checksWrap = document.getElementById('dpd-prof-checks');
+    if (checksWrap) {
+      var asignados = _profsDelPaciente(p);
+      var html = '';
+      // Solo profesionales reales (no admin) + el admin también puede asignarse
+      profesionalesData.filter(function(pr){ return pr.rol === 'profesional' || pr.rol === 'admin'; }).forEach(function(prof) {
+        var checked = asignados.indexOf(prof.id) !== -1 ? 'checked' : '';
+        var nombre = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
+        var tag = prof.rol === 'admin' ? ' (admin)' : '';
+        html += '<label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;cursor:pointer">' +
+          '<input type="checkbox" class="dpd-prof-check" value="' + prof.id + '" ' + checked + ' style="width:16px;height:16px;cursor:pointer">' +
+          '<span>' + nombre + tag + '</span>' +
+        '</label>';
+      });
+      checksWrap.innerHTML = html || '<div style="font-size:.78rem;color:var(--mu)">No hay profesionales</div>';
+    }
   }
 
   // Cargar plan + comentarios + fotos del paciente
@@ -3647,8 +3665,8 @@ function renderUsuariosList() {
   if (isAdmin) {
     pacs = pacientesData.filter(p => p.estado !== 'eliminado');
   } else if (isProf) {
-    // Profesional: solo sus propios pacientes
-    pacs = pacientesData.filter(p => p.estado === 'activo' && p.profId === profileData.uid);
+    // Profesional: solo sus pacientes asignados (compatible con profId y profIds)
+    pacs = pacientesData.filter(p => p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid));
   } else {
     pacs = pacientesData.filter(p => p.estado === 'activo');
   }
@@ -3870,6 +3888,21 @@ function _idxMesActual(mesList) {
     }
   });
   return mejor >= 0 ? mejor : mesList.length - 1;
+}
+
+
+// ── Helpers multi-profesional (compatible con profId viejo y profIds array) ──
+function _profsDelPaciente(p) {
+  // Devuelve array de IDs de profesionales asignados al paciente
+  var ids = [];
+  if (p.profId) ids.push(p.profId);
+  if (Array.isArray(p.profIds)) {
+    p.profIds.forEach(function(id){ if (id && ids.indexOf(id) === -1) ids.push(id); });
+  }
+  return ids;
+}
+function _pacienteAsignadoA(p, profUid) {
+  return _profsDelPaciente(p).indexOf(profUid) !== -1;
 }
 
 function _togWeek(el) {
@@ -4656,9 +4689,15 @@ async function cargarProgresoPacientes() {
   var adherencia = document.getElementById('d-home-adherencia');
   if (!adherencia) return;
 
-  var pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  var pacActivos;
+  if (role === 'admin') {
+    pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  } else {
+    // Profesional: solo sus pacientes asignados
+    pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
+  }
   if (!pacActivos.length) {
-    adherencia.innerHTML = '<div class="empty">Sin pacientes</div>';
+    adherencia.innerHTML = '<div class="empty">Sin pacientes asignados</div>';
     _actualizarStatsHome(0, 0);
     return;
   }
@@ -4790,7 +4829,12 @@ async function renderComentariosProfesional() {
   container.innerHTML = '<div class="empty" style="font-size:.75rem">Cargando mensajes...</div>';
 
   var sinResponder = [];
-  var pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  var pacActivos;
+  if (role === 'admin') {
+    pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  } else {
+    pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
+  }
 
   for (var p of pacActivos) {
     try {
