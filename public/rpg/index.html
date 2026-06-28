@@ -2626,7 +2626,9 @@ async function guardarFichaPaciente(tipo) {
     }
     await updateDoc(doc(db, 'usuarios', currentPacId), { ficha: valores, fichaTipo: tipo });
     if (p) { p.ficha = valores; p.fichaTipo = tipo; }
-    toast('Ficha guardada ✓');
+    // Refrescar el historial para que aparezca la versión recién archivada
+    try { await cargarHistorialInline(); } catch(e) {}
+    toast('Ficha guardada ✓ (versión anterior en historial)');
   } catch(e) {
     console.error('Error guardando ficha:', e);
     toast('Error al guardar la ficha');
@@ -2712,8 +2714,11 @@ function renderHistorialInline(versiones) {
             ) +
           '</div>' +
           '<div style="display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap">' +
-            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem" onclick="descargarFichaPDFVersion(\'' + v.id + '\',\'' + tipo + '\')">⬇ Descargar PDF</button>' +
-            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem;color:var(--acc)" onclick="restaurarVersionFicha(\'' + v.id + '\')">↩ Restaurar</button>' +
+            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem;color:var(--acc)" onclick="editarVersionFicha(\'' + v.id + '\')">✏ Editar esta versión</button>' +
+            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem" onclick="descargarFichaPDFVersion(\'' + v.id + '\',\'' + tipo + '\')">⬇ PDF</button>' +
+          '</div>' +
+          '<div style="display:flex;gap:.4rem;margin-top:.4rem;flex-wrap:wrap">' +
+            '<button class="btn-out" style="flex:1;font-size:.7rem;padding:.35rem .5rem;color:var(--mu)" onclick="restaurarVersionFicha(\'' + v.id + '\')">↩ Restaurar como actual</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -2852,6 +2857,35 @@ async function abrirHistorialFicha() {
   if (el) el.textContent = nombre;
   var lista = document.getElementById('mhf-lista');
   if (lista) lista.innerHTML = '<div class="empty">Cargando...</div>';
+}
+
+async function editarVersionFicha(versionId) {
+  const { db, doc, getDoc } = fb();
+  try {
+    var snap = await getDoc(doc(db, 'usuarios/' + currentPacId + '/historialFicha/' + versionId));
+    if (!snap.exists()) { toast('Versión no encontrada'); return; }
+    var version = snap.data();
+    var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+    var tipo = version.fichaTipo || (p && p.tipo) || 'rpg';
+
+    // Cargar los valores de esa versión al formulario editable (sin guardar nada)
+    renderInlineFicha(tipo, version.ficha || {});
+
+    // Abrir el formulario y hacer scroll hasta él
+    setTimeout(function() {
+      var body = document.querySelector('#inline-ficha-container .fc-inline-body');
+      var chev = document.querySelector('#inline-ficha-container .fc-inline-chev');
+      if (body) body.style.display = 'block';
+      if (chev) chev.style.transform = 'rotate(180deg)';
+      var cont = document.getElementById('inline-ficha-container');
+      if (cont) cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+
+    toast('Versión cargada para editar. Modificá y tocá "Guardar ficha" ✏');
+  } catch(e) {
+    console.error('Error editando versión:', e);
+    toast('Error al cargar la versión');
+  }
 }
 
 async function restaurarVersionFicha(versionId) {
