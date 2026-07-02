@@ -412,6 +412,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
     import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
     import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyAic3h0hrR2lAdZQ0mhEy10MeYDr0zjpGg",
@@ -425,10 +426,11 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
     const provider = new GoogleAuthProvider();
 
     // Expose globally for the main script
-    window._fb = { auth, db, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, GoogleAuthProvider };
+    window._fb = { auth, db, storage, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, GoogleAuthProvider, storageRef, uploadBytes, getDownloadURL, deleteObject };
 
 // Función para borrar usuarios de Firebase
     window.eliminarUsuario = async function(id, nombre) {
@@ -751,7 +753,19 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 
         <!-- FOTO panel -->
         <div class="tipo-panel" id="nt-foto">
-          <div class="ff"><label>URL de imagen</label><input type="text" id="nv-foto-url" placeholder="https://drive.google.com/file/d/..."></div>
+          <div class="ff">
+            <label>Imagen del ejercicio</label>
+            <div id="nv-foto-preview" style="display:none;margin-bottom:.6rem">
+              <img id="nv-foto-preview-img" src="" style="width:100%;max-height:180px;object-fit:contain;border-radius:8px;border:1px solid var(--bd)">
+            </div>
+            <input type="file" id="nv-foto-file" accept="image/*" style="display:none" onchange="previsualizarFotoEjercicio(this)">
+            <button type="button" class="btn-out" style="width:100%;padding:.7rem;font-size:.85rem" onclick="document.getElementById('nv-foto-file').click()">
+              📷 Subir imagen desde el dispositivo
+            </button>
+            <div id="nv-foto-status" style="font-size:.72rem;color:var(--mu);margin-top:.35rem"></div>
+            <div style="margin-top:.6rem;font-size:.7rem;color:var(--mu)">O pegá un link (Drive/web):</div>
+            <input type="text" id="nv-foto-url" placeholder="https://..." style="margin-top:.25rem">
+          </div>
         </div>
 
         <!-- INDICACIÓN panel (sin campo extra) -->
@@ -1113,9 +1127,19 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <div class="m-title">Agregar foto de progreso</div>
     <div class="m-sub" id="mfp-pac-name">Paciente</div>
     <div class="ff" style="margin-top:.85rem">
-      <label>URL de la imagen</label>
-      <input type="text" id="mfp-url" placeholder="https://drive.google.com/file/d/... o link directo">
-      <div style="font-size:.65rem;color:var(--mu);margin-top:.3rem">Subí la foto a Google Drive, copiá el link de compartir y pegalo acá</div>
+      <label>Foto</label>
+      <div id="mfp-preview" style="display:none;margin-bottom:.6rem">
+        <img id="mfp-preview-img" src="" style="width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid var(--bd)">
+      </div>
+      <input type="file" id="mfp-file" accept="image/*" style="display:none" onchange="previsualizarFotoProgreso(this)">
+      <button type="button" class="btn-out" style="width:100%;padding:.75rem;font-size:.85rem" onclick="document.getElementById('mfp-file').click()">
+        📷 Tomar o elegir foto
+      </button>
+      <div id="mfp-status" style="font-size:.72rem;color:var(--mu);margin-top:.35rem"></div>
+      <details style="margin-top:.6rem">
+        <summary style="font-size:.7rem;color:var(--mu);cursor:pointer">O pegar un link</summary>
+        <input type="text" id="mfp-url" placeholder="https://..." style="margin-top:.35rem">
+      </details>
     </div>
     <div class="ff">
       <label>Descripción / Contexto</label>
@@ -1594,12 +1618,7 @@ async function addVideo() {
         function(v){ return (v && !isValidYouTubeUrl(v)) ? 'La URL no parece ser de YouTube' : null; }
       ]});
   }
-  if (nuevoTipo === 'foto') {
-    reglas.push({ id:'nv-foto-url', label:'URL de Drive', validators:[
-        function(v){ return VALID.required(v,'La URL de Google Drive'); },
-        function(v){ return (v && !isValidDriveUrl(v)) ? 'La URL debe ser de Google Drive' : null; }
-      ]});
-  }
+  // Para foto ya no validamos URL obligatoria: puede venir de archivo subido o URL
   if (nuevoTipo === 'indicacion') {
     reglas.push({ id:'nv-desc', label:'Indicación', validators:[
         function(v){ return VALID.required(v,'La indicación'); },
@@ -1614,8 +1633,35 @@ async function addVideo() {
   const titulo = document.getElementById('nv-titulo').value.trim();
   let url = nuevoTipo === 'video' ? document.getElementById('nv-url').value.trim() : '';
   let fotoUrl = nuevoTipo === 'foto' ? document.getElementById('nv-foto-url').value.trim() : '';
+  var fotoRuta = '';
   if (nuevoTipo === 'video') url = convertYouTubeUrl(url);
-  if (nuevoTipo === 'foto') fotoUrl = convertDriveUrl(fotoUrl);
+
+  // Si es foto y hay un archivo seleccionado, subirlo a Storage
+  if (nuevoTipo === 'foto') {
+    var fileInput = document.getElementById('nv-foto-file');
+    var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+    if (file) {
+      var statusEl = document.getElementById('nv-foto-status');
+      if (statusEl) statusEl.textContent = 'Subiendo imagen...';
+      try {
+        var res = await subirImagenStorage(file, 'ejercicios');
+        fotoUrl = res.url;
+        fotoRuta = res.ruta;
+        if (statusEl) statusEl.textContent = '✓ Imagen subida';
+      } catch(errUp) {
+        if (statusEl) statusEl.textContent = '✗ ' + errUp.message;
+        toast('Error al subir imagen: ' + errUp.message);
+        return;
+      }
+    } else if (fotoUrl) {
+      // Si pegó URL de Drive, convertirla
+      fotoUrl = convertDriveUrl(fotoUrl);
+    } else {
+      toast('Subí una imagen o pegá un link');
+      return;
+    }
+  }
+
   const desc = document.getElementById('nv-desc').value.trim();
 
   var datosEj = {
@@ -1623,6 +1669,7 @@ async function addVideo() {
     title: titulo,
     url: url || '',
     fotoUrl: fotoUrl || '',
+    fotoRuta: fotoRuta || '',
     cat: document.getElementById('nv-cat').value,
     series: document.getElementById('nv-series').value,
     reps: document.getElementById('nv-reps').value,
@@ -1649,6 +1696,10 @@ async function addVideo() {
     ['nv-titulo','nv-url','nv-foto-url','nv-series','nv-reps','nv-dur','nv-desc'].forEach(function(id) {
       var el = document.getElementById(id); if(el) el.value = '';
     });
+    // Limpiar el uploader de foto
+    var ff = document.getElementById('nv-foto-file'); if (ff) ff.value = '';
+    var fp = document.getElementById('nv-foto-preview'); if (fp) fp.style.display = 'none';
+    var fs = document.getElementById('nv-foto-status'); if (fs) fs.textContent = '';
     await cargarEjercicios();
     renderDocVideos();
   } catch(err) {
@@ -3264,32 +3315,60 @@ function openAddFotoProgreso() {
   if (!currentPacId) return;
   var p = pacientesData.find(function(x){ return x.id === currentPacId; });
   document.getElementById('mfp-pac-name').textContent = p ? (p.nombre + (p.apellido?' '+p.apellido:'')) : 'Paciente';
-  document.getElementById('mfp-url').value = '';
+  var urlEl = document.getElementById('mfp-url'); if (urlEl) urlEl.value = '';
   document.getElementById('mfp-desc').value = '';
   document.getElementById('mfp-fecha').value = new Date().toISOString().split('T')[0];
-  limpiarErroresForm(['mfp-url','mfp-desc','mfp-fecha']);
+  // Limpiar uploader
+  var ff = document.getElementById('mfp-file'); if (ff) ff.value = '';
+  var fp = document.getElementById('mfp-preview'); if (fp) fp.style.display = 'none';
+  var fs = document.getElementById('mfp-status'); if (fs) fs.textContent = '';
+  limpiarErroresForm(['mfp-desc','mfp-fecha']);
   document.getElementById('m-foto-prog').classList.add('open');
 }
 
 async function guardarFotoProgreso() {
   if (!validarFormulario([
-    { id:'mfp-url',  label:'URL de imagen', validators:[function(v){ return VALID.required(v,'La URL de la imagen'); }] },
     { id:'mfp-desc', label:'Descripción',   validators:[function(v){ return VALID.required(v,'La descripción'); }, VALID.minLen(3)] },
     { id:'mfp-fecha',label:'Fecha',         validators:[function(v){ return VALID.required(v,'La fecha'); }, VALID.dateNotFuture] },
   ])) return;
 
-  var rawUrl  = document.getElementById('mfp-url').value.trim();
   var desc    = document.getElementById('mfp-desc').value.trim();
   var fecha   = document.getElementById('mfp-fecha').value;
-  var url     = convertDriveUrl(rawUrl) || rawUrl; // intenta convertir Drive; si no, usa tal cual
+  var rawUrl  = document.getElementById('mfp-url').value.trim();
+  var url = '';
+  var fotoRuta = '';
+
+  // Prioridad: archivo subido > URL pegada
+  var fileInput = document.getElementById('mfp-file');
+  var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+  var statusEl = document.getElementById('mfp-status');
+
+  if (file) {
+    if (statusEl) statusEl.textContent = 'Subiendo foto...';
+    try {
+      var res = await subirImagenStorage(file, 'progreso/' + currentPacId);
+      url = res.url;
+      fotoRuta = res.ruta;
+      if (statusEl) statusEl.textContent = '✓ Foto subida';
+    } catch(errUp) {
+      if (statusEl) statusEl.textContent = '✗ ' + errUp.message;
+      toast('Error al subir: ' + errUp.message);
+      return;
+    }
+  } else if (rawUrl) {
+    url = convertDriveUrl(rawUrl) || rawUrl;
+  } else {
+    toast('Tomá una foto o pegá un link');
+    return;
+  }
 
   const { db, collection, addDoc } = fb();
   try {
     var ref = await addDoc(collection(db, 'fotos/' + currentPacId + '/items'), {
-      url, rawUrl, desc, fecha,
+      url, rawUrl, desc, fecha, fotoRuta,
       creadoEn: new Date().toISOString()
     });
-    patientFotos.push({ id: ref.id, url, rawUrl, desc, fecha });
+    patientFotos.push({ id: ref.id, url, rawUrl, desc, fecha, fotoRuta });
     patientFotos.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
     closeM('m-foto-prog');
     renderFotosTimeline();
@@ -3300,10 +3379,33 @@ async function guardarFotoProgreso() {
   }
 }
 
+// Previsualiza la foto de progreso antes de subir
+function previsualizarFotoProgreso(input) {
+  var file = input.files ? input.files[0] : null;
+  var preview = document.getElementById('mfp-preview');
+  var img = document.getElementById('mfp-preview-img');
+  var status = document.getElementById('mfp-status');
+  if (!file) { if (preview) preview.style.display = 'none'; return; }
+  if (!file.type.startsWith('image/')) { if (status) status.textContent = '✗ Debe ser una imagen'; return; }
+  if (file.size > 5 * 1024 * 1024) { if (status) status.textContent = '✗ Supera los 5 MB'; return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (img) img.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+    if (status) status.textContent = file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function eliminarFotoProgreso(fotoId) {
   if (!confirm('¿Eliminar esta foto del progreso?')) return;
   const { db, doc, deleteDoc } = fb();
   try {
+    // Borrar de Storage si tiene ruta
+    var foto = patientFotos.find(function(f){ return f.id === fotoId; });
+    if (foto && foto.fotoRuta) {
+      try { await borrarImagenStorage(foto.fotoRuta); } catch(e2) {}
+    }
     await deleteDoc(doc(db, 'fotos/' + currentPacId + '/items/' + fotoId));
     patientFotos = patientFotos.filter(function(f){ return f.id !== fotoId; });
     renderFotosTimeline();
@@ -4185,6 +4287,62 @@ function _refrescarCheckVisual() {
       label.style.background = '#fff';
     }
   });
+}
+
+
+// ════════════════════════════════════════
+// ── FIREBASE STORAGE: subida de imágenes ──
+// ════════════════════════════════════════
+// Sube un archivo de imagen a Storage y devuelve la URL de descarga
+async function subirImagenStorage(file, carpeta) {
+  const { storage, storageRef, uploadBytes, getDownloadURL } = fb();
+  if (!file) throw new Error('No hay archivo');
+  // Validar que sea imagen
+  if (!file.type.startsWith('image/')) throw new Error('El archivo debe ser una imagen');
+  // Validar tamaño (máx 5 MB)
+  if (file.size > 5 * 1024 * 1024) throw new Error('La imagen supera los 5 MB');
+  // Nombre único: timestamp + nombre original limpio
+  var ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  var nombre = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+  var ruta = carpeta + '/' + nombre;
+  var refImg = storageRef(storage, ruta);
+  await uploadBytes(refImg, file);
+  var url = await getDownloadURL(refImg);
+  return { url: url, ruta: ruta };
+}
+
+// Borra una imagen de Storage por su ruta
+async function borrarImagenStorage(ruta) {
+  if (!ruta) return;
+  const { storage, storageRef, deleteObject } = fb();
+  try {
+    await deleteObject(storageRef(storage, ruta));
+  } catch(e) { console.warn('No se pudo borrar imagen:', ruta, e.message); }
+}
+
+
+// Previsualiza la foto del ejercicio antes de subirla
+function previsualizarFotoEjercicio(input) {
+  var file = input.files ? input.files[0] : null;
+  var preview = document.getElementById('nv-foto-preview');
+  var img = document.getElementById('nv-foto-preview-img');
+  var status = document.getElementById('nv-foto-status');
+  if (!file) { if (preview) preview.style.display = 'none'; return; }
+  if (!file.type.startsWith('image/')) {
+    if (status) status.textContent = '✗ El archivo debe ser una imagen';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    if (status) status.textContent = '✗ La imagen supera los 5 MB';
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (img) img.src = e.target.result;
+    if (preview) preview.style.display = 'block';
+    if (status) status.textContent = file.name + ' (' + Math.round(file.size/1024) + ' KB)';
+  };
+  reader.readAsDataURL(file);
 }
 
 function _togWeek(el) {
