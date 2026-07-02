@@ -784,7 +784,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
           <div class="ff"><label>Duración</label><input type="text" id="nv-dur" placeholder="Ej: 45 seg"></div>
         </div>
         <div class="ff"><label>Descripción / Indicaciones</label><textarea id="nv-desc" placeholder="Posición inicial, puntos clave, precauciones..."></textarea></div>
-        <button class="btn-prim" onclick="addVideo()">Guardar ejercicio</button>
+        <button class="btn-prim" id="nv-btn-guardar" onclick="addVideo()">Guardar ejercicio</button>
       </div>
 
       <div class="sec-label">Biblioteca</div>
@@ -1151,7 +1151,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     </div>
     <div class="m-actions">
       <button class="btn-cancel" onclick="closeM('m-foto-prog')">Cancelar</button>
-      <button class="btn-ok" onclick="guardarFotoProgreso()">Guardar foto</button>
+      <button class="btn-ok" id="mfp-btn-guardar" onclick="guardarFotoProgreso()">Guardar foto</button>
     </div>
   </div>
 </div>
@@ -1605,7 +1605,10 @@ async function addUser() {
 }
 
 // ── OVERRIDE addVideo → escribe en Firestore ──
+var _guardandoVideo = false;
 async function addVideo() {
+  if (_guardandoVideo) return;
+  var btnGuardarVideo = document.getElementById('nv-btn-guardar');
   const reglas = [
     { id:'nv-titulo', label:'Título', validators:[
         function(v){ return VALID.required(v,'El título'); },
@@ -1636,6 +1639,9 @@ async function addVideo() {
   var fotoRuta = '';
   if (nuevoTipo === 'video') url = convertYouTubeUrl(url);
 
+  _guardandoVideo = true;
+  if (btnGuardarVideo) { btnGuardarVideo.disabled = true; btnGuardarVideo.style.opacity = '0.6'; }
+
   // Si es foto y hay un archivo seleccionado, subirlo a Storage
   if (nuevoTipo === 'foto') {
     var fileInput = document.getElementById('nv-foto-file');
@@ -1651,6 +1657,8 @@ async function addVideo() {
       } catch(errUp) {
         if (statusEl) statusEl.textContent = '✗ ' + errUp.message;
         toast('Error al subir imagen: ' + errUp.message);
+        _guardandoVideo = false;
+        if (btnGuardarVideo) { btnGuardarVideo.disabled = false; btnGuardarVideo.style.opacity = '1'; }
         return;
       }
     } else if (fotoUrl) {
@@ -1658,6 +1666,8 @@ async function addVideo() {
       fotoUrl = convertDriveUrl(fotoUrl);
     } else {
       toast('Subí una imagen o pegá un link');
+      _guardandoVideo = false;
+      if (btnGuardarVideo) { btnGuardarVideo.disabled = false; btnGuardarVideo.style.opacity = '1'; }
       return;
     }
   }
@@ -1705,6 +1715,9 @@ async function addVideo() {
   } catch(err) {
     console.error(err);
     toast('Error al guardar ejercicio');
+  } finally {
+    _guardandoVideo = false;
+    if (btnGuardarVideo) { btnGuardarVideo.disabled = false; btnGuardarVideo.style.opacity = '1'; }
   }
 }
 
@@ -3326,7 +3339,11 @@ function openAddFotoProgreso() {
   document.getElementById('m-foto-prog').classList.add('open');
 }
 
+var _subiendoFotoProgreso = false;
 async function guardarFotoProgreso() {
+  // Evitar doble-click / envíos duplicados mientras sube
+  if (_subiendoFotoProgreso) return;
+
   if (!validarFormulario([
     { id:'mfp-desc', label:'Descripción',   validators:[function(v){ return VALID.required(v,'La descripción'); }, VALID.minLen(3)] },
     { id:'mfp-fecha',label:'Fecha',         validators:[function(v){ return VALID.required(v,'La fecha'); }, VALID.dateNotFuture] },
@@ -3338,32 +3355,35 @@ async function guardarFotoProgreso() {
   var url = '';
   var fotoRuta = '';
 
-  // Prioridad: archivo subido > URL pegada
   var fileInput = document.getElementById('mfp-file');
   var file = fileInput && fileInput.files ? fileInput.files[0] : null;
   var statusEl = document.getElementById('mfp-status');
+  var btnGuardar = document.getElementById('mfp-btn-guardar');
 
-  if (file) {
-    if (statusEl) statusEl.textContent = 'Subiendo foto...';
-    try {
-      var res = await subirImagenStorage(file, 'progreso/' + currentPacId);
-      url = res.url;
-      fotoRuta = res.ruta;
-      if (statusEl) statusEl.textContent = '✓ Foto subida';
-    } catch(errUp) {
-      if (statusEl) statusEl.textContent = '✗ ' + errUp.message;
-      toast('Error al subir: ' + errUp.message);
+  _subiendoFotoProgreso = true;
+  if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = 'Guardando...'; btnGuardar.style.opacity = '0.6'; }
+
+  try {
+    if (file) {
+      if (statusEl) statusEl.textContent = 'Subiendo foto...';
+      try {
+        var res = await subirImagenStorage(file, 'progreso/' + currentPacId);
+        url = res.url;
+        fotoRuta = res.ruta;
+        if (statusEl) statusEl.textContent = '✓ Foto subida';
+      } catch(errUp) {
+        if (statusEl) statusEl.textContent = '✗ ' + errUp.message;
+        toast('Error al subir: ' + errUp.message);
+        return;
+      }
+    } else if (rawUrl) {
+      url = convertDriveUrl(rawUrl) || rawUrl;
+    } else {
+      toast('Tomá una foto o pegá un link');
       return;
     }
-  } else if (rawUrl) {
-    url = convertDriveUrl(rawUrl) || rawUrl;
-  } else {
-    toast('Tomá una foto o pegá un link');
-    return;
-  }
 
-  const { db, collection, addDoc } = fb();
-  try {
+    const { db, collection, addDoc } = fb();
     var ref = await addDoc(collection(db, 'fotos/' + currentPacId + '/items'), {
       url, rawUrl, desc, fecha, fotoRuta,
       creadoEn: new Date().toISOString()
@@ -3376,6 +3396,9 @@ async function guardarFotoProgreso() {
   } catch(e) {
     console.error('Error guardando foto:', e);
     toast('Error al guardar la foto');
+  } finally {
+    _subiendoFotoProgreso = false;
+    if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar foto'; btnGuardar.style.opacity = '1'; }
   }
 }
 
