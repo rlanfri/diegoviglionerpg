@@ -1535,7 +1535,7 @@ async function addUser() {
         }
       }
     }
-    await addDoc(collection(db, 'usuarios'), {
+    var nuevoDoc = {
       nombre,
       apellido,
       email: e,
@@ -1548,16 +1548,32 @@ async function addUser() {
       profIds: profIdDefault ? [profIdDefault] : [],
       profNombre: profNombreDefault,
       tipo: document.querySelector('.nu-tipo-btn.on')?.id.replace('nu-ptb-','') || 'rpg',
-    });
+    };
+    var ref = await addDoc(collection(db, 'usuarios'), nuevoDoc);
+
+    // Agregar a la lista local INMEDIATAMENTE (sin esperar recarga de Firestore)
+    var nuevoLocal = { id: ref.id, ...nuevoDoc };
+    if (rolVal === 'paciente') {
+      pacientesData.push(nuevoLocal);
+    } else if (rolVal === 'profesional' || rolVal === 'admin') {
+      profesionalesData.push(nuevoLocal);
+    }
+
     limpiarErroresForm(['nu-nombre','nu-email','nu-diag']);
     ['nu-nombre','nu-email','nu-diag'].forEach(id => document.getElementById(id).value = '');
     selNuTipo('rpg');
-    await cargarUsuarios();
+
+    // Renderizar de inmediato con los datos locales
     renderUsuariosList();
     renderPacientesList();
-    // Refrescar resumen para que aparezca el nuevo paciente
     try { await cargarProgresoPacientes(); } catch(e2) { console.error('refresh resumen:', e2); }
     toast('Usuario creado ✓');
+
+    // Recargar en segundo plano para sincronizar (por si hubo cambios de otros)
+    cargarUsuarios().then(function(){
+      renderUsuariosList();
+      renderPacientesList();
+    }).catch(function(e3){ console.error('recarga bg:', e3); });
   } catch(err) {
     console.error(err);
     toast('Error al crear usuario');
