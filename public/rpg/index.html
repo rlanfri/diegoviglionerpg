@@ -3141,7 +3141,7 @@ function renderPacDetailHTML(p) {
     <div id="dpd-asignar-prof-wrap" style="margin-bottom:.65rem">
       <div class="ff" style="margin-bottom:.4rem">
         <label>Profesionales asignados</label>
-        <div id="dpd-prof-checks" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.55rem .7rem;display:flex;flex-direction:column;gap:.4rem;max-height:160px;overflow-y:auto"></div>
+        <div id="dpd-prof-checks" style="display:flex;flex-direction:column;gap:.5rem;max-height:280px;overflow-y:auto"></div>
       </div>
       <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
     </div>` : '';
@@ -3201,9 +3201,9 @@ async function togglePacAccordion(id) {
         var checked = asignados.indexOf(prof.id) !== -1 ? 'checked' : '';
         var nombre = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
         var tag = prof.rol === 'admin' ? ' (admin)' : '';
-        html += '<label style="display:flex;align-items:center;gap:.5rem;font-size:.82rem;cursor:pointer">' +
-          '<input type="checkbox" class="dpd-prof-check" value="' + prof.id + '" ' + checked + ' style="width:16px;height:16px;cursor:pointer">' +
-          '<span>' + nombre + tag + '</span>' +
+        html += '<label style="display:flex;align-items:center;gap:.7rem;font-size:.95rem;cursor:pointer;padding:.7rem .6rem;border-radius:8px;border:1.5px solid ' + (checked ? 'var(--acc)' : 'var(--bd)') + ';background:' + (checked ? 'var(--acc-l)' : '#fff') + ';transition:all .15s" onclick="setTimeout(_refrescarCheckVisual,10)">' +
+          '<input type="checkbox" class="dpd-prof-check" value="' + prof.id + '" ' + checked + ' style="width:22px;height:22px;cursor:pointer;flex-shrink:0;accent-color:var(--acc)">' +
+          '<span style="font-weight:500">' + nombre + tag + '</span>' +
         '</label>';
       });
       checksWrap.innerHTML = html || '<div style="font-size:.78rem;color:var(--mu)">No hay profesionales</div>';
@@ -4108,13 +4108,8 @@ function _actualizarBotonWhatsApp() {
 
   var tel = (prof && prof.tel) ? _formatearTelWhatsApp(prof.tel) : '';
   console.log('[WA] Botón → prof:', prof ? prof.nombre : 'ninguno', '| tel original:', prof ? prof.tel : '-', '| tel formateado:', tel);
-  if (tel) {
-    var msg = encodeURIComponent('Hola! Soy ' + (profileData.nombre||'') + ', tengo una consulta sobre mis ejercicios.');
-    waBtn.href = 'https://wa.me/' + tel + '?text=' + msg;
-    waBtn.style.display = 'flex';
-  } else {
-    waBtn.style.display = 'none';
-  }
+  // WhatsApp desactivado por el momento
+  waBtn.style.display = 'none';
 }
 
 
@@ -4158,6 +4153,22 @@ async function cargarProfesionalDelPaciente() {
   }
 
   try { _actualizarBotonWhatsApp(); } catch(e) {}
+}
+
+
+// Refresca el color de los checkboxes de profesional al marcar/desmarcar
+function _refrescarCheckVisual() {
+  document.querySelectorAll('.dpd-prof-check').forEach(function(cb) {
+    var label = cb.closest('label');
+    if (!label) return;
+    if (cb.checked) {
+      label.style.border = '1.5px solid var(--acc)';
+      label.style.background = 'var(--acc-l)';
+    } else {
+      label.style.border = '1.5px solid var(--bd)';
+      label.style.background = '#fff';
+    }
+  });
 }
 
 function _togWeek(el) {
