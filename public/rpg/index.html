@@ -688,7 +688,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <div class="stat-strip" id="d-home-stats" style="margin-bottom:1rem">
         <div class="sbox"><div class="sn" id="dhs-pacientes">—</div><div class="sl">Pacientes activos</div></div>
         <div class="sbox"><div class="sn" id="dhs-adherencia">—</div><div class="sl">Adherencia media</div></div>
-        <div class="sbox"><div class="sn" id="dhs-sinresponder">—</div><div class="sl">Sin responder</div></div>
+        <div class="sbox"><div class="sn" id="dhs-sinresponder">—</div><div class="sl">Sin ver</div></div>
       </div>
 
       <!-- Tabla de profesionales (solo admin) -->
@@ -703,8 +703,8 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
         <div id="d-home-adherencia"><div class="empty">Cargando...</div></div>
       </div>
 
-      <!-- Mensajes sin responder -->
-      <div class="sec-label" style="margin-top:1rem">Mensajes sin responder</div>
+      <!-- Mensajes sin ver -->
+      <div class="sec-label" style="margin-top:1rem">Mensajes sin ver</div>
       <div id="d-home-comentarios"><div class="empty">Sin mensajes pendientes</div></div>
     </div>
 
@@ -3329,6 +3329,24 @@ async function togglePacAccordion(id) {
   renderInlineFicha(p.fichaTipo || p.tipo || 'rpg', p.ficha);
   renderFotosTimeline();
   setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+
+  // Marcar como vistos todos los mensajes pendientes de este paciente (estilo WhatsApp)
+  try { await marcarComentariosVistos(id); } catch(e) { console.error('Error marcando vistos:', e); }
+}
+
+// Marca como vistos todos los comentarios del paciente sin ver por el profesional
+async function marcarComentariosVistos(pacId) {
+  const { db, doc, updateDoc } = fb();
+  var pendientes = patientComments.filter(function(c){ return c.tipo !== 'profesional' && !c.vistoPorProf; });
+  if (!pendientes.length) return;
+  for (var c of pendientes) {
+    try {
+      await updateDoc(doc(db, 'comentarios/' + pacId + '/items/' + c.id), { vistoPorProf: true });
+      c.vistoPorProf = true; // actualizar en memoria también
+    } catch(e) { console.error('Error marcando visto:', c.id, e); }
+  }
+  // Refrescar badges (punto rojo, contador, tab Pacientes)
+  try { await renderComentariosProfesional(); } catch(e) {}
 }
 
 // Alias por compatibilidad con llamadas previas
@@ -3806,15 +3824,15 @@ async function enviarMensajeHilo(itemId) {
   var title = item ? item.title : '';
   try {
     const { db, doc, updateDoc } = fb();
-    // Buscar el comentario del PACIENTE sin responder para ESTE ejercicio (el más reciente)
+    // Buscar el comentario del PACIENTE sin ver para ESTE ejercicio (el más reciente)
     var cmtsActuales = await cargarComentariosPaciente(currentPacId);
     var pendiente = cmtsActuales
-      .filter(function(c){ return (c.itemId||'') === itemId && c.tipo !== 'profesional' && !c.respuesta; })
+      .filter(function(c){ return (c.itemId||'') === itemId && c.tipo !== 'profesional' && !c.vistoPorProf; })
       .sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); })[0];
 
     if (pendiente) {
-      // Marcar como respondido el mensaje del paciente (esto apaga el punto rojo)
-      await updateDoc(doc(db, 'comentarios/' + currentPacId + '/items/' + pendiente.id), { respuesta: texto });
+      // Responder también marca como visto (apaga el punto rojo)
+      await updateDoc(doc(db, 'comentarios/' + currentPacId + '/items/' + pendiente.id), { respuesta: texto, vistoPorProf: true });
     } else {
       // No hay mensaje pendiente de ese ejercicio: crear una nota nueva del profesional
       await guardarComentario(currentPacId, itemId, '', texto, title, 'profesional');
@@ -4599,6 +4617,20 @@ function filtrarBiblioteca(q) {
     noRes.style.display = 'block';
   } else if (noRes) {
     noRes.style.display = 'none';
+  }
+}
+
+
+// Marca un mensaje como visto sin necesidad de responder (estilo WhatsApp)
+async function marcarVistoDesdeResumen(cmtId, pacId) {
+  const { db, doc, updateDoc } = fb();
+  try {
+    await updateDoc(doc(db, 'comentarios/' + pacId + '/items/' + cmtId), { vistoPorProf: true });
+    toast('Marcado como visto ✓');
+    await renderComentariosProfesional();
+  } catch(e) {
+    console.error('Error marcando visto:', e);
+    toast('Error al marcar como visto');
   }
 }
 
@@ -5525,7 +5557,7 @@ async function renderComentariosProfesional() {
   if (!container) return;
   container.innerHTML = '<div class="empty" style="font-size:.75rem">Cargando mensajes...</div>';
 
-  var sinResponder = [];
+  var sinVer = [];
   var pacActivos;
   if (role === 'admin') {
     pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
@@ -5536,21 +5568,22 @@ async function renderComentariosProfesional() {
   for (var p of pacActivos) {
     try {
       var cmts = await cargarComentariosPaciente(p.id);
-      // Solo mensajes del paciente sin respuesta del profesional
+      // Mensajes del paciente que el profesional todavía no vio (estilo WhatsApp)
       var pendientes = cmts.filter(function(c){
-        return c.tipo !== 'profesional' && !c.respuesta;
+        return c.tipo !== 'profesional' && !c.vistoPorProf;
       });
       pendientes.forEach(function(c){
-        sinResponder.push(Object.assign({}, c, { pacNombre: p.nombre, pacApellido: p.apellido||'', pacId: p.id }));
+        sinVer.push(Object.assign({}, c, { pacNombre: p.nombre, pacApellido: p.apellido||'', pacId: p.id }));
       });
     } catch(e) { console.error('Error comentarios:', p.id, e); }
   }
+  var sinResponder = sinVer; // alias para no romper el resto del código
 
-  // Actualizar badge de sin responder
+  // Actualizar badge de mensajes sin ver
   var elSR = document.getElementById('dhs-sinresponder');
   if (elSR) elSR.textContent = sinResponder.length;
 
-  // Actualizar badge del tab Pacientes + guardar IDs de pacientes con mensajes
+  // Actualizar badge del tab Pacientes + guardar IDs de pacientes con mensajes sin ver
   window._pacsConMensajes = new Set(sinResponder.map(function(c){ return c.pacId; }));
   var navBadge = document.getElementById('nav-pac-badge');
   if (navBadge) {
@@ -5599,7 +5632,8 @@ async function renderComentariosProfesional() {
         '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')" style="flex:1">' +
           '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder' +
         '</button>' +
-        '<button onclick="event.stopPropagation();borrarComentarioDesdeResumen(\'' + c.id + '\',\'' + c.pacId + '\')" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:.4rem .7rem;font-size:.75rem;cursor:pointer">🗑 Borrar</button>' +
+        '<button onclick="event.stopPropagation();marcarVistoDesdeResumen(\'' + c.id + '\',\'' + c.pacId + '\')" style="background:var(--acc-l);color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:.4rem .7rem;font-size:.75rem;cursor:pointer" title="Marcar como visto sin responder">✓ Visto</button>' +
+        '<button onclick="event.stopPropagation();borrarComentarioDesdeResumen(\'' + c.id + '\',\'' + c.pacId + '\')" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:.4rem .7rem;font-size:.75rem;cursor:pointer">🗑</button>' +
       '</div>';
     div.innerHTML = html;
     container.appendChild(div);
@@ -5659,7 +5693,8 @@ async function sendReplyFirestore(cmtId, pacId, pacNombre) {
   if (!text) { toast('Escribí una respuesta'); return; }
   try {
     const { db, doc, updateDoc } = fb();
-    await updateDoc(doc(db, 'comentarios/' + pacId + '/items/' + cmtId), { respuesta: text });
+    // Responder también marca como visto (si no lo estaba)
+    await updateDoc(doc(db, 'comentarios/' + pacId + '/items/' + cmtId), { respuesta: text, vistoPorProf: true });
     document.getElementById('ra-' + cmtId).style.display = 'none';
     var rb = document.getElementById('rb-' + cmtId);
     if (rb) rb.style.display = 'none';
