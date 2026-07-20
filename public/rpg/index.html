@@ -1012,7 +1012,9 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <!-- Selector de biblioteca -->
     <div class="ff" style="margin-bottom:.85rem">
       <label>Ejercicio de la biblioteca</label>
-      <select id="as-biblioteca-sel" onchange="onBibliotecaSel(this)" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.6rem .82rem;font-size:.87rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
+      <input type="text" id="as-biblioteca-buscar" placeholder="🔍 Buscar por nombre o categoría..." oninput="filtrarBibliotecaAsignar(this.value)"
+        style="background:#fff;border:1.5px solid var(--bd);border-radius:8px;padding:.6rem .82rem;font-size:.87rem;font-family:'Barlow',sans-serif;width:100%;outline:none;margin-bottom:.4rem">
+      <select id="as-biblioteca-sel" onchange="onBibliotecaSel(this)" size="6" style="background:#f8f9fa;border:1.5px solid var(--bd);border-radius:8px;padding:.3rem;font-size:.87rem;font-family:'Barlow',sans-serif;width:100%;outline:none">
         <option value="">— Seleccioná un ejercicio —</option>
       </select>
     </div>
@@ -1275,6 +1277,7 @@ function convertYouTubeUrl(url) {
   url = url.trim();
   if (url.includes('watch?v=')) return 'https://www.youtube.com/embed/' + url.split('watch?v=')[1].split('&')[0];
   if (url.includes('youtu.be/')) return 'https://www.youtube.com/embed/' + url.split('youtu.be/')[1].split('?')[0];
+  if (url.includes('/shorts/')) return 'https://www.youtube.com/embed/' + url.split('/shorts/')[1].split('?')[0];
   if (url.includes('/embed/')) return url;
   return url;
 }
@@ -3593,10 +3596,21 @@ function renderPacVideos() {
         var title  = item.title || '—';
         var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
         var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+
+        // Miniatura real: video → thumbnail de YouTube, foto → imagen directa
+        var thumbUrl = '';
+        if (tipo === 'video' && item.url) thumbUrl = getYouTubeThumb(item.url);
+        else if (tipo === 'foto' && item.fotoUrl) thumbUrl = item.fotoUrl;
+        var thumbHTML = thumbUrl
+          ? '<div class="vrow-thumb" style="background-image:url(&quot;' + thumbUrl + '&quot;);background-size:cover;background-position:center">' +
+              (tipo === 'video' ? '<span style="background:rgba(0,0,0,.55);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.65rem">▶</span>' : '') +
+            '</div>'
+          : '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>';
+
         itemsHTML +=
           '<div class="ex-item-doc">' +
             '<div class="vrow">' +
-              '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>' +
+              thumbHTML +
               '<div class="vrow-info">' +
                 '<div class="vrow-title">' + title + '</div>' +
                 '<div class="vrow-meta">' + (meta || 'Sin datos de carga') + '</div>' +
@@ -3748,10 +3762,27 @@ async function enviarMensajeHilo(itemId) {
   var item = patientPlan.find(function(p) { return (p.id||p.vid) === itemId; });
   var title = item ? item.title : '';
   try {
-    await guardarComentario(currentPacId, itemId, '', texto, title, 'profesional');
+    const { db, doc, updateDoc } = fb();
+    // Buscar el comentario del PACIENTE sin responder para ESTE ejercicio (el más reciente)
+    var cmtsActuales = await cargarComentariosPaciente(currentPacId);
+    var pendiente = cmtsActuales
+      .filter(function(c){ return (c.itemId||'') === itemId && c.tipo !== 'profesional' && !c.respuesta; })
+      .sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); })[0];
+
+    if (pendiente) {
+      // Marcar como respondido el mensaje del paciente (esto apaga el punto rojo)
+      await updateDoc(doc(db, 'comentarios/' + currentPacId + '/items/' + pendiente.id), { respuesta: texto });
+    } else {
+      // No hay mensaje pendiente de ese ejercicio: crear una nota nueva del profesional
+      await guardarComentario(currentPacId, itemId, '', texto, title, 'profesional');
+    }
+
     patientComments = await cargarComentariosPaciente(currentPacId);
     renderHiloComentarios(itemId, 'hilo-' + itemId, false, title);
+    input.value = '';
     toast('Mensaje enviado ✓');
+    // Refrescar el badge de "sin responder" y la lista de pacientes
+    try { await renderComentariosProfesional(); } catch(e2) {}
   } catch(e) {
     console.error('Error enviando mensaje:', e);
     toast('Error al enviar mensaje');
@@ -3761,15 +3792,43 @@ async function enviarMensajeHilo(itemId) {
 // removePacVid local eliminada — usa versión Firestore
 
 function updateAssignSelect() {} // no longer needed
+
+// Filtra la biblioteca del selector de asignar por nombre o categoría
+function filtrarBibliotecaAsignar(query) {
+  var sel = document.getElementById('as-biblioteca-sel');
+  if (!sel) return;
+  var q = (query || '').trim().toLowerCase();
+  sel.innerHTML = '';
+  var filtrados = !q ? videos : videos.filter(function(v) {
+    var texto = ((v.title||'') + ' ' + (v.cat||'')).toLowerCase();
+    return texto.includes(q);
+  });
+  if (!filtrados.length) {
+    sel.innerHTML = '<option value="" disabled>Sin resultados</option>';
+    return;
+  }
+  filtrados.forEach(function(v) {
+    var opt = document.createElement('option');
+    opt.value = v.id;
+    var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
+    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (v.cat ? ' [' + v.cat + ']' : '');
+    sel.appendChild(opt);
+  });
+}
+
 async function openAssignModal() {
   // Siempre recargar biblioteca desde Firestore
   try {
     await cargarEjercicios();
   } catch(e) { console.error('Error cargando ejercicios:', e); }
 
-  // Llenar selector
+  // Limpiar buscador
+  var buscar = document.getElementById('as-biblioteca-buscar');
+  if (buscar) buscar.value = '';
+
+  // Llenar selector con todos los ejercicios
   var sel = document.getElementById('as-biblioteca-sel');
-  sel.innerHTML = '<option value="">— Elegí un ejercicio —</option>';
+  sel.innerHTML = '';
   videos.forEach(function(v) {
     var opt = document.createElement('option');
     opt.value = v.id;
