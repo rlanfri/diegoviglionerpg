@@ -788,6 +788,11 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       </div>
 
       <div class="sec-label">Biblioteca</div>
+      <div style="position:relative;margin-bottom:.6rem">
+        <input type="text" id="bib-search" placeholder="Buscar ejercicio..." oninput="filtrarBiblioteca(this.value)"
+          style="width:100%;padding:.6rem .8rem .6rem 2.3rem;border:1.5px solid var(--bd);border-radius:10px;font-size:.85rem;font-family:'Barlow',sans-serif;background:#fff;outline:none">
+        <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--mu);font-size:.85rem">🔍</span>
+      </div>
       <div class="sc" id="d-video-list" style="padding:.45rem .7rem"></div>
     </div>
 
@@ -828,6 +833,11 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
         <button class="btn-prim" onclick="addUser()">Crear usuario</button>
       </div>
       <div class="sec-label">Todos los usuarios</div>
+      <div style="position:relative;margin-bottom:.6rem">
+        <input type="text" id="u-search" placeholder="Buscar usuario..." oninput="filtrarUsuarios(this.value)"
+          style="width:100%;padding:.6rem .8rem .6rem 2.3rem;border:1.5px solid var(--bd);border-radius:10px;font-size:.85rem;font-family:'Barlow',sans-serif;background:#fff;outline:none">
+        <span style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--mu);font-size:.85rem">🔍</span>
+      </div>
       <div class="sc" style="padding:.45rem .7rem" id="u-list"></div>
     </div>
 
@@ -2333,7 +2343,10 @@ function renderDocVideos() {
   var list = document.getElementById('d-video-list');
   list.innerHTML = '';
   if (!videos.length) { list.innerHTML = '<div class="empty">Sin contenido cargado</div>'; return; }
-  videos.forEach(function(v) {
+  var videosOrdenados = videos.slice().sort(function(a,b){
+    return (a.title||'').toLowerCase().localeCompare((b.title||'').toLowerCase(), 'es');
+  });
+  videosOrdenados.forEach(function(v) {
     var pills = [v.cat,v.series,v.reps,v.dur].filter(Boolean).map(function(p){ return '<span class="pill pill-g">'+p+'</span>'; }).join('');
     var thumbBg, thumbContent;
     if (v.tipo === 'foto' && v.fotoUrl) {
@@ -2356,6 +2369,7 @@ function renderDocVideos() {
     }
     var row = document.createElement('div');
     row.className = 'vrow';
+    row.setAttribute('data-search', ((v.title||'') + ' ' + (v.cat||'')).toLowerCase());
     row.innerHTML =
       '<div class="vrow-thumb" style="' + thumbBg + '">' + thumbContent + '</div>' +
       '<div class="vrow-info">' +
@@ -3178,6 +3192,13 @@ function renderPacientesList() {
     visible = pacientesData.filter(p => p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid));
   }
 
+  // Orden alfabético por nombre completo
+  visible = visible.slice().sort(function(a, b) {
+    var nA = ((a.nombre||'') + ' ' + (a.apellido||'')).trim().toLowerCase();
+    var nB = ((b.nombre||'') + ' ' + (b.apellido||'')).trim().toLowerCase();
+    return nA.localeCompare(nB, 'es');
+  });
+
   if (!visible.length) { list.innerHTML = '<div class="empty">Sin pacientes asignados</div>'; return; }
 
   list.innerHTML = visible.map(p => {
@@ -3280,7 +3301,11 @@ async function togglePacAccordion(id) {
       var asignados = _profsDelPaciente(p);
       var html = '';
       // Solo profesionales reales (no admin) + el admin también puede asignarse
-      profesionalesData.filter(function(pr){ return pr.rol === 'profesional' || pr.rol === 'admin'; }).forEach(function(prof) {
+      profesionalesData.filter(function(pr){ return pr.rol === 'profesional' || pr.rol === 'admin'; }).sort(function(a,b){
+        var nA = ((a.nombre||'')+' '+(a.apellido||'')).trim().toLowerCase();
+        var nB = ((b.nombre||'')+' '+(b.apellido||'')).trim().toLowerCase();
+        return nA.localeCompare(nB, 'es');
+      }).forEach(function(prof) {
         var checked = asignados.indexOf(prof.id) !== -1 ? 'checked' : '';
         var nombre = (prof.nombre||'') + (prof.apellido ? ' '+prof.apellido : '');
         var tag = prof.rol === 'admin' ? ' (admin)' : '';
@@ -3590,22 +3615,31 @@ function renderPacVideos() {
       var isFirstWeekOfLast = isLastMes && si === 0;
 
       var itemsHTML = '';
-      items.forEach(function(item) {
+      items.forEach(function(item, ei) {
         var itemId = item.id || item.vid || '';
         var tipo   = item.tipo || 'video';
         var title  = item.title || '—';
         var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
         var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
+        var playerUid = 'doc-' + mi + '-' + si + '-' + ei;
 
-        // Miniatura real: video → thumbnail de YouTube, foto → imagen directa
+        // Miniatura real: video → thumbnail de YouTube (clickeable, reproduce inline), foto → imagen directa
         var thumbUrl = '';
         if (tipo === 'video' && item.url) thumbUrl = getYouTubeThumb(item.url);
         else if (tipo === 'foto' && item.fotoUrl) thumbUrl = item.fotoUrl;
-        var thumbHTML = thumbUrl
-          ? '<div class="vrow-thumb" style="background-image:url(&quot;' + thumbUrl + '&quot;);background-size:cover;background-position:center">' +
-              (tipo === 'video' ? '<span style="background:rgba(0,0,0,.55);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.65rem">▶</span>' : '') +
-            '</div>'
-          : '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>';
+
+        var thumbHTML;
+        if (tipo === 'video' && item.url) {
+          // Thumb clickeable que reproduce el video inline (igual que el paciente)
+          thumbHTML = '<div class="vrow-thumb" style="cursor:pointer;position:relative;overflow:hidden" onclick="event.stopPropagation();playVidDoc(&quot;' + playerUid + '&quot;,&quot;' + item.url + '&quot;)" id="vtd-thumb-' + playerUid + '">' +
+            (thumbUrl ? '<img src="' + thumbUrl + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' : '') +
+            '<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.25)"><span style="background:rgba(0,0,0,.6);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.68rem">▶</span></span>' +
+          '</div>';
+        } else if (thumbUrl) {
+          thumbHTML = '<div class="vrow-thumb" style="background-image:url(&quot;' + thumbUrl + '&quot;);background-size:cover;background-position:center"></div>';
+        } else {
+          thumbHTML = '<div class="vrow-thumb" style="background:' + bg + '">' + (iconSVG[tipo] || iconSVG.indicacion) + '</div>';
+        }
 
         itemsHTML +=
           '<div class="ex-item-doc">' +
@@ -3621,6 +3655,7 @@ function renderPacVideos() {
                 '<div class="ico-btn" onclick="removePacVid(\'' + itemId + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>' +
               '</div>' +
             '</div>' +
+            (tipo === 'video' && item.url ? '<div id="vtd-player-' + playerUid + '" style="display:none;position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-top:.5rem"></div>' : '') +
             '<div class="hilo-wrap"><div class="hilo-comentarios" id="hilo-' + itemId + '"></div></div>' +
           '</div>';
         if (itemId) itemIdsForHilos.push({ id: itemId, title: title });
@@ -3682,16 +3717,24 @@ function renderHiloComentarios(itemId, mountId, isPaciente, title) {
       var mine = isPaciente ? (m.tipo !== 'profesional') : (m.tipo === 'profesional');
       var fecha = '';
       try { fecha = new Date(m.fecha).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e) {}
-      // Determinar badge de dolor
       var badgeClass = (m.dolor === 'Mucho dolor' || m.dolor === 'Fuerte') ? 'bg-r' : m.dolor === 'Moderado' ? 'bg-y' : 'bg-g';
+      // El doctor puede borrar cualquier mensaje (propio o del paciente)
+      var btnBorrar = !isPaciente
+        ? '<span onclick="event.stopPropagation();borrarComentarioHilo(&quot;' + m.id + '&quot;,&quot;' + itemId + '&quot;,&quot;' + mountId + '&quot;,' + isPaciente + ',&quot;' + (title||'').replace(/"/g,'&quot;') + '&quot;)" style="cursor:pointer;float:right;opacity:.55;font-size:.7rem;margin-left:.4rem" title="Borrar mensaje">🗑</span>'
+        : '';
       html += '<div class="hilo-msg ' + (mine ? 'mine' : 'theirs') + '">' +
+        btnBorrar +
         (m.dolor ? '<span class="badge ' + badgeClass + ' hilo-dolor">' + m.dolor + '</span>' : '') +
         '<div class="hilo-text">' + (m.texto || '') + '</div>' +
         '<div class="hilo-fecha">' + fecha + '</div>' +
       '</div>';
       // Si hay respuesta del profesional, mostrarla como mensaje propio del prof
       if (m.respuesta) {
+        var btnBorrarResp = !isPaciente
+          ? '<span onclick="event.stopPropagation();borrarRespuestaHilo(&quot;' + m.id + '&quot;,&quot;' + itemId + '&quot;,&quot;' + mountId + '&quot;,&quot;' + (title||'').replace(/"/g,'&quot;') + '&quot;)" style="cursor:pointer;float:right;opacity:.55;font-size:.7rem;margin-left:.4rem" title="Borrar respuesta">🗑</span>'
+          : '';
         html += '<div class="hilo-msg ' + (isPaciente ? 'theirs' : 'mine') + ' hilo-respuesta">' +
+          btnBorrarResp +
           '<div class="hilo-label-mini">Profesional</div>' +
           '<div class="hilo-text">' + m.respuesta + '</div>' +
         '</div>';
@@ -3897,11 +3940,20 @@ function renderUsuariosList() {
   var isProf  = role === 'profesional';
   var html = '';
 
+  // Orden alfabético helper
+  function _ordenAlfa(arr) {
+    return arr.slice().sort(function(a, b) {
+      var nA = ((a.nombre||'') + ' ' + (a.apellido||'')).trim().toLowerCase();
+      var nB = ((b.nombre||'') + ' ' + (b.apellido||'')).trim().toLowerCase();
+      return nA.localeCompare(nB, 'es');
+    });
+  }
+
   // Profesional: solo ve la sección de sus pacientes, no los otros profesionales
   if (!isProf) {
     html += '<div class="u-section-lbl">Profesionales</div>';
-    profesionalesData.forEach(p => {
-      html += `<div class="u-row">
+    _ordenAlfa(profesionalesData).forEach(p => {
+      html += `<div class="u-row" data-search="${(p.nombre+' '+(p.apellido||'')+' '+(p.email||'')).toLowerCase()}">
         <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;background:var(--acc);flex-shrink:0;${p.estado==='inactivo'?'opacity:.45':''}">${p.ini}</div>
         <div style="flex:1;min-width:0">
           <div class="u-name" style="${p.estado==='inactivo'?'opacity:.45':''}">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
@@ -3931,11 +3983,12 @@ function renderUsuariosList() {
   } else {
     pacs = pacientesData.filter(p => p.estado === 'activo');
   }
+  pacs = _ordenAlfa(pacs);
   if (!pacs.length) {
     html += '<div class="empty" style="font-size:.8rem">No tenés pacientes asignados aún</div>';
   }
   pacs.forEach(p => {
-    html += `<div class="u-row">
+    html += `<div class="u-row" data-search="${(p.nombre+' '+(p.apellido||'')+' '+(p.diag||'')).toLowerCase()}">
       <div class="pac-av" style="width:34px;height:34px;font-size:.7rem;flex-shrink:0;${p.estado==='inactivo'?'opacity:.45':''}">${p.ini}</div>
       <div style="flex:1;min-width:0">
         <div class="u-name" style="${p.estado==='inactivo'?'opacity:.45':''}">${p.nombre}${p.apellido ? ' '+p.apellido : ''}</div>
@@ -4425,6 +4478,128 @@ function previsualizarFotoEjercicio(input) {
     if (status) status.textContent = file.name + ' (' + Math.round(file.size/1024) + ' KB)';
   };
   reader.readAsDataURL(file);
+}
+
+
+// Reproduce un video inline en la vista del doctor (sin salir de la miniatura)
+function playVidDoc(playerUid, url) {
+  var container = document.getElementById('vtd-player-' + playerUid);
+  var thumb = document.getElementById('vtd-thumb-' + playerUid);
+  if (!container) return;
+  var src = convertYouTubeUrl(url) + (convertYouTubeUrl(url).includes('?') ? '&' : '?') + 'autoplay=1&rel=0&modestbranding=1&playsinline=1';
+  src = src.replace('youtube.com', 'youtube-nocookie.com');
+  container.innerHTML = '<iframe src="' + src + '" frameborder="0" allow="autoplay; encrypted-media; fullscreen" style="position:absolute;inset:0;width:100%;height:100%"></iframe>';
+  container.style.display = 'block';
+  if (thumb) thumb.style.display = 'none';
+}
+
+
+// Borra un comentario completo del hilo (solo el doctor puede hacerlo)
+async function borrarComentarioHilo(cmtId, itemId, mountId, isPaciente, title) {
+  if (!confirm('¿Borrar este mensaje? No se puede deshacer.')) return;
+  if (!currentPacId) return;
+  const { db, doc, deleteDoc } = fb();
+  try {
+    await deleteDoc(doc(db, 'comentarios/' + currentPacId + '/items/' + cmtId));
+    patientComments = await cargarComentariosPaciente(currentPacId);
+    renderHiloComentarios(itemId, mountId, isPaciente === 'true' || isPaciente === true, title);
+    try { await renderComentariosProfesional(); } catch(e) {}
+    toast('Mensaje borrado');
+  } catch(e) {
+    console.error('Error borrando mensaje:', e);
+    toast('Error al borrar');
+  }
+}
+
+// Borra solo la respuesta de un comentario (deja el mensaje original del paciente)
+async function borrarRespuestaHilo(cmtId, itemId, mountId, title) {
+  if (!confirm('¿Borrar esta respuesta?')) return;
+  if (!currentPacId) return;
+  const { db, doc, updateDoc, deleteField } = fb();
+  try {
+    // updateDoc con string vacío (deleteField no está expuesto, usamos '' como "sin respuesta")
+    await updateDoc(doc(db, 'comentarios/' + currentPacId + '/items/' + cmtId), { respuesta: '' });
+    patientComments = await cargarComentariosPaciente(currentPacId);
+    renderHiloComentarios(itemId, mountId, false, title);
+    try { await renderComentariosProfesional(); } catch(e) {}
+    toast('Respuesta borrada');
+  } catch(e) {
+    console.error('Error borrando respuesta:', e);
+    toast('Error al borrar');
+  }
+}
+
+
+// Borrar un comentario directamente desde el panel de Resumen (mensajes sin responder)
+async function borrarComentarioDesdeResumen(cmtId, pacId) {
+  if (!confirm('¿Borrar este mensaje? No se puede deshacer.')) return;
+  const { db, doc, deleteDoc } = fb();
+  try {
+    await deleteDoc(doc(db, 'comentarios/' + pacId + '/items/' + cmtId));
+    toast('Mensaje borrado');
+    await renderComentariosProfesional();
+  } catch(e) {
+    console.error('Error borrando desde resumen:', e);
+    toast('Error al borrar');
+  }
+}
+
+
+// Filtra la lista de usuarios (profesionales + pacientes) por texto, letra a letra
+function filtrarUsuarios(q) {
+  q = (q || '').trim().toLowerCase();
+  var rows = document.querySelectorAll('#u-list .u-row');
+  var visibles = 0;
+  rows.forEach(function(row) {
+    var texto = row.getAttribute('data-search') || '';
+    var match = !q || texto.indexOf(q) !== -1;
+    row.style.display = match ? '' : 'none';
+    if (match) visibles++;
+  });
+  var noRes = document.getElementById('u-no-results');
+  var list = document.getElementById('u-list');
+  if (visibles === 0 && q) {
+    if (!noRes) {
+      noRes = document.createElement('div');
+      noRes.id = 'u-no-results';
+      noRes.className = 'empty';
+      noRes.style.fontSize = '.8rem';
+      noRes.textContent = 'No se encontraron usuarios';
+      list.appendChild(noRes);
+    }
+    noRes.style.display = 'block';
+  } else if (noRes) {
+    noRes.style.display = 'none';
+  }
+}
+
+
+// Filtra la biblioteca de ejercicios por texto (nombre o categoría)
+function filtrarBiblioteca(q) {
+  q = (q || '').trim().toLowerCase();
+  var rows = document.querySelectorAll('#d-video-list .vrow');
+  var visibles = 0;
+  rows.forEach(function(row) {
+    var texto = row.getAttribute('data-search') || '';
+    var match = !q || texto.indexOf(q) !== -1;
+    row.style.display = match ? '' : 'none';
+    if (match) visibles++;
+  });
+  var noRes = document.getElementById('bib-no-results');
+  var list = document.getElementById('d-video-list');
+  if (visibles === 0 && q) {
+    if (!noRes) {
+      noRes = document.createElement('div');
+      noRes.id = 'bib-no-results';
+      noRes.className = 'empty';
+      noRes.style.fontSize = '.8rem';
+      noRes.textContent = 'No se encontraron ejercicios';
+      list.appendChild(noRes);
+    }
+    noRes.style.display = 'block';
+  } else if (noRes) {
+    noRes.style.display = 'none';
+  }
 }
 
 function _togWeek(el) {
@@ -5420,9 +5595,12 @@ async function renderComentariosProfesional() {
           '<button class="btn-reply-send" onclick="sendReplyFirestore(\'' + c.id + '\',\'' + c.pacId + '\',\'' + c.pacNombre + '\')">Enviar</button>' +
         '</div>' +
       '</div>' +
-      '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder' +
-      '</button>';
+      '<div style="display:flex;gap:.4rem;margin-top:.4rem">' +
+        '<button class="btn-reply-open" id="rb-' + c.id + '" onclick="openReply(\'' + c.id + '\')" style="flex:1">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> Responder' +
+        '</button>' +
+        '<button onclick="event.stopPropagation();borrarComentarioDesdeResumen(\'' + c.id + '\',\'' + c.pacId + '\')" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:8px;padding:.4rem .7rem;font-size:.75rem;cursor:pointer">🗑 Borrar</button>' +
+      '</div>';
     div.innerHTML = html;
     container.appendChild(div);
   });
