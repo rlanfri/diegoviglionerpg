@@ -2069,7 +2069,7 @@ function renderAccordion() {
     byMes[mesKey][semKey].push(item);
   });
 
-  var mesList = Object.keys(byMes);
+  var mesList = _ordenarMeses(Object.keys(byMes));
   var lastMesIdx = _idxMesActual(mesList); // mes del calendario actual
 
   mesList.forEach((mes, mi) => {
@@ -2081,7 +2081,7 @@ function renderAccordion() {
     div.className = 'acc-month';
 
     var weeksHTML = '';
-    Object.keys(mesData).forEach((sem, si) => {
+    _ordenarSemanas(Object.keys(mesData)).forEach((sem, si) => {
       var items = mesData[sem];
       var seenW = items.filter(i=>seenSet.has(i.id || i.vid)).length;
       var exHTML = '';
@@ -3619,7 +3619,7 @@ function renderPacVideos() {
   };
 
   var itemIdsForHilos = [];
-  var mesList = Object.keys(byMes);
+  var mesList = _ordenarMeses(Object.keys(byMes));
   var lastMesIdx = _idxMesActual(mesList);
 
   mesList.forEach(function(mes, mi) {
@@ -3628,7 +3628,7 @@ function renderPacVideos() {
     var isLastMes = mi === lastMesIdx;
 
     var weeksHTML = '';
-    Object.keys(semData).forEach(function(sem, si) {
+    _ordenarSemanas(Object.keys(semData)).forEach(function(sem, si) {
       var items = semData[sem];
       var isFirstWeekOfLast = isLastMes && si === 0;
 
@@ -4634,6 +4634,39 @@ async function marcarVistoDesdeResumen(cmtId, pacId) {
   }
 }
 
+
+// ── Helpers de ordenamiento cronológico (mes/semana) ──────
+// Evita que el orden cambie según cómo Firestore devuelva los documentos
+var _MESES_ORDEN = ['enero','febrero','marzo','abril','mayo','junio',
+                     'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+// Convierte "Julio 2026" en un número comparable: 2026*12 + 6
+function _mesAValor(mesStr) {
+  if (!mesStr) return 999999; // "Sin mes asignado" al final
+  var parts = mesStr.trim().split(/\s+/);
+  var idx = _MESES_ORDEN.indexOf((parts[0]||'').toLowerCase());
+  var anio = parseInt(parts[1]);
+  if (idx < 0 || !anio) return 999998; // desconocido, casi al final
+  return anio * 12 + idx;
+}
+
+// Ordena un array de keys de mes cronológicamente (Enero antes que Febrero, etc)
+function _ordenarMeses(mesKeys) {
+  return mesKeys.slice().sort(function(a, b){ return _mesAValor(a) - _mesAValor(b); });
+}
+
+// Convierte "Semana 3" en el número 3 (para orden numérico, no alfabético)
+function _semAValor(semStr) {
+  if (!semStr) return 999999;
+  var m = semStr.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 999998;
+}
+
+// Ordena un array de keys de semana numéricamente (Semana 2 antes que Semana 10)
+function _ordenarSemanas(semKeys) {
+  return semKeys.slice().sort(function(a, b){ return _semAValor(a) - _semAValor(b); });
+}
+
 function _togWeek(el) {
   var body = el.nextElementSibling;
   var chev = el.querySelector('.acc-chevron');
@@ -4756,7 +4789,7 @@ function _renderProgresoSemanas() {
     if (seenSet.has(i.id || i.vid)) bySem[s].seen++;
   });
   var html = '';
-  Object.keys(bySem).forEach(function(sem) {
+  _ordenarSemanas(Object.keys(bySem)).forEach(function(sem) {
     var d = bySem[sem];
     var pct = d.total ? Math.round(d.seen / d.total * 100) : 0;
     var color = pct >= 80 ? '#27ae60' : pct >= 50 ? 'var(--acc)' : pct > 0 ? '#e67e22' : 'var(--bd)';
@@ -5432,18 +5465,22 @@ async function cargarProgresoPacientes() {
   }
 
   adherencia.innerHTML = '<div class="empty" style="font-size:.75rem">Calculando adherencia...</div>';
-  var totalPct = 0, count = 0;
 
-  for (var p of pacActivos) {
+  const { db, collection, getDocs, doc, updateDoc } = fb();
+  var pendientesUpdate = []; // guardamos los updateDoc para hacerlos en paralelo AL FINAL, sin bloquear el render
+
+  // Cargar el progreso de TODOS los pacientes en paralelo (no uno por uno)
+  var resultados = await Promise.all(pacActivos.map(async function(p) {
     try {
-      const { db, collection, getDocs, doc, updateDoc } = fb();
+      // Cargar plan y vistos de este paciente EN PARALELO entre sí
+      var [planSnap, vistosSnap] = await Promise.all([
+        getDocs(collection(db, 'planes/' + p.id + '/items')),
+        getDocs(collection(db, 'vistos/' + p.id + '/items'))
+      ]);
 
-      // Cargar plan completo para detectar el mes más reciente
-      const planSnap = await getDocs(collection(db, 'planes/' + p.id + '/items'));
       var todosItems = [];
       planSnap.forEach(function(d){ todosItems.push(Object.assign({ _id: d.id }, d.data())); });
 
-      // Identificar el mes actual: el último mes con items (orden natural de inserción)
       var meses = [];
       todosItems.forEach(function(it){
         var m = it.mes || 'Sin mes asignado';
@@ -5451,15 +5488,12 @@ async function cargarProgresoPacientes() {
       });
       var mesActual = meses.length ? meses[meses.length - 1] : null;
 
-      // Filtrar solo items del mes actual
       var itemsMesActual = mesActual
         ? todosItems.filter(function(it){ return (it.mes || 'Sin mes asignado') === mesActual; })
         : todosItems;
 
       var idsDelMes = itemsMesActual.map(function(it){ return it._id; });
 
-      // Vistos: solo los que pertenecen al mes actual
-      const vistosSnap = await getDocs(collection(db, 'vistos/' + p.id + '/items'));
       var vistosIds = [];
       vistosSnap.forEach(function(d){ vistosIds.push(d.id); });
       var vistosMes = vistosIds.filter(function(vid){ return idsDelMes.indexOf(vid) > -1; }).length;
@@ -5467,14 +5501,27 @@ async function cargarProgresoPacientes() {
       var total = idsDelMes.length;
       var pct   = total ? Math.round(vistosMes / total * 100) : 0;
 
-      await updateDoc(doc(db, 'usuarios', p.id), { pct, mesActual: mesActual || '' });
       p.pct = pct;
       p.mesActual = mesActual;
-      totalPct += pct; count++;
-    } catch(e) { console.error('Error progreso paciente:', p.id, e); }
-  }
+      pendientesUpdate.push({ id: p.id, pct: pct, mesActual: mesActual || '' });
+      return pct;
+    } catch(e) {
+      console.error('Error progreso paciente:', p.id, e);
+      return null;
+    }
+  }));
 
+  var validos = resultados.filter(function(v){ return v !== null; });
+  var totalPct = validos.reduce(function(a,b){ return a+b; }, 0);
+  var count = validos.length;
   var mediaAdh = count ? Math.round(totalPct / count) : 0;
+
+  // Persistir los % calculados en Firestore, en paralelo y SIN esperar (no bloquea el render)
+  Promise.all(pendientesUpdate.map(function(u){
+    return updateDoc(doc(db, 'usuarios', u.id), { pct: u.pct, mesActual: u.mesActual }).catch(function(e){
+      console.error('Error guardando pct:', u.id, e);
+    });
+  }));
 
   // Renderizar barras
   adherencia.innerHTML = '';
@@ -5565,10 +5612,10 @@ async function renderComentariosProfesional() {
     pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
   }
 
-  for (var p of pacActivos) {
+  // Cargar comentarios de TODOS los pacientes en paralelo (no uno por uno)
+  await Promise.all(pacActivos.map(async function(p) {
     try {
       var cmts = await cargarComentariosPaciente(p.id);
-      // Mensajes del paciente que el profesional todavía no vio (estilo WhatsApp)
       var pendientes = cmts.filter(function(c){
         return c.tipo !== 'profesional' && !c.vistoPorProf;
       });
@@ -5576,7 +5623,7 @@ async function renderComentariosProfesional() {
         sinVer.push(Object.assign({}, c, { pacNombre: p.nombre, pacApellido: p.apellido||'', pacId: p.id }));
       });
     } catch(e) { console.error('Error comentarios:', p.id, e); }
-  }
+  }));
   var sinResponder = sinVer; // alias para no romper el resto del código
 
   // Actualizar badge de mensajes sin ver
