@@ -2317,8 +2317,31 @@ function markSeen(itemId, uid) {
   if (seenSet.has(itemId)) return;
   seenSet.add(itemId);
 
-  // Re-renderizar el acordeón completo para actualizar contadores y badges
-  renderAccordion();
+  // Actualizar SOLO el badge del ejercicio, sin re-renderizar el acordeón entero
+  // (evita cortar el video que puede seguir reproduciéndose)
+  var badge = document.getElementById('sb-' + uid);
+  if (badge) {
+    badge.className = 'seen-badge';
+    badge.textContent = '✓ Visto';
+  }
+
+  // Actualizar el contador de la semana/día ("X/Y vistos") si está visible,
+  // sin tocar el reproductor de video
+  var weekBody = document.getElementById('wb-' + uid.split('-')[0] + '-' + uid.split('-')[1]);
+  if (weekBody) {
+    var weekHead = weekBody.previousElementSibling;
+    var metaEl = weekHead ? weekHead.querySelector('.acc-week-meta') : null;
+    if (metaEl) {
+      var match = metaEl.textContent.match(/(\d+)\/(\d+)/);
+      if (match) {
+        var nuevoVisto = parseInt(match[1]) + 1;
+        var total = match[2];
+        metaEl.textContent = nuevoVisto + '/' + total + ' vistos';
+      }
+    }
+  }
+
+  // Actualizar las stats generales (Adherencia / Por ver) sin re-render del acordeón
   updateStats();
 
   // Guardar en Firestore
