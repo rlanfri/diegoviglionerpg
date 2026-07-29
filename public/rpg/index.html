@@ -946,6 +946,13 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     </div>
     <div style="display:flex;flex-direction:column;gap:.75rem;margin-top:.5rem">
 
+      <div style="background:#e8f5e9;border:1px solid #86efac;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">💾 Backup completo</div>
+        <div style="font-size:.78rem;color:#166534;margin-bottom:.6rem">Descarga TODOS los datos de la app (pacientes, planes, indicaciones, comentarios, historial de fichas, biblioteca) en un archivo. Guardalo en un lugar seguro por las dudas.</div>
+        <button class="btn-prim" id="btn-backup" style="font-size:.8rem;padding:.5rem 1rem;background:#16a34a" onclick="exportarBackupCompleto()">⬇ Descargar backup completo</button>
+        <div id="backup-status" style="font-size:.72rem;color:#166534;margin-top:.4rem"></div>
+      </div>
+
       <div style="background:#f8f9fa;border-radius:10px;padding:1rem">
         <div style="font-weight:600;font-size:.85rem;margin-bottom:.25rem">Historial de fichas</div>
         <div style="font-size:.78rem;color:#666;margin-bottom:.6rem">Deja solo las últimas 5 versiones por paciente. Libera espacio sin perder el historial reciente.</div>
@@ -4129,6 +4136,91 @@ async function enviarEmailNotificacion(tipo, to, data) {
 // ════════════════════════════════════════════════════════
 
 // Limpia historial de fichas → deja solo las últimas N versiones por paciente
+
+// ════════════════════════════════════════════════════════
+// ── BACKUP COMPLETO: descarga todos los datos en un JSON ──
+// ════════════════════════════════════════════════════════
+async function exportarBackupCompleto() {
+  var btn = document.getElementById('btn-backup');
+  var status = document.getElementById('backup-status');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Generando backup...'; }
+  if (status) status.textContent = 'Esto puede tardar unos segundos con muchos pacientes...';
+
+  try {
+    const { db, collection, getDocs, doc, getDoc } = fb();
+
+    var backup = {
+      generadoEn: new Date().toISOString(),
+      generadoPor: (profileData.nombre||'') + ' ' + (profileData.apellido||''),
+      usuarios: [],
+      ejercicios: [],
+    };
+
+    // 1) Todos los usuarios (pacientes y profesionales)
+    var usuariosSnap = await getDocs(collection(db, 'usuarios'));
+    var todosUsuarios = [];
+    usuariosSnap.forEach(function(d){ todosUsuarios.push({ id: d.id, ...d.data() }); });
+
+    // 2) Biblioteca de ejercicios (una sola vez, no por paciente)
+    var ejerciciosSnap = await getDocs(collection(db, 'ejercicios'));
+    ejerciciosSnap.forEach(function(d){ backup.ejercicios.push({ id: d.id, ...d.data() }); });
+
+    if (status) status.textContent = 'Descargando datos de ' + todosUsuarios.length + ' usuarios...';
+
+    // 3) Para cada usuario, traer sus subcolecciones EN PARALELO
+    var usuariosCompletos = await Promise.all(todosUsuarios.map(async function(u) {
+      var completo = Object.assign({}, u);
+      try {
+        if (u.rol === 'paciente') {
+          var [planSnap, cmtSnap, vistosSnap, fotosSnap, histSnap] = await Promise.all([
+            getDocs(collection(db, 'planes/' + u.id + '/items')),
+            getDocs(collection(db, 'comentarios/' + u.id + '/items')),
+            getDocs(collection(db, 'vistos/' + u.id + '/items')),
+            getDocs(collection(db, 'fotos/' + u.id + '/items')),
+            getDocs(collection(db, 'usuarios/' + u.id + '/historialFicha')),
+          ]);
+          completo.plan = [];
+          planSnap.forEach(function(d){ completo.plan.push({ id: d.id, ...d.data() }); });
+          completo.comentarios = [];
+          cmtSnap.forEach(function(d){ completo.comentarios.push({ id: d.id, ...d.data() }); });
+          completo.vistos = [];
+          vistosSnap.forEach(function(d){ completo.vistos.push(d.id); });
+          completo.fotosProgreso = [];
+          fotosSnap.forEach(function(d){ completo.fotosProgreso.push({ id: d.id, ...d.data() }); });
+          completo.historialFicha = [];
+          histSnap.forEach(function(d){ completo.historialFicha.push({ id: d.id, ...d.data() }); });
+        }
+      } catch(e) { console.error('Error exportando ' + u.id, e); }
+      return completo;
+    }));
+
+    backup.usuarios = usuariosCompletos;
+
+    // 4) Generar el archivo y descargarlo
+    var jsonStr = JSON.stringify(backup, null, 2);
+    var blob = new Blob([jsonStr], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var fecha = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = 'backup-rpg-viglione-' + fecha + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    var totalEjercicios = usuariosCompletos.reduce(function(acc, u){ return acc + (u.plan ? u.plan.length : 0); }, 0);
+    if (status) status.textContent = '✓ Backup descargado: ' + todosUsuarios.length + ' usuarios, ' + totalEjercicios + ' ejercicios asignados, ' + backup.ejercicios.length + ' en biblioteca.';
+    toast('Backup descargado ✓');
+  } catch(e) {
+    console.error('Error generando backup:', e);
+    if (status) status.textContent = '✗ Error: ' + e.message;
+    toast('Error al generar el backup');
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '⬇ Descargar backup completo'; }
+  }
+}
+
 async function limpiarHistorialFichas(maxVersiones) {
   maxVersiones = maxVersiones || 5;
   var total = 0;
