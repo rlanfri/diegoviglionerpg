@@ -650,7 +650,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 
       <!-- Progreso por semana -->
       <div style="background:#fff;border:1px solid var(--bd);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem">
-        <div style="font-size:.78rem;font-weight:600;color:var(--t);margin-bottom:.65rem">Progreso por semana</div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--t);margin-bottom:.65rem">Progreso por día</div>
         <div id="pp-sems"></div>
       </div>
 
@@ -1034,8 +1034,8 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <div class="ff"><label>Mes</label>
         <select id="as-mes"></select>
       </div>
-      <div class="ff"><label>Semana</label>
-        <select id="as-sem"><option>Semana 1</option><option>Semana 2</option><option>Semana 3</option><option>Semana 4</option></select>
+      <div class="ff"><label>Día</label>
+        <select id="as-sem"><option>Día 1</option><option>Día 2</option><option>Día 3</option><option>Día 4</option><option>Día 5</option><option>Día 6</option></select>
       </div>
     </div>
     <div class="ff"><label>Título</label><input type="text" id="as-titulo" placeholder="Nombre del ejercicio o indicación"></div>
@@ -1217,8 +1217,8 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <div class="ff"><label>Mes / Período</label>
         <select id="ev-mes"></select>
       </div>
-      <div class="ff"><label>Semana</label>
-        <select id="ev-sem"><option>Semana 1</option><option>Semana 2</option><option>Semana 3</option><option>Semana 4</option></select>
+      <div class="ff"><label>Día</label>
+        <select id="ev-sem"><option>Día 1</option><option>Día 2</option><option>Día 3</option><option>Día 4</option><option>Día 5</option><option>Día 6</option></select>
       </div>
     </div>
     <div class="ff"><label>Fecha de la sesión</label><input type="date" id="ev-fecha"></div>
@@ -2170,9 +2170,12 @@ function renderAccordion() {
       weeksHTML += `
       <div class="acc-week">
         <div class="acc-week-head" onclick="toggleWeek('wb-${mi}-${si}','wc-${mi}-${si}')">
-          <div>
-            <div class="acc-week-title">${sem}</div>
-            <div class="acc-week-meta">${items.length} ejercicio${items.length!==1?'s':''} · ${seenW}/${items.length} vistos</div>
+          <div style="display:flex;align-items:center;gap:.55rem">
+            <span style="background:var(--acc);color:#fff;border-radius:50%;width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">${items.length}</span>
+            <div>
+              <div class="acc-week-title">${sem}</div>
+              <div class="acc-week-meta">${seenW}/${items.length} vistos</div>
+            </div>
           </div>
           <span class="acc-chevron${weekOpen?' open':''}" id="wc-${mi}-${si}">▾</span>
         </div>
@@ -3682,9 +3685,9 @@ function renderPacVideos() {
       weeksHTML +=
         '<div class="acc-week">' +
           '<div class="acc-week-head" onclick="_togWeek(this)">' +
-            '<div>' +
+            '<div style="display:flex;align-items:center;gap:.55rem">' +
+              '<span style="background:var(--acc);color:#fff;border-radius:50%;width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">' + items.length + '</span>' +
               '<div class="acc-week-title">' + sem + '</div>' +
-              '<div class="acc-week-meta">' + items.length + ' ejercicio' + (items.length!==1?'s':'') + '</div>' +
             '</div>' +
             '<span class="acc-chevron' + (isFirstWeekOfLast?' open':'') + '">▾</span>' +
           '</div>' +
@@ -4655,14 +4658,14 @@ function _ordenarMeses(mesKeys) {
   return mesKeys.slice().sort(function(a, b){ return _mesAValor(a) - _mesAValor(b); });
 }
 
-// Convierte "Semana 3" en el número 3 (para orden numérico, no alfabético)
+// Convierte "Día 3" en el número 3 (para orden numérico, no alfabético)
 function _semAValor(semStr) {
   if (!semStr) return 999999;
   var m = semStr.match(/(\d+)/);
   return m ? parseInt(m[1]) : 999998;
 }
 
-// Ordena un array de keys de semana numéricamente (Semana 2 antes que Semana 10)
+// Ordena un array de keys de día numéricamente (Día 2 antes que Día 10)
 function _ordenarSemanas(semKeys) {
   return semKeys.slice().sort(function(a, b){ return _semAValor(a) - _semAValor(b); });
 }
