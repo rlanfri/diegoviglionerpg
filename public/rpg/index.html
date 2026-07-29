@@ -938,6 +938,49 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
   </div>
 </div>
 
+<div class="mwrap" id="m-restaurar-backup">
+  <div class="msheet" style="max-height:85vh;overflow-y:auto">
+    <div class="mhead">
+      <div class="mtitle">📤 Restaurar desde backup</div>
+      <button class="mclose" onclick="closeM('m-restaurar-backup')">✕</button>
+    </div>
+
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:.85rem;margin:.5rem 0;font-size:.75rem;color:#7a5c00;line-height:1.4">
+      ⚠ Restaurar reescribe datos en Firestore. No borra nada que ya exista, pero SÍ pisa los documentos que coincidan con los del backup. Usalo solo cuando sepas qué estás haciendo.
+    </div>
+
+    <div class="ff">
+      <label>1. Elegí el archivo de backup (.json)</label>
+      <input type="file" id="restore-file-input" accept=".json,application/json" onchange="cargarArchivoBackup(this)"
+        style="width:100%;padding:.5rem;border:1.5px solid var(--bd);border-radius:8px;font-size:.8rem">
+    </div>
+
+    <div id="restore-info" style="display:none;margin-top:.75rem">
+      <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:10px;padding:.75rem;font-size:.78rem;color:#075985;margin-bottom:.85rem">
+        <div id="restore-info-text"></div>
+      </div>
+
+      <div style="background:#f8f9fa;border-radius:10px;padding:1rem;margin-bottom:.75rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem">Restaurar un paciente puntual</div>
+        <div style="font-size:.75rem;color:#666;margin-bottom:.6rem">Ideal si se borró o se corrompió UN paciente. No toca a los demás.</div>
+        <input type="text" id="restore-pac-search" placeholder="Buscar paciente en el backup..." oninput="filtrarPacientesBackup(this.value)"
+          style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--bd);border-radius:8px;font-size:.82rem;margin-bottom:.5rem">
+        <div id="restore-pac-list" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:.4rem"></div>
+      </div>
+
+      <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:1rem">
+        <div style="font-weight:600;font-size:.85rem;margin-bottom:.4rem;color:#991b1b">⚠ Restaurar TODO el backup</div>
+        <div style="font-size:.75rem;color:#7f1d1d;margin-bottom:.6rem">Solo para el escenario catastrófico (la base colapsó). Reescribe todos los usuarios y sus datos.</div>
+        <input type="text" id="restore-confirm-text" placeholder="Escribí RESTAURAR TODO para confirmar"
+          style="width:100%;padding:.55rem .75rem;border:1.5px solid #fca5a5;border-radius:8px;font-size:.82rem;margin-bottom:.5rem">
+        <button style="width:100%;background:#dc2626;color:#fff;border:none;border-radius:8px;padding:.6rem;font-size:.82rem;cursor:pointer;font-family:'Barlow',sans-serif" onclick="restaurarTodoElBackup()">Restaurar TODO ahora</button>
+      </div>
+    </div>
+
+    <div id="restore-status" style="font-size:.75rem;color:var(--mu);margin-top:.75rem;text-align:center"></div>
+  </div>
+</div>
+
 <div class="mwrap" id="m-mantenimiento">
   <div class="msheet" style="max-height:85vh;overflow-y:auto">
     <div class="mhead">
@@ -951,6 +994,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
         <div style="font-size:.78rem;color:#166534;margin-bottom:.6rem">Descarga TODOS los datos de la app (pacientes, planes, indicaciones, comentarios, historial de fichas, biblioteca) en un archivo. Guardalo en un lugar seguro por las dudas.</div>
         <button class="btn-prim" id="btn-backup" style="font-size:.8rem;padding:.5rem 1rem;background:#16a34a" onclick="exportarBackupCompleto()">⬇ Descargar backup completo</button>
         <div id="backup-status" style="font-size:.72rem;color:#166534;margin-top:.4rem"></div>
+        <button style="font-size:.78rem;padding:.5rem 1rem;margin-top:.5rem;width:100%;background:#fff;border:1.5px solid #16a34a;color:#16a34a;border-radius:8px;cursor:pointer;font-family:'Barlow',sans-serif" onclick="abrirRestaurarBackup()">📤 Restaurar desde un backup</button>
       </div>
 
       <div style="background:#f8f9fa;border-radius:10px;padding:1rem">
@@ -4140,6 +4184,223 @@ async function enviarEmailNotificacion(tipo, to, data) {
 // ════════════════════════════════════════════════════════
 // ── BACKUP COMPLETO: descarga todos los datos en un JSON ──
 // ════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════
+// ── RESTAURAR DESDE BACKUP ──────────────────────────────
+// ════════════════════════════════════════════════════════
+var _backupCargado = null; // el JSON parseado en memoria
+
+function abrirRestaurarBackup() {
+  _backupCargado = null;
+  var info = document.getElementById('restore-info');
+  var fileInput = document.getElementById('restore-file-input');
+  var status = document.getElementById('restore-status');
+  if (info) info.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+  if (status) status.textContent = '';
+  document.getElementById('m-restaurar-backup').classList.add('open');
+}
+
+// Lee el archivo JSON seleccionado y lo carga en memoria
+function cargarArchivoBackup(input) {
+  var file = input.files ? input.files[0] : null;
+  var status = document.getElementById('restore-status');
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!data.usuarios || !Array.isArray(data.usuarios)) {
+        if (status) status.textContent = '✗ El archivo no parece ser un backup válido';
+        return;
+      }
+      _backupCargado = data;
+      var fechaGen = '';
+      try { fechaGen = new Date(data.generadoEn).toLocaleString('es-AR'); } catch(e2) {}
+      var nPac = data.usuarios.filter(function(u){ return u.rol === 'paciente'; }).length;
+      var nProf = data.usuarios.filter(function(u){ return u.rol !== 'paciente'; }).length;
+
+      document.getElementById('restore-info-text').innerHTML =
+        '<strong>Backup válido ✓</strong><br>' +
+        'Generado: ' + (fechaGen || 'fecha desconocida') + '<br>' +
+        'Por: ' + (data.generadoPor || '—') + '<br>' +
+        nPac + ' pacientes · ' + nProf + ' profesionales · ' + (data.ejercicios ? data.ejercicios.length : 0) + ' ejercicios en biblioteca';
+
+      document.getElementById('restore-info').style.display = 'block';
+      renderListaPacientesBackup(data.usuarios.filter(function(u){ return u.rol === 'paciente'; }));
+      if (status) status.textContent = '';
+    } catch(err) {
+      if (status) status.textContent = '✗ Error leyendo el archivo: ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderListaPacientesBackup(pacientes) {
+  var list = document.getElementById('restore-pac-list');
+  if (!list) return;
+  pacientes = pacientes.slice().sort(function(a,b){
+    return ((a.nombre||'')+(a.apellido||'')).toLowerCase().localeCompare(((b.nombre||'')+(b.apellido||'')).toLowerCase(), 'es');
+  });
+  var html = '';
+  pacientes.forEach(function(p) {
+    var nEj = p.plan ? p.plan.length : 0;
+    var nCmt = p.comentarios ? p.comentarios.length : 0;
+    html += '<div data-search="' + ((p.nombre||'')+' '+(p.apellido||'')).toLowerCase() + '" style="display:flex;align-items:center;justify-content:space-between;padding:.6rem .7rem;border:1px solid var(--bd);border-radius:8px;background:#fff">' +
+      '<div>' +
+        '<div style="font-size:.82rem;font-weight:500">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div>' +
+        '<div style="font-size:.68rem;color:var(--mu)">' + nEj + ' ejercicios · ' + nCmt + ' mensajes</div>' +
+      '</div>' +
+      '<button style="background:var(--acc);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-size:.75rem;cursor:pointer" onclick="restaurarUnPaciente(\'' + p.id + '\')">Restaurar</button>' +
+    '</div>';
+  });
+  list.innerHTML = html || '<div class="empty" style="font-size:.78rem">Sin pacientes en este backup</div>';
+}
+
+function filtrarPacientesBackup(q) {
+  q = (q || '').trim().toLowerCase();
+  var rows = document.querySelectorAll('#restore-pac-list > div');
+  rows.forEach(function(row) {
+    var texto = row.getAttribute('data-search') || '';
+    row.style.display = (!q || texto.indexOf(q) !== -1) ? '' : 'none';
+  });
+}
+
+// Restaura UN paciente puntual desde el backup (no toca a los demás)
+async function restaurarUnPaciente(pacId) {
+  if (!_backupCargado) return;
+  var p = _backupCargado.usuarios.find(function(u){ return u.id === pacId; });
+  if (!p) { toast('Paciente no encontrado en el backup'); return; }
+
+  var nombreCompleto = (p.nombre||'') + ' ' + (p.apellido||'');
+  if (!confirm('¿Restaurar a ' + nombreCompleto + '? Esto va a reescribir su perfil, plan, comentarios e historial con los datos del backup.')) return;
+
+  var status = document.getElementById('restore-status');
+  if (status) status.textContent = 'Restaurando ' + nombreCompleto + '...';
+
+  try {
+    const { db, doc, setDoc, collection } = fb();
+
+    // 1) Perfil del paciente (sin las subcolecciones que van aparte)
+    var perfil = Object.assign({}, p);
+    delete perfil.id; delete perfil.plan; delete perfil.comentarios;
+    delete perfil.vistos; delete perfil.fotosProgreso; delete perfil.historialFicha;
+    await setDoc(doc(db, 'usuarios', p.id), perfil);
+
+    // 2) Subcolecciones, cada item con su ID original
+    var tareas = [];
+    (p.plan || []).forEach(function(item) {
+      var itemData = Object.assign({}, item); delete itemData.id;
+      tareas.push(setDoc(doc(db, 'planes/' + p.id + '/items/' + item.id), itemData));
+    });
+    (p.comentarios || []).forEach(function(item) {
+      var itemData = Object.assign({}, item); delete itemData.id;
+      tareas.push(setDoc(doc(db, 'comentarios/' + p.id + '/items/' + item.id), itemData));
+    });
+    (p.vistos || []).forEach(function(vistoId) {
+      tareas.push(setDoc(doc(db, 'vistos/' + p.id + '/items/' + vistoId), { fecha: new Date().toISOString() }));
+    });
+    (p.fotosProgreso || []).forEach(function(item) {
+      var itemData = Object.assign({}, item); delete itemData.id;
+      tareas.push(setDoc(doc(db, 'fotos/' + p.id + '/items/' + item.id), itemData));
+    });
+    (p.historialFicha || []).forEach(function(item) {
+      var itemData = Object.assign({}, item); delete itemData.id;
+      tareas.push(setDoc(doc(db, 'usuarios/' + p.id + '/historialFicha/' + item.id), itemData));
+    });
+
+    await Promise.all(tareas);
+
+    if (status) status.textContent = '✓ ' + nombreCompleto + ' restaurado correctamente';
+    toast(nombreCompleto + ' restaurado ✓');
+
+    // Refrescar listas
+    await cargarUsuarios();
+    renderUsuariosList();
+    renderPacientesList();
+    try { await cargarProgresoPacientes(); } catch(e) {}
+  } catch(e) {
+    console.error('Error restaurando paciente:', e);
+    if (status) status.textContent = '✗ Error: ' + e.message;
+    toast('Error al restaurar');
+  }
+}
+
+// Restaura TODO el backup (escenario catastrófico)
+async function restaurarTodoElBackup() {
+  if (!_backupCargado) { toast('Primero cargá un archivo de backup'); return; }
+  var confirmText = document.getElementById('restore-confirm-text').value.trim();
+  if (confirmText !== 'RESTAURAR TODO') {
+    toast('Escribí exactamente "RESTAURAR TODO" para confirmar');
+    return;
+  }
+  if (!confirm('Última confirmación: esto va a reescribir TODOS los usuarios del backup (' + _backupCargado.usuarios.length + '). ¿Continuar?')) return;
+
+  var status = document.getElementById('restore-status');
+  const { db, doc, setDoc, collection } = fb();
+
+  try {
+    var total = _backupCargado.usuarios.length;
+    var hechos = 0;
+
+    for (var p of _backupCargado.usuarios) {
+      if (status) status.textContent = 'Restaurando ' + (hechos+1) + '/' + total + ': ' + (p.nombre||'') + '...';
+      var perfil = Object.assign({}, p);
+      delete perfil.id; delete perfil.plan; delete perfil.comentarios;
+      delete perfil.vistos; delete perfil.fotosProgreso; delete perfil.historialFicha;
+      await setDoc(doc(db, 'usuarios', p.id), perfil);
+
+      var tareas = [];
+      (p.plan || []).forEach(function(item) {
+        var itemData = Object.assign({}, item); delete itemData.id;
+        tareas.push(setDoc(doc(db, 'planes/' + p.id + '/items/' + item.id), itemData));
+      });
+      (p.comentarios || []).forEach(function(item) {
+        var itemData = Object.assign({}, item); delete itemData.id;
+        tareas.push(setDoc(doc(db, 'comentarios/' + p.id + '/items/' + item.id), itemData));
+      });
+      (p.vistos || []).forEach(function(vistoId) {
+        tareas.push(setDoc(doc(db, 'vistos/' + p.id + '/items/' + vistoId), { fecha: new Date().toISOString() }));
+      });
+      (p.fotosProgreso || []).forEach(function(item) {
+        var itemData = Object.assign({}, item); delete itemData.id;
+        tareas.push(setDoc(doc(db, 'fotos/' + p.id + '/items/' + item.id), itemData));
+      });
+      (p.historialFicha || []).forEach(function(item) {
+        var itemData = Object.assign({}, item); delete itemData.id;
+        tareas.push(setDoc(doc(db, 'usuarios/' + p.id + '/historialFicha/' + item.id), itemData));
+      });
+      await Promise.all(tareas);
+      hechos++;
+    }
+
+    // Restaurar biblioteca de ejercicios también
+    if (_backupCargado.ejercicios && _backupCargado.ejercicios.length) {
+      if (status) status.textContent = 'Restaurando biblioteca de ejercicios...';
+      var tareasEj = _backupCargado.ejercicios.map(function(ej) {
+        var ejData = Object.assign({}, ej); delete ejData.id;
+        return setDoc(doc(db, 'ejercicios', ej.id), ejData);
+      });
+      await Promise.all(tareasEj);
+    }
+
+    if (status) status.textContent = '✓ Restauración completa: ' + hechos + ' usuarios restaurados';
+    toast('Backup restaurado completamente ✓');
+    closeM('m-restaurar-backup');
+
+    await cargarUsuarios();
+    await cargarEjercicios();
+    renderUsuariosList();
+    renderPacientesList();
+    renderDocVideos();
+    try { await cargarProgresoPacientes(); } catch(e) {}
+  } catch(e) {
+    console.error('Error en restauración completa:', e);
+    if (status) status.textContent = '✗ Error: ' + e.message;
+    toast('Error al restaurar');
+  }
+}
+
 async function exportarBackupCompleto() {
   var btn = document.getElementById('btn-backup');
   var status = document.getElementById('backup-status');
