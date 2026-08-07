@@ -3439,8 +3439,12 @@ function renderPacDetailHTML(p) {
 // estado: 'vencido' | 'porVencer' (3-4 días) | 'vigente' | 'sinFecha'
 function _estadoVencimiento(p) {
   if (!p.fechaVencimiento) return { estado: 'sinFecha', dias: null };
+  // Defensivo: si el campo no es un string de fecha válido (dato viejo/corrupto), no romper
+  var fechaStr = String(p.fechaVencimiento).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return { estado: 'sinFecha', dias: null };
   var hoy = new Date(); hoy.setHours(0,0,0,0);
-  var venc = new Date(p.fechaVencimiento + 'T00:00:00');
+  var venc = new Date(fechaStr + 'T00:00:00');
+  if (isNaN(venc.getTime())) return { estado: 'sinFecha', dias: null };
   var diffMs = venc - hoy;
   var dias = Math.round(diffMs / (1000*60*60*24));
   if (dias < 0) return { estado: 'vencido', dias: dias };
@@ -3507,51 +3511,67 @@ async function _actualizarPanelVencidos() {
   var elStat = document.getElementById('dhs-vencidos');
   if (!container && !elStat) return;
 
-  var pacActivos;
-  if (role === 'admin') {
-    pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
-  } else {
-    pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
+  try {
+    var pacActivos;
+    if (role === 'admin') {
+      pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+    } else {
+      pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
+    }
+
+    // Calcular el estado de cada paciente de forma defensiva:
+    // si UN paciente tiene datos raros, no debe romper el cálculo de los demás
+    var conInfo = [];
+    pacActivos.forEach(function(p) {
+      try {
+        conInfo.push(Object.assign({}, p, { _info: _estadoVencimiento(p) }));
+      } catch(errPac) {
+        console.error('[VENC] Error calculando vencimiento de', p.nombre, p.id, errPac);
+      }
+    });
+
+    var alerta = conInfo
+      .filter(function(p){ return p._info && (p._info.estado === 'vencido' || p._info.estado === 'porVencer'); })
+      .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
+
+    console.log('[VENC] Total pacActivos:', pacActivos.length);
+    console.log('[VENC] Pacientes con fechaVencimiento:', conInfo.filter(function(p){return p.fechaVencimiento;}).map(function(p){
+      return (p.nombre||'') + ' → fecha: ' + p.fechaVencimiento + ' → estado: ' + JSON.stringify(p._info);
+    }));
+    console.log('[VENC] En alerta (vencido/porVencer):', alerta.length);
+
+    if (elStat) elStat.textContent = alerta.length;
+    var elStatMini = document.getElementById('dhs-vencidos-mini');
+    if (elStatMini) elStatMini.textContent = alerta.length;
+    var alertCard = document.getElementById('dash-vencidos-card');
+    if (alertCard) alertCard.style.display = alerta.length ? 'block' : 'none';
+
+    if (!container) return;
+    if (!alerta.length) {
+      container.innerHTML = '<div class="empty" style="font-size:.78rem">✓ Sin planes vencidos ni por vencer</div>';
+      return;
+    }
+
+    var html = '';
+    alerta.forEach(function(p) {
+      var esVencido = p._info.estado === 'vencido';
+      var badgeTexto = esVencido ? 'Vencido hace ' + Math.abs(p._info.dias) + 'd' : 'Vence en ' + p._info.dias + 'd';
+      var badgeColor = esVencido ? '#991b1b' : '#92400e';
+      var badgeBg = esVencido ? '#fee2e2' : '#fef3c7';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:.65rem .85rem;margin-bottom:.4rem">' +
+        '<div>' +
+          '<div style="font-size:.82rem;font-weight:500">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div>' +
+          '<span style="background:' + badgeBg + ';color:' + badgeColor + ';border-radius:100px;padding:.15rem .6rem;font-size:.68rem;font-weight:600">' + badgeTexto + '</span>' +
+        '</div>' +
+        '<button style="background:var(--acc);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-size:.75rem;cursor:pointer" onclick="irARenovarPlan(\'' + p.id + '\')">Renovar →</button>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  } catch(errGeneral) {
+    console.error('[VENC] ERROR GENERAL en _actualizarPanelVencidos:', errGeneral);
+    if (container) container.innerHTML = '<div class="empty" style="font-size:.75rem;color:#991b1b">✗ Error calculando vencimientos: ' + errGeneral.message + '</div>';
+    if (elStat) elStat.textContent = '!';
   }
-
-  var alerta = pacActivos
-    .map(function(p){ return Object.assign({}, p, { _info: _estadoVencimiento(p) }); })
-    .filter(function(p){ return p._info.estado === 'vencido' || p._info.estado === 'porVencer'; })
-    .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
-
-  console.log('[VENC] Total pacActivos:', pacActivos.length);
-  console.log('[VENC] Pacientes con fechaVencimiento:', pacActivos.filter(function(p){return p.fechaVencimiento;}).map(function(p){
-    return (p.nombre||'') + ' → fecha: ' + p.fechaVencimiento + ' → estado: ' + JSON.stringify(_estadoVencimiento(p));
-  }));
-  console.log('[VENC] En alerta (vencido/porVencer):', alerta.length);
-
-  if (elStat) elStat.textContent = alerta.length;
-  var elStatMini = document.getElementById('dhs-vencidos-mini');
-  if (elStatMini) elStatMini.textContent = alerta.length;
-  var alertCard = document.getElementById('dash-vencidos-card');
-  if (alertCard) alertCard.style.display = alerta.length ? 'block' : 'none';
-
-  if (!container) return;
-  if (!alerta.length) {
-    container.innerHTML = '<div class="empty" style="font-size:.78rem">✓ Sin planes vencidos ni por vencer</div>';
-    return;
-  }
-
-  var html = '';
-  alerta.forEach(function(p) {
-    var esVencido = p._info.estado === 'vencido';
-    var badgeTexto = esVencido ? 'Vencido hace ' + Math.abs(p._info.dias) + 'd' : 'Vence en ' + p._info.dias + 'd';
-    var badgeColor = esVencido ? '#991b1b' : '#92400e';
-    var badgeBg = esVencido ? '#fee2e2' : '#fef3c7';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:.65rem .85rem;margin-bottom:.4rem">' +
-      '<div>' +
-        '<div style="font-size:.82rem;font-weight:500">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div>' +
-        '<span style="background:' + badgeBg + ';color:' + badgeColor + ';border-radius:100px;padding:.15rem .6rem;font-size:.68rem;font-weight:600">' + badgeTexto + '</span>' +
-      '</div>' +
-      '<button style="background:var(--acc);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-size:.75rem;cursor:pointer" onclick="irARenovarPlan(\'' + p.id + '\')">Renovar →</button>' +
-    '</div>';
-  });
-  container.innerHTML = html;
 }
 
 // Navega al paciente y abre su detalle para renovar el plan
