@@ -86,6 +86,25 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
 /* STAT STRIP */
 .stat-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:1rem}
+
+/* ── DASHBOARD RESUMEN ── */
+.dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.dash-greeting{font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:600;color:var(--t);letter-spacing:.01em;line-height:1.1}
+.dash-date{font-size:.76rem;color:var(--mu);margin-top:.15rem;text-transform:capitalize}
+.dash-header-icon{width:38px;height:38px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+.dash-card{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:1rem 1.05rem;margin-bottom:.75rem;box-shadow:0 1px 6px rgba(0,0,0,0.045)}
+.dash-card-alert{border:1.5px solid #fed7aa;background:linear-gradient(180deg,#fff9f2,#fff)}
+.dash-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
+.dash-card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.02rem;font-weight:600;color:var(--t);display:flex;align-items:center;gap:.4rem;letter-spacing:.01em}
+.dash-card-icon{font-size:1rem;line-height:1}
+.dash-count-badge{background:#c2410c;color:#fff;font-size:.72rem;font-weight:700;min-width:22px;height:22px;padding:0 .4rem;border-radius:100px;display:flex;align-items:center;justify-content:center}
+
+.dash-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:.85rem}
+.dash-stat-card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:.85rem .8rem;box-shadow:0 1px 6px rgba(0,0,0,0.04)}
+.dash-stat-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.9rem;margin-bottom:.5rem}
+.dash-stat-num{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:700;color:var(--t);line-height:1}
+.dash-stat-label{font-size:.68rem;color:var(--mu);margin-top:.15rem;font-weight:500}
 .sbox{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:.75rem .4rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
 .sn{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;color:var(--acc);font-weight:600;line-height:1}
 .sl{font-size:.63rem;color:var(--mu);margin-top:2px;line-height:1.2;font-weight:400}
@@ -681,38 +700,77 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 
     <!-- DOC HOME -->
     <div class="page" id="d-home">
-      <div class="pg-title">Resumen</div>
-      <div class="pg-sub" id="d-home-sub">Vista general</div>
-
-      <!-- Stats strip -->
-      <div class="stat-strip" id="d-home-stats" style="margin-bottom:.5rem">
-        <div class="sbox"><div class="sn" id="dhs-pacientes">—</div><div class="sl">Pacientes activos</div></div>
-        <div class="sbox"><div class="sn" id="dhs-adherencia">—</div><div class="sl">Adherencia media</div></div>
+      <!-- Header con saludo -->
+      <div class="dash-header">
+        <div>
+          <div class="dash-greeting" id="d-home-greeting">Resumen</div>
+          <div class="dash-date" id="d-home-fecha"></div>
+        </div>
+        <div class="dash-header-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        </div>
       </div>
-      <div class="stat-strip" style="margin-bottom:1rem">
-        <div class="sbox"><div class="sn" id="dhs-sinresponder">—</div><div class="sl">Sin ver</div></div>
-        <div class="sbox" style="background:#fff7ed;border-color:#fed7aa"><div class="sn" id="dhs-vencidos" style="color:#c2410c">—</div><div class="sl" style="color:#9a3412">Planes vencidos</div></div>
+
+      <!-- ALERTA: Planes vencidos (arriba, es lo más urgente) -->
+      <div class="dash-card dash-card-alert" id="dash-vencidos-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title">
+            <span class="dash-card-icon">⏰</span> Planes vencidos o por vencer
+          </div>
+          <span class="dash-count-badge" id="dhs-vencidos">—</span>
+        </div>
+        <div id="d-home-vencidos"><div class="empty" style="font-size:.78rem">Cargando...</div></div>
+      </div>
+
+      <!-- Stats en grid 2x2 -->
+      <div class="dash-stats-grid">
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:var(--acc-l);color:var(--acc)">👥</div>
+          <div class="dash-stat-num" id="dhs-pacientes">—</div>
+          <div class="dash-stat-label">Pacientes activos</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:#dcfce7;color:#16a34a">📈</div>
+          <div class="dash-stat-num" id="dhs-adherencia">—</div>
+          <div class="dash-stat-label">Adherencia media</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:var(--yellow-l);color:#a16207">💬</div>
+          <div class="dash-stat-num" id="dhs-sinresponder">—</div>
+          <div class="dash-stat-label">Mensajes sin ver</div>
+        </div>
+        <div class="dash-stat-card" id="dash-stat-vencidos-mini">
+          <div class="dash-stat-icon" style="background:#fed7aa;color:#c2410c">⏰</div>
+          <div class="dash-stat-num" style="color:#c2410c" id="dhs-vencidos-mini">—</div>
+          <div class="dash-stat-label">Planes vencidos</div>
+        </div>
       </div>
 
       <!-- Tabla de profesionales (solo admin) -->
       <div id="d-home-profs-wrap" style="display:none">
-        <div class="sec-label">Profesionales y pacientes a cargo</div>
-        <div id="d-home-profs"><div class="empty">Cargando...</div></div>
+        <div class="dash-card">
+          <div class="dash-card-head">
+            <div class="dash-card-title"><span class="dash-card-icon">🩺</span> Profesionales y pacientes a cargo</div>
+          </div>
+          <div id="d-home-profs"><div class="empty" style="font-size:.78rem">Cargando...</div></div>
+        </div>
       </div>
 
       <!-- Adherencia por paciente -->
-      <div class="sc" style="margin-top:.75rem">
-        <div class="sc-head"><h3>Adherencia por paciente</h3></div>
-        <div id="d-home-adherencia"><div class="empty">Cargando...</div></div>
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title"><span class="dash-card-icon">📋</span> Adherencia por paciente</div>
+        </div>
+        <div id="d-home-adherencia"><div class="empty" style="font-size:.78rem">Cargando...</div></div>
       </div>
 
-      <!-- Planes vencidos / por vencer -->
-      <div class="sec-label" style="margin-top:1rem">Planes vencidos o por vencer</div>
-      <div id="d-home-vencidos"><div class="empty">Cargando...</div></div>
-
       <!-- Mensajes sin ver -->
-      <div class="sec-label" style="margin-top:1rem">Mensajes sin ver</div>
-      <div id="d-home-comentarios"><div class="empty">Sin mensajes pendientes</div></div>
+      <div class="dash-card">
+        <div class="dash-card-head">
+          <div class="dash-card-title"><span class="dash-card-icon">💬</span> Mensajes sin ver</div>
+        </div>
+        <div id="d-home-comentarios"><div class="empty" style="font-size:.78rem">Sin mensajes pendientes</div></div>
+      </div>
     </div>
 
     <!-- DOC PACIENTES -->
@@ -2030,6 +2088,7 @@ async function doLogin() {
     document.getElementById('nav-d').style.display = 'flex';
     document.getElementById('nav-p').style.display = 'none';
     document.getElementById('bar-sub').textContent = role === 'admin' ? 'Admin' : 'Profesional';
+    _renderSaludoDashboard();
     renderDocVideos();
     renderPacientesList();
     renderUsuariosList();
@@ -3424,6 +3483,23 @@ function renderVencimientoBadge(p) {
 }
 
 // Recalcula y muestra el panel de "Planes por vencer / vencidos" en el Resumen
+// Saludo dinámico según la hora + fecha de hoy formateada en español
+function _renderSaludoDashboard() {
+  var greetEl = document.getElementById('d-home-greeting');
+  var fechaEl = document.getElementById('d-home-fecha');
+  if (!greetEl && !fechaEl) return;
+  var ahora = new Date();
+  var hora = ahora.getHours();
+  var nombre = (profileData && profileData.nombre) ? profileData.nombre.split(' ')[0] : '';
+  var saludo = hora < 12 ? 'Buen día' : hora < 20 ? 'Buenas tardes' : 'Buenas noches';
+  if (greetEl) greetEl.textContent = saludo + (nombre ? ', ' + nombre : '');
+  if (fechaEl) {
+    var dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    fechaEl.textContent = dias[ahora.getDay()] + ', ' + ahora.getDate() + ' de ' + meses[ahora.getMonth()];
+  }
+}
+
 async function _actualizarPanelVencidos() {
   var container = document.getElementById('d-home-vencidos');
   var elStat = document.getElementById('dhs-vencidos');
@@ -3442,6 +3518,10 @@ async function _actualizarPanelVencidos() {
     .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
 
   if (elStat) elStat.textContent = alerta.length;
+  var elStatMini = document.getElementById('dhs-vencidos-mini');
+  if (elStatMini) elStatMini.textContent = alerta.length;
+  var alertCard = document.getElementById('dash-vencidos-card');
+  if (alertCard) alertCard.style.display = alerta.length ? 'block' : 'none';
 
   if (!container) return;
   if (!alerta.length) {
