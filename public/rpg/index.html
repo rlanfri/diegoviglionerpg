@@ -3452,11 +3452,13 @@ function _estadoVencimiento(p) {
 async function guardarVencimientoPlan() {
   if (!currentPacId) return;
   var fecha = document.getElementById('dpd-fecha-venc').value;
+  console.log('[VENC] Guardando fecha:', fecha, '| paciente id:', currentPacId);
   const { db, doc, updateDoc } = fb();
   try {
     await updateDoc(doc(db, 'usuarios', currentPacId), { fechaVencimiento: fecha || '' });
     var p = pacientesData.find(function(x){ return x.id === currentPacId; });
     if (p) p.fechaVencimiento = fecha || '';
+    console.log('[VENC] Guardado OK. Estado calculado:', p ? JSON.stringify(_estadoVencimiento(p)) : 'paciente no encontrado en pacientesData');
     toast('Fecha de vencimiento guardada ✓');
     renderVencimientoBadge(p);
     try { await _actualizarPanelVencidos(); } catch(e) {}
@@ -3516,6 +3518,12 @@ async function _actualizarPanelVencidos() {
     .map(function(p){ return Object.assign({}, p, { _info: _estadoVencimiento(p) }); })
     .filter(function(p){ return p._info.estado === 'vencido' || p._info.estado === 'porVencer'; })
     .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
+
+  console.log('[VENC] Total pacActivos:', pacActivos.length);
+  console.log('[VENC] Pacientes con fechaVencimiento:', pacActivos.filter(function(p){return p.fechaVencimiento;}).map(function(p){
+    return (p.nombre||'') + ' → fecha: ' + p.fechaVencimiento + ' → estado: ' + JSON.stringify(_estadoVencimiento(p));
+  }));
+  console.log('[VENC] En alerta (vencido/porVencer):', alerta.length);
 
   if (elStat) elStat.textContent = alerta.length;
   var elStatMini = document.getElementById('dhs-vencidos-mini');
