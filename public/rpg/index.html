@@ -685,10 +685,13 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <div class="pg-sub" id="d-home-sub">Vista general</div>
 
       <!-- Stats strip -->
-      <div class="stat-strip" id="d-home-stats" style="margin-bottom:1rem">
+      <div class="stat-strip" id="d-home-stats" style="margin-bottom:.5rem">
         <div class="sbox"><div class="sn" id="dhs-pacientes">—</div><div class="sl">Pacientes activos</div></div>
         <div class="sbox"><div class="sn" id="dhs-adherencia">—</div><div class="sl">Adherencia media</div></div>
+      </div>
+      <div class="stat-strip" style="margin-bottom:1rem">
         <div class="sbox"><div class="sn" id="dhs-sinresponder">—</div><div class="sl">Sin ver</div></div>
+        <div class="sbox" style="background:#fff7ed;border-color:#fed7aa"><div class="sn" id="dhs-vencidos" style="color:#c2410c">—</div><div class="sl" style="color:#9a3412">Planes vencidos</div></div>
       </div>
 
       <!-- Tabla de profesionales (solo admin) -->
@@ -702,6 +705,10 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
         <div class="sc-head"><h3>Adherencia por paciente</h3></div>
         <div id="d-home-adherencia"><div class="empty">Cargando...</div></div>
       </div>
+
+      <!-- Planes vencidos / por vencer -->
+      <div class="sec-label" style="margin-top:1rem">Planes vencidos o por vencer</div>
+      <div id="d-home-vencidos"><div class="empty">Cargando...</div></div>
 
       <!-- Mensajes sin ver -->
       <div class="sec-label" style="margin-top:1rem">Mensajes sin ver</div>
@@ -1655,6 +1662,7 @@ async function addUser() {
     renderUsuariosList();
     renderPacientesList();
     try { await cargarProgresoPacientes(); } catch(e2) { console.error('refresh resumen:', e2); }
+    try { await _actualizarPanelVencidos(); } catch(e3) {}
     toast('Usuario creado ✓');
 
     // Recargar en segundo plano para sincronizar (por si hubo cambios de otros)
@@ -2027,6 +2035,7 @@ async function doLogin() {
     renderUsuariosList();
     try { await cargarProgresoPacientes(); } catch(e) { console.error('progreso:', e); }
     try { await renderComentariosProfesional(); } catch(e) { console.error('comentarios:', e); }
+    try { await _actualizarPanelVencidos(); } catch(e) { console.error('vencidos:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
   }
@@ -3327,8 +3336,19 @@ function renderPacDetailHTML(p) {
       <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="asignarProfesional()">Guardar asignación</button>
     </div>` : '';
 
+  var venceHTML = `
+    <div id="dpd-vencimiento-wrap" style="margin-bottom:.75rem">
+      <div class="ff" style="margin-bottom:.4rem">
+        <label>Vencimiento del plan</label>
+        <input type="date" id="dpd-fecha-venc" value="${p.fechaVencimiento||''}">
+      </div>
+      <button class="btn-prim" style="padding:.45rem .9rem;font-size:.78rem;width:auto" onclick="guardarVencimientoPlan()">Guardar fecha</button>
+      <div id="dpd-venc-badge" style="margin-top:.5rem"></div>
+    </div>`;
+
   return `
     ${profSelWrap}
+    ${venceHTML}
     <div class="sec-label" style="margin-top:0">Ejercicios / Indicaciones asignadas</div>
     <div id="dpd-video-list"><div class="empty">Cargando plan...</div></div>
     <button class="btn-prim" style="margin-top:.55rem" onclick="openAssignModal()">+ Asignar ejercicio / indicación</button>
@@ -3351,6 +3371,112 @@ function renderPacDetailHTML(p) {
     </div>`;
 }
 
+
+// ════════════════════════════════════════════════════════
+// ── VENCIMIENTO DE PLAN ─────────────────────────────────
+// ════════════════════════════════════════════════════════
+
+// Calcula el estado del vencimiento de un paciente: {estado, dias, texto}
+// estado: 'vencido' | 'porVencer' (3-4 días) | 'vigente' | 'sinFecha'
+function _estadoVencimiento(p) {
+  if (!p.fechaVencimiento) return { estado: 'sinFecha', dias: null };
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var venc = new Date(p.fechaVencimiento + 'T00:00:00');
+  var diffMs = venc - hoy;
+  var dias = Math.round(diffMs / (1000*60*60*24));
+  if (dias < 0) return { estado: 'vencido', dias: dias };
+  if (dias <= 4) return { estado: 'porVencer', dias: dias };
+  return { estado: 'vigente', dias: dias };
+}
+
+// Guarda la fecha de vencimiento del plan actual del paciente
+async function guardarVencimientoPlan() {
+  if (!currentPacId) return;
+  var fecha = document.getElementById('dpd-fecha-venc').value;
+  const { db, doc, updateDoc } = fb();
+  try {
+    await updateDoc(doc(db, 'usuarios', currentPacId), { fechaVencimiento: fecha || '' });
+    var p = pacientesData.find(function(x){ return x.id === currentPacId; });
+    if (p) p.fechaVencimiento = fecha || '';
+    toast('Fecha de vencimiento guardada ✓');
+    renderVencimientoBadge(p);
+    try { await _actualizarPanelVencidos(); } catch(e) {}
+  } catch(e) {
+    console.error('Error guardando vencimiento:', e);
+    toast('Error al guardar');
+  }
+}
+
+// Muestra el badge de estado (vencido / por vencer / vigente) en el detalle del paciente
+function renderVencimientoBadge(p) {
+  var el = document.getElementById('dpd-venc-badge');
+  if (!el) return;
+  var info = _estadoVencimiento(p);
+  var html = '';
+  if (info.estado === 'vencido') {
+    html = '<span style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:100px;padding:.3rem .75rem;font-size:.75rem;font-weight:600">⚠ Vencido hace ' + Math.abs(info.dias) + ' día' + (Math.abs(info.dias)!==1?'s':'') + '</span>';
+  } else if (info.estado === 'porVencer') {
+    html = '<span style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:100px;padding:.3rem .75rem;font-size:.75rem;font-weight:600">⏰ Vence en ' + info.dias + ' día' + (info.dias!==1?'s':'') + '</span>';
+  } else if (info.estado === 'vigente') {
+    html = '<span style="background:#dcfce7;color:#166534;border:1px solid #86efac;border-radius:100px;padding:.3rem .75rem;font-size:.75rem;font-weight:600">✓ Vigente (' + info.dias + ' días)</span>';
+  }
+  el.innerHTML = html;
+}
+
+// Recalcula y muestra el panel de "Planes por vencer / vencidos" en el Resumen
+async function _actualizarPanelVencidos() {
+  var container = document.getElementById('d-home-vencidos');
+  var elStat = document.getElementById('dhs-vencidos');
+  if (!container && !elStat) return;
+
+  var pacActivos;
+  if (role === 'admin') {
+    pacActivos = pacientesData.filter(function(p){ return p.estado !== 'eliminado'; });
+  } else {
+    pacActivos = pacientesData.filter(function(p){ return p.estado === 'activo' && _pacienteAsignadoA(p, profileData.uid); });
+  }
+
+  var alerta = pacActivos
+    .map(function(p){ return Object.assign({}, p, { _info: _estadoVencimiento(p) }); })
+    .filter(function(p){ return p._info.estado === 'vencido' || p._info.estado === 'porVencer'; })
+    .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
+
+  if (elStat) elStat.textContent = alerta.length;
+
+  if (!container) return;
+  if (!alerta.length) {
+    container.innerHTML = '<div class="empty" style="font-size:.78rem">✓ Sin planes vencidos ni por vencer</div>';
+    return;
+  }
+
+  var html = '';
+  alerta.forEach(function(p) {
+    var esVencido = p._info.estado === 'vencido';
+    var badgeTexto = esVencido ? 'Vencido hace ' + Math.abs(p._info.dias) + 'd' : 'Vence en ' + p._info.dias + 'd';
+    var badgeColor = esVencido ? '#991b1b' : '#92400e';
+    var badgeBg = esVencido ? '#fee2e2' : '#fef3c7';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:.65rem .85rem;margin-bottom:.4rem">' +
+      '<div>' +
+        '<div style="font-size:.82rem;font-weight:500">' + (p.nombre||'') + ' ' + (p.apellido||'') + '</div>' +
+        '<span style="background:' + badgeBg + ';color:' + badgeColor + ';border-radius:100px;padding:.15rem .6rem;font-size:.68rem;font-weight:600">' + badgeTexto + '</span>' +
+      '</div>' +
+      '<button style="background:var(--acc);color:#fff;border:none;border-radius:8px;padding:.4rem .8rem;font-size:.75rem;cursor:pointer" onclick="irARenovarPlan(\'' + p.id + '\')">Renovar →</button>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+}
+
+// Navega al paciente y abre su detalle para renovar el plan
+async function irARenovarPlan(pacId) {
+  switchTab(document.querySelector('#nav-d .ni:nth-child(2)'), 'd-pacientes', 'nav-d');
+  renderPacientesList();
+  await new Promise(function(r){ setTimeout(r, 80); });
+  currentPacId = null;
+  await togglePacAccordion(pacId);
+  var chip = document.getElementById('chip-' + pacId);
+  if (chip) chip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 async function togglePacAccordion(id) {
   var p = pacientesData.find(x => x.id === id);
   if (!p) return;
@@ -3370,6 +3496,9 @@ async function togglePacAccordion(id) {
 
   det.innerHTML = renderPacDetailHTML(p);
   det.style.display = 'block';
+
+  // Mostrar el badge de vencimiento del plan
+  renderVencimientoBadge(p);
 
   // Llenar checkboxes de profesionales (admin)
   if (role === 'admin') {
