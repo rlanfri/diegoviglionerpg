@@ -2201,7 +2201,7 @@ function renderAccordion() {
 
     var weeksHTML = '';
     _ordenarSemanas(Object.keys(mesData)).forEach((sem, si) => {
-      var items = mesData[sem];
+      var items = _ordenarItemsPorCarga(mesData[sem]);
       var seenW = items.filter(i=>seenSet.has(i.id || i.vid)).length;
       var exHTML = '';
       items.forEach((item, ei) => {
@@ -3943,7 +3943,7 @@ function renderPacVideos() {
 
     var weeksHTML = '';
     _ordenarSemanas(Object.keys(semData)).forEach(function(sem, si) {
-      var items = semData[sem];
+      var items = _ordenarItemsPorCarga(semData[sem]);
       var isFirstWeekOfLast = isLastMes && si === 0;
 
       var itemsHTML = '';
@@ -5281,6 +5281,21 @@ function _semAValor(semStr) {
 // Ordena un array de keys de día numéricamente (Día 2 antes que Día 10)
 function _ordenarSemanas(semKeys) {
   return semKeys.slice().sort(function(a, b){ return _semAValor(a) - _semAValor(b); });
+}
+
+// Ordena los ejercicios de un mismo Día respetando el orden en que Diego los cargó
+// (Firestore no garantiza el orden de los documentos, por eso usamos fechaAsignado
+// como respaldo estable). Si algún item viejo no tiene fechaAsignado, se lo deja
+// al final en el orden en que llegó, sin romper nada.
+function _ordenarItemsPorCarga(items) {
+  return items.slice().sort(function(a, b) {
+    var fa = a.fechaAsignado || '';
+    var fb = b.fechaAsignado || '';
+    if (fa && fb) return fa.localeCompare(fb);
+    if (fa && !fb) return -1; // los que tienen fecha van antes que los que no
+    if (!fa && fb) return 1;
+    return 0; // ninguno tiene fecha: mantener orden relativo original
+  });
 }
 
 function _togWeek(el) {
