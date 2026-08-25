@@ -95,6 +95,15 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 /* STAT STRIP */
 .stat-strip{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;margin-bottom:1rem}
 
+/* ── CARTEL INSTALAR PWA iOS ── */
+#pwa-ios-banner{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff;border-top:1px solid var(--bd);padding:.9rem 1rem calc(.9rem + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 20px rgba(0,0,0,0.12);display:none;align-items:center;gap:.7rem;font-family:'Barlow',sans-serif}
+#pwa-ios-banner.show{display:flex}
+#pwa-ios-banner .pwa-icon{width:42px;height:42px;border-radius:10px;flex-shrink:0;object-fit:cover;border:1px solid var(--bd)}
+#pwa-ios-banner .pwa-text{flex:1;font-size:.78rem;color:var(--t);line-height:1.35}
+#pwa-ios-banner .pwa-text b{display:block;font-size:.85rem;margin-bottom:.1rem}
+#pwa-ios-banner .pwa-share-ico{display:inline-flex;vertical-align:middle;margin:0 .15rem}
+#pwa-ios-banner .pwa-close{background:none;border:none;color:var(--mu);font-size:1.3rem;line-height:1;padding:.2rem .4rem;cursor:pointer;flex-shrink:0}
+
 /* ── DASHBOARD RESUMEN ── */
 .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
 .dash-greeting{font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:600;color:var(--t);letter-spacing:.01em;line-height:1.1}
@@ -5306,6 +5315,47 @@ function _ordenarItemsPorCarga(items) {
   });
 }
 
+// ── Cartel de instalación PWA en iPhone (solo Safari, solo si no está instalada) ──
+(function() {
+  function esIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPads modernos se reportan como Mac
+  }
+  function esSafari() {
+    var ua = navigator.userAgent;
+    var esOtroNavegador = /CriOS|FxiOS|EdgiOS|OPiOS|mercadolibre|Instagram|FBAN|FBAV/.test(ua);
+    return /Safari/.test(ua) && !esOtroNavegador;
+  }
+  function yaInstalada() {
+    return window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  }
+  function fueCerrado() {
+    try { return localStorage.getItem('pwaBannerCerrado') === 'true'; }
+    catch(e) { return false; }
+  }
+
+  window._cerrarPwaBanner = function() {
+    var banner = document.getElementById('pwa-ios-banner');
+    if (banner) banner.classList.remove('show');
+    try { localStorage.setItem('pwaBannerCerrado', 'true'); } catch(e) {}
+  };
+
+  function mostrarSiCorresponde() {
+    if (!esIOS() || !esSafari() || yaInstalada() || fueCerrado()) return;
+    var banner = document.getElementById('pwa-ios-banner');
+    if (banner) {
+      setTimeout(function(){ banner.classList.add('show'); }, 1200);
+    }
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    mostrarSiCorresponde();
+  } else {
+    document.addEventListener('DOMContentLoaded', mostrarSiCorresponde);
+  }
+})();
+
 function _togWeek(el) {
   var body = el.nextElementSibling;
   var chev = el.querySelector('.acc-chevron');
@@ -6719,5 +6769,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // 2. Función de asignación prioritaria
 // doAssign unificado — definido arriba
 </script>
+<!-- Cartel de instalación PWA (solo iOS Safari, no instalada) -->
+<div id="pwa-ios-banner">
+  <img src="/apple-touch-icon.png" class="pwa-icon" alt="RPG & NEURO">
+  <div class="pwa-text">
+    <b>Instalá la app en tu iPhone</b>
+    Tocá <span class="pwa-share-ico">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--acc)"><path d="M12 2l4 4h-3v10h-2V6H8l4-4zM5 9h3v2H6v9h12v-9h-2V9h3a1 1 0 011 1v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a1 1 0 011-1z"/></svg>
+    </span> (compartir) abajo y después "Agregar a inicio"
+  </div>
+  <button class="pwa-close" onclick="_cerrarPwaBanner()" aria-label="Cerrar">✕</button>
+</div>
+
 </body>
 </html>
