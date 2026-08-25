@@ -1,0 +1,24 @@
+{
+  "name": "RPG & NEURO",
+  "short_name": "RPG & NEURO",
+  "description": "Plataforma de seguimiento de ejercicios y rehabilitación",
+  "start_url": "/rpg/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3a8fc4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
