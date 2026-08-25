@@ -98,11 +98,26 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 /* ── CARTEL INSTALAR PWA iOS ── */
 #pwa-ios-banner{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fff;border-top:1px solid var(--bd);padding:.9rem 1rem calc(.9rem + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 20px rgba(0,0,0,0.12);display:none;align-items:center;gap:.7rem;font-family:'Barlow',sans-serif}
 #pwa-ios-banner.show{display:flex}
-#pwa-ios-banner .pwa-icon{width:42px;height:42px;border-radius:10px;flex-shrink:0;object-fit:cover;border:1px solid var(--bd)}
-#pwa-ios-banner .pwa-text{flex:1;font-size:.78rem;color:var(--t);line-height:1.35}
-#pwa-ios-banner .pwa-text b{display:block;font-size:.85rem;margin-bottom:.1rem}
-#pwa-ios-banner .pwa-share-ico{display:inline-flex;vertical-align:middle;margin:0 .15rem}
-#pwa-ios-banner .pwa-close{background:none;border:none;color:var(--mu);font-size:1.3rem;line-height:1;padding:.2rem .4rem;cursor:pointer;flex-shrink:0}
+#pwa-ios-banner .pwa-icon{width:44px;height:44px;border-radius:11px;flex-shrink:0;object-fit:cover;border:1px solid var(--bd)}
+#pwa-ios-banner .pwa-text{flex:1;font-size:.78rem;color:var(--t);line-height:1.3}
+#pwa-ios-banner .pwa-text b{display:block;font-size:.87rem;margin-bottom:.05rem}
+#pwa-ios-banner .pwa-install-btn{background:var(--acc);color:#fff;border:none;border-radius:8px;padding:.55rem 1rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:'Barlow',sans-serif;flex-shrink:0;white-space:nowrap}
+#pwa-ios-banner .pwa-close{background:none;border:none;color:var(--mu);font-size:1.2rem;line-height:1;padding:.2rem .3rem;cursor:pointer;flex-shrink:0}
+
+/* Modal con pasos visuales para instalar */
+#pwa-ios-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center}
+#pwa-ios-modal.show{display:flex}
+#pwa-ios-modal .pwa-modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:1.3rem 1.3rem calc(1.6rem + env(safe-area-inset-bottom,0px));width:100%;max-width:480px;font-family:'Barlow',sans-serif}
+#pwa-ios-modal .pwa-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}
+#pwa-ios-modal .pwa-modal-title{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:600;color:var(--t)}
+#pwa-ios-modal .pwa-modal-close{background:none;border:none;color:var(--mu);font-size:1.4rem;line-height:1;cursor:pointer;padding:.2rem}
+#pwa-ios-modal .pwa-modal-sub{font-size:.8rem;color:var(--mu);margin-bottom:1.1rem}
+.pwa-step{display:flex;align-items:center;gap:.85rem;padding:.85rem 0;border-bottom:1px solid var(--bd)}
+.pwa-step:last-child{border-bottom:none}
+.pwa-step-num{width:30px;height:30px;border-radius:50%;background:var(--acc-l);color:var(--acc);font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pwa-step-icon{width:38px;height:38px;background:var(--cream);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pwa-step-text{font-size:.85rem;color:var(--t);line-height:1.35}
+.pwa-step-text b{color:var(--acc)}
 
 /* ── DASHBOARD RESUMEN ── */
 .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
@@ -500,7 +515,6 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
           if (!s1.empty) {
             var docId = s1.docs[0].id;
             var data1 = s1.docs[0].data();
-            console.log('[URL] Encontrado por uid → docId:', docId);
             window._appInitialized = true;
             window._initAppWithUser(docId, data1.rol || rolParam, data1.nombre || decodeURIComponent(nombreParam || ''));
             return;
@@ -509,12 +523,10 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
           var s2 = await getDoc(doc(db, 'usuarios', uidParam));
           if (s2.exists()) {
             var data2 = s2.data();
-            console.log('[URL] Encontrado por docId directo:', uidParam);
             window._initAppWithUser(uidParam, data2.rol || rolParam, data2.nombre || decodeURIComponent(nombreParam || ''));
             return;
           }
           // Fallback: usar tal cual (puede fallar si hay discrepancia)
-          console.warn('[URL] No se encontró el docId, usando uidParam directo');
           window._initAppWithUser(uidParam, rolParam, decodeURIComponent(nombreParam || ''));
         } catch(e) {
           console.error('[URL] Error resolviendo docId:', e);
@@ -526,19 +538,16 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       window._appInitialized = false;
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) { window._appInitialized = false; return; }
-        if (window._appInitialized) { console.log('[AUTH] Ya inicializado, skip'); return; }
+        if (window._appInitialized) { return; }
         window._appInitialized = true;
         _authInitialized = true;
-        console.log('[AUTH] Usuario logueado:', firebaseUser.email, '| UID:', firebaseUser.uid);
         try {
           // Estrategia 1: buscar por campo uid en Firestore
           var q1 = query(collection(db, 'usuarios'), where('uid', '==', firebaseUser.uid));
           var snap1 = await getDocs(q1);
-          console.log('[AUTH] Estrategia 1 (uid):', snap1.size, 'resultado(s)');
           if (!snap1.empty) {
             var d1 = snap1.docs[0];
             var p1 = d1.data();
-            console.log('[AUTH] Encontrado por uid → docId:', d1.id, '| rol:', p1.rol);
             if (p1.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
             window._initAppWithUser(d1.id, p1.rol, p1.nombre || firebaseUser.displayName || '');
             return;
@@ -547,29 +556,24 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
           // Estrategia 2: buscar por email
           var q2 = query(collection(db, 'usuarios'), where('email', '==', firebaseUser.email));
           var snap2 = await getDocs(q2);
-          console.log('[AUTH] Estrategia 2 (email):', snap2.size, 'resultado(s)');
           if (!snap2.empty) {
             var d2 = snap2.docs[0];
             var p2 = d2.data();
-            console.log('[AUTH] Encontrado por email → docId:', d2.id, '| rol:', p2.rol);
             if (p2.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
-            try { await updateDoc(doc(db, 'usuarios', d2.id), { uid: firebaseUser.uid }); console.log('[AUTH] uid guardado en doc'); } catch(e2) { console.warn('[AUTH] No se pudo guardar uid:', e2.message); }
+            try { await updateDoc(doc(db, 'usuarios', d2.id), { uid: firebaseUser.uid }); } catch(e2) { console.warn('No se pudo guardar uid:', e2.message); }
             window._initAppWithUser(d2.id, p2.rol, p2.nombre || firebaseUser.displayName || '');
             return;
           }
 
           // Estrategia 3: docId directo
-          console.log('[AUTH] Estrategia 3: buscando doc usuarios/' + firebaseUser.uid);
           var snap3 = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
           if (snap3.exists()) {
             var p3 = snap3.data();
-            console.log('[AUTH] Encontrado por docId directo | rol:', p3.rol);
             if (p3.estado !== 'activo') { await signOut(auth); window._showAccessError('sin-acceso'); return; }
             window._initAppWithUser(firebaseUser.uid, p3.rol, p3.nombre || firebaseUser.displayName || '');
             return;
           }
 
-          console.warn('[AUTH] Usuario no encontrado en Firestore. email:', firebaseUser.email);
           await signOut(auth);
           window._showAccessError('no-registrado');
         } catch(e) {
@@ -1614,10 +1618,8 @@ async function cargarEjercicios() {
 }
 
 async function cargarPlanPaciente(uid) {
-  console.log('[PLAN] Cargando plan para uid/docId:', uid);
   const { db, collection, getDocs } = fb();
   const snap = await getDocs(collection(db, `planes/${uid}/items`));
-  console.log('[PLAN] Items encontrados:', snap.size);
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // Paginación: si hay más de 60 items, mostrar solo los 2 meses más recientes
@@ -1625,14 +1627,11 @@ async function cargarPlanPaciente(uid) {
     var meses = [...new Set(patientPlan.map(i => i.mes).filter(Boolean))].sort();
     var mesesRecientes = meses.slice(-3);
     patientPlan = patientPlan.filter(i => !i.mes || mesesRecientes.includes(i.mes));
-    console.log('[PLAN] Paginado a últimos 3 meses:', mesesRecientes);
   }
   // cargar seenSet desde vistos/{uid}/items
   const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
-  console.log('[SEEN] uid:', uid, '| vistos:', snapSeen.size, '| ids:', [...seenSet].join(','));
-  console.log('[PLAN] item ids:', patientPlan.map(i=>i.id||i.vid).join(','));
 }
 
 async function guardarVisto(uid, itemId) {
@@ -3473,13 +3472,11 @@ function _estadoVencimiento(p) {
 async function guardarVencimientoPlan() {
   if (!currentPacId) return;
   var fecha = document.getElementById('dpd-fecha-venc').value;
-  console.log('[VENC] Guardando fecha:', fecha, '| paciente id:', currentPacId);
   const { db, doc, updateDoc } = fb();
   try {
     await updateDoc(doc(db, 'usuarios', currentPacId), { fechaVencimiento: fecha || '' });
     var p = pacientesData.find(function(x){ return x.id === currentPacId; });
     if (p) p.fechaVencimiento = fecha || '';
-    console.log('[VENC] Guardado OK. Estado calculado:', p ? JSON.stringify(_estadoVencimiento(p)) : 'paciente no encontrado en pacientesData');
     toast('Fecha de vencimiento guardada ✓');
     renderVencimientoBadge(p);
     try { await _actualizarPanelVencidos(); } catch(e) {}
@@ -3550,12 +3547,6 @@ async function _actualizarPanelVencidos() {
     var alerta = conInfo
       .filter(function(p){ return p._info && (p._info.estado === 'vencido' || p._info.estado === 'porVencer'); })
       .sort(function(a,b){ return a._info.dias - b._info.dias; }); // vencidos primero (más negativo)
-
-    console.log('[VENC] Total pacActivos:', pacActivos.length);
-    console.log('[VENC] Pacientes con fechaVencimiento:', conInfo.filter(function(p){return p.fechaVencimiento;}).map(function(p){
-      return (p.nombre||'') + ' → fecha: ' + p.fechaVencimiento + ' → estado: ' + JSON.stringify(p._info);
-    }));
-    console.log('[VENC] En alerta (vencido/porVencer):', alerta.length);
 
     if (elStat) elStat.textContent = alerta.length;
     var elStatMini = document.getElementById('dhs-vencidos-mini');
@@ -4446,7 +4437,6 @@ async function enviarEmailNotificacion(tipo, to, data) {
       body: JSON.stringify({ tipo, to, data })
     });
   } catch(e) {
-    console.warn('Email no enviado:', e.message);
     // No bloquear el flujo si falla el email
   }
 }
@@ -4778,7 +4768,6 @@ async function limpiarHistorialFichas(maxVersiones) {
     } catch(e) { console.warn('Error limpiando historial de ' + pac.id, e); }
   }
   toast('Historial limpiado: ' + total + ' versiones eliminadas ✓');
-  console.log('[MANT] Historial fichas: ' + total + ' docs eliminados');
 }
 
 // Archiva pacientes inactivos → mueve a colección pacientes_archivo
@@ -4844,7 +4833,6 @@ async function limpiarPlanesViejos(mesesAtras) {
     } catch(e) { console.warn('Error limpiando planes de ' + pac.id, e); }
   }
   toast('Planes viejos: ' + total + ' ejercicios eliminados ✓');
-  console.log('[MANT] Planes viejos: ' + total + ' docs eliminados');
 }
 
 // Panel de mantenimiento (solo admin)
@@ -4989,8 +4977,6 @@ function _actualizarBotonWhatsApp() {
   var waBtn = document.getElementById('p-whatsapp-btn');
   if (!waBtn || !profileData) return;
   var profIds = _profsDelPaciente(profileData);
-  console.log('[WA] profIds del paciente:', profIds);
-  console.log('[WA] profesionalesData disponibles:', profesionalesData.map(function(p){ return p.nombre + '(' + p.id + ', tel:' + (p.tel||'-') + ')'; }));
 
   var prof = null;
   // 1) Buscar profesional asignado con teléfono
@@ -5011,7 +4997,6 @@ function _actualizarBotonWhatsApp() {
   }
 
   var tel = (prof && prof.tel) ? _formatearTelWhatsApp(prof.tel) : '';
-  console.log('[WA] Botón → prof:', prof ? prof.nombre : 'ninguno', '| tel original:', prof ? prof.tel : '-', '| tel formateado:', tel);
   // WhatsApp desactivado por el momento
   waBtn.style.display = 'none';
 }
@@ -5032,7 +5017,6 @@ async function cargarProfesionalDelPaciente() {
         if (!profesionalesData.find(function(x){ return x.id === profData.id; })) {
           profesionalesData.push(profData);
         }
-        console.log('[WA] Profesional cargado:', profData.nombre, '| tel:', profData.tel || 'sin teléfono');
       }
     } catch(e) { console.error('[WA] Error cargando prof', pid, e); }
   }
@@ -5042,7 +5026,6 @@ async function cargarProfesionalDelPaciente() {
     return profIds.indexOf(x.id) !== -1 && x.tel;
   });
   if (!hayProfConTel) {
-    console.log('[WA] Sin profesional con teléfono, cargando admin...');
     try {
       var qAdmin = query(collection(db, 'usuarios'), where('rol', '==', 'admin'));
       var snapAdmin = await getDocs(qAdmin);
@@ -5051,7 +5034,6 @@ async function cargarProfesionalDelPaciente() {
         if (!profesionalesData.find(function(x){ return x.id === adminData.id; })) {
           profesionalesData.push(adminData);
         }
-        console.log('[WA] Admin cargado:', adminData.nombre, '| tel:', adminData.tel || 'sin teléfono');
       });
     } catch(e) { console.error('[WA] Error cargando admin', e); }
   }
@@ -5339,6 +5321,16 @@ function _ordenarItemsPorCarga(items) {
     var banner = document.getElementById('pwa-ios-banner');
     if (banner) banner.classList.remove('show');
     try { localStorage.setItem('pwaBannerCerrado', 'true'); } catch(e) {}
+  };
+
+  window._abrirPwaModal = function() {
+    var modal = document.getElementById('pwa-ios-modal');
+    if (modal) modal.classList.add('show');
+  };
+
+  window._cerrarPwaModal = function() {
+    var modal = document.getElementById('pwa-ios-modal');
+    if (modal) modal.classList.remove('show');
   };
 
   function mostrarSiCorresponde() {
@@ -6773,12 +6765,38 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="pwa-ios-banner">
   <img src="/apple-touch-icon.png" class="pwa-icon" alt="RPG & NEURO">
   <div class="pwa-text">
-    <b>Instalá la app en tu iPhone</b>
-    Tocá <span class="pwa-share-ico">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--acc)"><path d="M12 2l4 4h-3v10h-2V6H8l4-4zM5 9h3v2H6v9h12v-9h-2V9h3a1 1 0 011 1v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a1 1 0 011-1z"/></svg>
-    </span> (compartir) abajo y después "Agregar a inicio"
+    <b>RPG & NEURO</b>
+    Instalá la app en tu iPhone
   </div>
+  <button class="pwa-install-btn" onclick="_abrirPwaModal()">Instalar</button>
   <button class="pwa-close" onclick="_cerrarPwaBanner()" aria-label="Cerrar">✕</button>
+</div>
+
+<!-- Modal con los pasos para instalar -->
+<div id="pwa-ios-modal">
+  <div class="pwa-modal-sheet">
+    <div class="pwa-modal-head">
+      <div class="pwa-modal-title">Instalar RPG & NEURO</div>
+      <button class="pwa-modal-close" onclick="_cerrarPwaModal()" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="pwa-modal-sub">Seguí estos 2 pasos en Safari:</div>
+
+    <div class="pwa-step">
+      <div class="pwa-step-num">1</div>
+      <div class="pwa-step-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--acc)"><path d="M12 2l4 4h-3v10h-2V6H8l4-4zM5 9h3v2H6v9h12v-9h-2V9h3a1 1 0 011 1v10a2 2 0 01-2 2H5a2 2 0 01-2-2V10a1 1 0 011-1z"/></svg>
+      </div>
+      <div class="pwa-step-text">Tocá el ícono de <b>compartir</b> en la barra de Safari (abajo de la pantalla)</div>
+    </div>
+
+    <div class="pwa-step">
+      <div class="pwa-step-num">2</div>
+      <div class="pwa-step-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--acc)"><path d="M12 4v16m-8-8h16" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </div>
+      <div class="pwa-step-text">Buscá y tocá <b>"Agregar a inicio"</b> en la lista</div>
+    </div>
+  </div>
 </div>
 
 </body>
