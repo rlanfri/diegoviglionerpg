@@ -229,7 +229,7 @@ export default function Home() {
               <h5 className="fw-bold">Donde estamos</h5>
               <iframe
                 title="RPG MAPA"
-                src="https://maps.google.com/maps?q=Paran%C3%A1+353%2C+Local+1%2C+Barrio+Centro%2C+C%C3%B3rdoba%2C+Argentina&output=embed"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3405.1664618447826!2d-64.19150632646983!3d-31.40953947426485!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9432997589335413%3A0x39bfd5b42cd881d3!2sDiego%20Viglione%20RPG%26NEURO!5e0!3m2!1sen!2sar!4v1741379001133!5m2!1sen!2sar"
                 width="100%" height="150" style={{ border: "0", borderRadius: "8px" }} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
