@@ -536,6 +536,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     } else {
       // Standalone mode — use Firebase Auth directly
       window._appInitialized = false;
+      getRedirectResult(auth).catch((e) => console.warn('[AUTH] redirect:', e && e.code));
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) { window._appInitialized = false; return; }
         if (window._appInitialized) { return; }
@@ -600,18 +601,10 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
   <p class="lic-sub">Lic. Diego Viglione · Kinesiología</p>
   <div class="login-card">
     <h3>Ingresá a tu cuenta</h3>
-    <div class="lf"><label>Nombre / Email</label><input type="text" id="li-user" placeholder="Tu nombre o email" autocomplete="off"></div>
-    <div class="lf"><label>Contraseña</label><input type="password" id="li-pass" placeholder="••••••••"></div>
-    <div class="role-label">Ingresás como</div>
-    <div class="role-pills" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="role-pill on" onclick="selRole(this,'paciente')">Paciente</div>
-      <div class="role-pill" onclick="selRole(this,'profesional')">Profesional</div>
-      <div class="role-pill" onclick="selRole(this,'admin')">Admin</div>
-    </div>
-    <button class="btn-login" onclick="doLogin()">
+    <p style="font-size:.82rem;color:var(--mu);line-height:1.5;margin:0 0 1rem">Entrá con la cuenta de Google que registraste en el consultorio.</p>
+    <button class="btn-login" id="btn-google" onclick="loginGoogle()">
       <div class="g-dot">G</div>Ingresar con Google
     </button>
-    <div class="demo-tip"><strong>Demo:</strong> Cualquier usuario/contraseña. El rol determina la vista.</div>
   </div>
 </div>
 
@@ -2061,58 +2054,33 @@ async function removePacVid(itemId) {
 }
 
 // ── LOGIN ──
-function selRole(el, r) {
-  role = r;
-  document.querySelectorAll('.role-pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
-}
+async function loginGoogle() {
+  var btn = document.getElementById('btn-google');
+  var fb = window._fb;
+  if (!fb) { toast('Cargando… probá de nuevo en un segundo'); return; }
 
-async function doLogin() {
-  var u = document.getElementById('li-user').value.trim();
-  var p = document.getElementById('li-pass').value.trim();
-  if (!u || !p) { toast('Ingresá usuario y contraseña'); return; }
+  // En la app nativa de Android el login lo maneja la landing (login nativo de Google)
+  try {
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+      window.location.href = '/';
+      return;
+    }
+  } catch(e) {}
 
-  // Hide login, show app — no overlap
-  document.getElementById('s-login').classList.add('hidden');
-  document.getElementById('app').classList.add('visible');
-
-  var ini = u.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || u[0].toUpperCase();
-  document.getElementById('av-btn').textContent = ini;
-
-  // Simulate Google profile data
-  var parts = u.trim().split(' ');
-  profileData = {
-    nombre: parts[0] || u,
-    apellido: parts.slice(1).join(' ') || '',
-    email: u.includes('@') ? u : u.toLowerCase().replace(/ /g,'.')+'@gmail.com',
-    tel: '',
-    initials: ini,
-    photoURL: '',
-  };
-
-  if (role === 'paciente') {
-    document.getElementById('nav-p').style.display = 'flex';
-    document.getElementById('nav-d').style.display = 'none';
-    document.getElementById('bar-sub').textContent = 'Paciente';
-    document.getElementById('p-greeting').textContent = 'Hola, ' + u.split(' ')[0];
-    renderAccordion();
-    updateStats();
-    try { await cargarNotasProfesional(uid); } catch(e) { console.error('notas:', e); }
-    showPage('p-home');
-    setActiveNav('nav-p', 0);
-  } else {
-    document.getElementById('nav-d').style.display = 'flex';
-    document.getElementById('nav-p').style.display = 'none';
-    document.getElementById('bar-sub').textContent = role === 'admin' ? 'Admin' : 'Profesional';
-    _renderSaludoDashboard();
-    renderDocVideos();
-    renderPacientesList();
-    renderUsuariosList();
-    try { await cargarProgresoPacientes(); } catch(e) { console.error('progreso:', e); }
-    try { await renderComentariosProfesional(); } catch(e) { console.error('comentarios:', e); }
-    try { await _actualizarPanelVencidos(); } catch(e) { console.error('vencidos:', e); }
-    showPage('d-home');
-    setActiveNav('nav-d', 0);
+  var original = '<div class="g-dot">G</div>Ingresar con Google';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<div class="g-dot">G</div>Conectando…'; }
+  try {
+    await fb.signInWithPopup(fb.auth, fb.provider);
+    // El resto lo hace onAuthStateChanged (busca el usuario y abre la app)
+  } catch (e) {
+    var c = (e && e.code) || '';
+    if (c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment' || c === 'auth/web-storage-unsupported') {
+      try { await fb.signInWithRedirect(fb.auth, fb.provider); return; } catch (e2) { console.error('[LOGIN] redirect:', e2); }
+    } else if (c !== 'auth/popup-closed-by-user' && c !== 'auth/cancelled-popup-request') {
+      console.error('[LOGIN]', e);
+      toast('No se pudo iniciar sesión. Probá de nuevo.');
+    }
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
   }
 }
 
@@ -2122,8 +2090,6 @@ function logout() {
   document.getElementById('s-login').classList.remove('hidden');
   document.getElementById('nav-p').style.display = 'none';
   document.getElementById('nav-d').style.display = 'none';
-  document.getElementById('li-user').value = '';
-  document.getElementById('li-pass').value = '';
 }
 
 // ── NAV ──
