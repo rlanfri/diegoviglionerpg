@@ -579,6 +579,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
           window._showAccessError('no-registrado');
         } catch(e) {
           console.error('[AUTH] Error:', e);
+          window._appInitialized = false;
+          window._showAccessError('error');
         }
       });
     }
@@ -2072,13 +2074,21 @@ async function loginGoogle() {
   try {
     await fb.signInWithPopup(fb.auth, fb.provider);
     // El resto lo hace onAuthStateChanged (busca el usuario y abre la app)
+    // Red de seguridad: si en 20s no se abrió la app, liberar el botón
+    setTimeout(function() {
+      var l = document.getElementById('s-login');
+      if (l && !l.classList.contains('hidden') && btn && btn.disabled) {
+        btn.disabled = false; btn.innerHTML = original;
+        toast('Tardó demasiado. Probá de nuevo.');
+      }
+    }, 20000);
   } catch (e) {
     var c = (e && e.code) || '';
     if (c === 'auth/popup-blocked' || c === 'auth/operation-not-supported-in-this-environment' || c === 'auth/web-storage-unsupported') {
       try { await fb.signInWithRedirect(fb.auth, fb.provider); return; } catch (e2) { console.error('[LOGIN] redirect:', e2); }
     } else if (c !== 'auth/popup-closed-by-user' && c !== 'auth/cancelled-popup-request') {
       console.error('[LOGIN]', e);
-      toast('No se pudo iniciar sesión. Probá de nuevo.');
+      toast('No se pudo iniciar sesión (' + (c || 'error') + ')');
     }
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
   }
@@ -6549,10 +6559,13 @@ window._showAccessError = function(tipo) {
   const msgs = {
     'no-registrado': 'Tu cuenta no está registrada en el sistema. Contactá al consultorio.',
     'sin-acceso': 'Tu acceso está suspendido. Contactá al consultorio.',
+    'error': 'No se pudo cargar tu cuenta. Probá de nuevo o contactá al consultorio.',
   };
   const card = document.querySelector('.login-card');
   if (card) {
+    card.querySelectorAll('.login-err').forEach(function(x){ x.remove(); });
     const err = document.createElement('div');
+    err.className = 'login-err';
     err.style.cssText = 'background:#fee2e2;color:#991b1b;border-radius:8px;padding:.75rem 1rem;font-size:.82rem;margin-top:.75rem;line-height:1.5';
     err.textContent = msgs[tipo] || 'Error de acceso.';
     card.appendChild(err);
