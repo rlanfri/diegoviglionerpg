@@ -541,7 +541,6 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
         if (!firebaseUser) { window._appInitialized = false; return; }
         if (window._appInitialized) { return; }
         window._appInitialized = true;
-        _authInitialized = true;
         try {
           // Estrategia 1: buscar por campo uid en Firestore
           var q1 = query(collection(db, 'usuarios'), where('uid', '==', firebaseUser.uid));
