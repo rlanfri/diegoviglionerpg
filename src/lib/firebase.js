@@ -13,3 +13,5 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+// Siempre mostrar el selector de cuentas (si no, Google entra solo con la última usada)
+googleProvider.setCustomParameters({ prompt: 'select_account' });

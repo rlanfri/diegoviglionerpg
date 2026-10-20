@@ -479,6 +479,8 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     const db = getFirestore(app);
     const storage = getStorage(app);
     const provider = new GoogleAuthProvider();
+    // Siempre mostrar el selector de cuentas (si no, Google entra solo con la última usada)
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     // Expose globally for the main script
     window._fb = { auth, db, storage, provider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, GoogleAuthProvider, storageRef, uploadBytes, getDownloadURL, deleteObject };
