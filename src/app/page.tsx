@@ -26,6 +26,37 @@ export default function Home() {
   const [appModal, setAppModal] = useState<"ios" | "android" | null>(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [verFlotante, setVerFlotante] = useState(true);
+  // Evento de Chrome/Android para mostrar el cartel nativo de "Instalar"
+  const [eventoInstalar, setEventoInstalar] = useState<any>(null);
+  const [instalada, setInstalada] = useState(false);
+  const [esIOS, setEsIOS] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    setEsIOS(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1));
+    setInstalada(
+      window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true
+    );
+    const onPrompt = (e: Event) => { e.preventDefault(); setEventoInstalar(e); };
+    const onInstalada = () => { setInstalada(true); setEventoInstalar(null); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalada);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalada);
+    };
+  }, []);
+
+  const instalarApp = async () => {
+    if (eventoInstalar) {
+      eventoInstalar.prompt();
+      await eventoInstalar.userChoice;
+      setEventoInstalar(null);
+      return;
+    }
+    // Sin cartel nativo (iPhone o navegador que no lo ofrece): mostrar los pasos
+    setAppModal(esIOS ? "ios" : "android");
+  };
 
   // Ocultar el botón flotante cuando ya se está viendo la sección de descarga
   useEffect(() => {
@@ -253,11 +284,11 @@ export default function Home() {
         .rpg-flotante:hover { color: #fff; filter: brightness(1.08); }
         @media (prefers-reduced-motion: reduce) { .rpg-flotante { animation: none; } }
       `}</style>
-      {verFlotante && !appModal && (
-        <a href="#descargar" className="rpg-flotante" aria-label="Descargá la app">
+      {verFlotante && !appModal && !instalada && (
+        <button type="button" onClick={instalarApp} className="rpg-flotante border-0" aria-label="Instalar la app">
           <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: "7px", background: "#fff" }} />
-          Descargá la app
-        </a>
+          Instalar la app
+        </button>
       )}
 
       {/* Descargá la app */}
@@ -275,23 +306,16 @@ export default function Home() {
             Tu plan de ejercicios, videos y mensajes con el profesional,
             <br className="d-none d-md-block" /> siempre a mano en tu celular.
           </p>
-          <div className="d-flex flex-column flex-sm-row justify-content-center gap-3">
-            <a
-              href="/rpg-neuro.apk"
-              download="RPG-NEURO.apk"
-              onClick={() => setAppModal("android")}
-              className="btn btn-lg text-white px-4"
-              style={{ background: "#1A8BCD" }}
-            >
-              🤖 Descargar para Android
-            </a>
-            <button
-              type="button"
-              onClick={() => setAppModal("ios")}
-              className="btn btn-lg btn-dark px-4"
-            >
-              📱 Instalar en iPhone
-            </button>
+          <div className="d-flex justify-content-center">
+            {instalada ? (
+              <a href="/rpg/index.html" className="btn btn-lg text-white px-4" style={{ background: "#1A8BCD" }}>
+                Abrir la app
+              </a>
+            ) : (
+              <button type="button" onClick={instalarApp} className="btn btn-lg text-white px-4" style={{ background: "#1A8BCD" }}>
+                📲 Instalar la app
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -317,7 +341,7 @@ export default function Home() {
                 <h4 className="fw-bold mb-3" style={{ color: "#1A8BCD" }}>Instalar en iPhone</h4>
                 <ol className="ps-3" style={{ lineHeight: 1.7 }}>
                   <li>Tocá el botón <strong>Abrir la app</strong>.</li>
-                  <li>Tocá <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba) y elegí <strong>&quot;Agregar a inicio&quot;</strong>.</li>
+                  <li>Tocá <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba; si no lo ves, tocá <strong>···</strong>) y elegí <strong>&quot;Agregar a inicio&quot;</strong>.</li>
                 </ol>
                 <a href="/rpg/index.html" className="btn btn-lg text-white w-100 mb-3" style={{ background: "#1A8BCD" }}>
                   Abrir la app
@@ -335,11 +359,10 @@ export default function Home() {
               <>
                 <h4 className="fw-bold mb-3" style={{ color: "#1A8BCD" }}>Instalar en Android</h4>
                 <ol className="ps-3" style={{ lineHeight: 1.7 }}>
-                  <li>Se está descargando el archivo <strong>RPG-NEURO.apk</strong>. Cuando termine, tocá <strong>Abrir</strong>.</li>
-                  <li>Si el celular lo pide, activá <strong>&quot;Permitir instalar apps de esta fuente&quot;</strong>.</li>
-                  <li>Tocá <strong>Instalar</strong> y listo: queda el ícono en tu pantalla.</li>
+                  <li>Abrí esta página en <strong>Chrome</strong>.</li>
+                  <li>Tocá el menú <strong>⋮</strong> (arriba a la derecha) y elegí <strong>&quot;Instalar app&quot;</strong> o <strong>&quot;Agregar a pantalla principal&quot;</strong>.</li>
                 </ol>
-                <p className="small text-muted">Si Google te avisa que es una app desconocida, es normal: no está en Play Store.</p>
+                <p className="small text-muted">Queda el ícono en tu pantalla, como cualquier app.</p>
               </>
             )}
             <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setAppModal(null)}>
