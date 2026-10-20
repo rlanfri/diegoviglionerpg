@@ -15,7 +15,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#3a8fc4">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -1613,7 +1613,10 @@ async function cargarEjercicios() {
 
 async function cargarPlanPaciente(uid) {
   const { db, collection, getDocs } = fb();
-  const snap = await getDocs(collection(db, `planes/${uid}/items`));
+  const [snap, snapSeen] = await Promise.all([
+    getDocs(collection(db, `planes/${uid}/items`)),
+    getDocs(collection(db, `vistos/${uid}/items`)),
+  ]);
   patientPlan = [];
   snap.forEach(doc => patientPlan.push({ id: doc.id, ...doc.data() }));
   // Paginación: si hay más de 60 items, mostrar solo los 2 meses más recientes
@@ -1622,8 +1625,7 @@ async function cargarPlanPaciente(uid) {
     var mesesRecientes = meses.slice(-3);
     patientPlan = patientPlan.filter(i => !i.mes || mesesRecientes.includes(i.mes));
   }
-  // cargar seenSet desde vistos/{uid}/items
-  const snapSeen = await getDocs(collection(db, `vistos/${uid}/items`));
+  // seenSet desde vistos/{uid}/items (se pidió en paralelo con el plan)
   seenSet = new Set();
   snapSeen.forEach(doc => seenSet.add(doc.id));
 }
@@ -6497,7 +6499,16 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
   try {
     // Cargar perfil real del usuario desde Firestore
     const { db, doc, getDoc } = fb();
-    const snapPerfil = await getDoc(doc(db, 'usuarios', uid));
+    const esPaciente = role === 'paciente';
+    // Todo en paralelo: antes eran ~8 viajes a Firestore uno detrás del otro
+    const [snapPerfil] = await Promise.all([
+      getDoc(doc(db, 'usuarios', uid)),
+      cargarUsuarios(),
+      cargarEjercicios(),
+      esPaciente ? cargarPlanPaciente(uid) : null,
+      esPaciente ? cargarComentariosPaciente(uid).then(function(c){ patientComments = c; })
+        .catch(function(e){ console.error('Error cargando comentarios:', e); }) : null,
+    ]);
     if (snapPerfil.exists()) {
       const d = snapPerfil.data();
       profileData.nombre = d.nombre || profileData.nombre;
@@ -6510,11 +6521,8 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
       profileData.initials = ini2;
       document.getElementById('av-btn').textContent = ini2;
     }
-    await cargarUsuarios();
-    await cargarEjercicios();
-    if (role === 'paciente') {
-      await cargarPlanPaciente(uid);
-      try { patientComments = await cargarComentariosPaciente(uid); } catch(e) { console.error('Error cargando comentarios:', e); }
+    if (esPaciente) {
+      // Va después: necesita profileData y profesionalesData ya cargados
       try { await cargarProfesionalDelPaciente(); } catch(e) { console.error('Error cargando profesional:', e); }
     }
   } catch(err) {
@@ -6531,11 +6539,12 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     renderAccordion();
     updateStats();
     mostrarTipoPaciente(profileData.tipo || 'rpg');
-    try { await cargarNotasProfesional(uid); } catch(e) { console.error('Error cargando notas:', e); }
     try { renderProgresoPage(); } catch(e) {}
     try { _actualizarBotonWhatsApp(); } catch(e) {}
     showPage('p-home');
     setActiveNav('nav-p', 0);
+    // Las notas se completan en segundo plano, sin frenar la entrada
+    cargarNotasProfesional(uid).catch(function(e){ console.error('Error cargando notas:', e); });
   } else {
     document.getElementById('nav-d').style.display = 'flex';
     document.getElementById('nav-p').style.display = 'none';
@@ -6547,10 +6556,12 @@ window._initAppWithUser = async function(uid, userRole, nombre) {
     // Mostrar botón de mantenimiento solo para admin
     var btnMant = document.getElementById('btn-mantenimiento');
     if (btnMant && role === 'admin') btnMant.style.display = 'block';
-    try { await cargarProgresoPacientes(); } catch(e) { console.error('Error cargando progreso:', e); }
-    try { await renderComentariosProfesional(); } catch(e) { console.error('Error cargando comentarios:', e); }
     showPage('d-home');
     setActiveNav('nav-d', 0);
+    // Adherencia y mensajes leen datos de TODOS los pacientes: se cargan en segundo plano
+    // (cada bloque ya muestra "Calculando..." / "Cargando mensajes..." mientras tanto)
+    cargarProgresoPacientes().catch(function(e){ console.error('Error cargando progreso:', e); });
+    renderComentariosProfesional().catch(function(e){ console.error('Error cargando comentarios:', e); });
   }
 };
 
