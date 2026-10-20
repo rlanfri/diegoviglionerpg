@@ -43,7 +43,9 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 
 /* LOGIN */
 /* Colores del logo: rodilla amarilla, cerebro verde, columna azul */
-#s-login{--lg-y:#F2C530;--lg-g:#2DBE45;--lg-b:#1E88D0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:2.5rem 1.25rem 2rem;overflow-x:hidden;background:linear-gradient(180deg,#f2f8fd 0%,#fbfdff 55%,#fff 100%)}
+#s-login{--lg-y:#F2C530;--lg-g:#2DBE45;--lg-b:#1E88D0;display:flex;flex-direction:column;align-items:center;min-height:100%;padding:max(1.5rem,env(safe-area-inset-top)) 1.25rem max(1.5rem,env(safe-area-inset-bottom));overflow-x:hidden;background:linear-gradient(180deg,#f2f8fd 0%,#fbfdff 55%,#fff 100%)}
+/* margin:auto centra el bloque en vertical y, si no entra, deja scrollear sin cortar arriba */
+.login-inner{margin:auto 0;width:100%;display:flex;flex-direction:column;align-items:center}
 .login-brand{display:flex;align-items:center;gap:.6rem;margin-bottom:1.4rem}
 .login-logo-wrap{display:flex;align-items:center}
 .login-logo-wrap img{height:48px!important;width:auto!important;display:block}
@@ -58,7 +60,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .login-label{display:block;font-size:.82rem;font-weight:500;color:#4b5563;margin-bottom:.35rem;text-align:center}
 .login-help{font-size:.88rem;color:var(--mu);line-height:1.5;margin:0 0 1.3rem;text-align:center}
 .login-foot{margin:1.2rem 0 0;text-align:center;font-size:.82rem;color:var(--mu)}
-.login-foot strong{color:var(--lg-b);font-weight:500}
+.login-foot a{color:var(--lg-b);font-weight:500;text-decoration:none}
 .login-esp{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem 1.1rem;margin-top:2.6rem;max-width:520px}
 .login-esp span{display:flex;align-items:center;gap:.45rem;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.95rem;letter-spacing:.04em;color:#374151;text-transform:uppercase}
 .login-esp i{width:26px;height:26px;border-radius:7px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center}
@@ -612,6 +614,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 
 <!-- ═══ LOGIN ═══ -->
 <div class="screen" id="s-login">
+<div class="login-inner">
   <div class="login-brand">
   <div class="login-logo-wrap">
     <!-- Logo real: tres círculos superpuestos amarillo/verde/azul con íconos blancos -->
@@ -630,7 +633,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
       <button class="btn-login" id="btn-google" onclick="loginGoogle()">
         <div class="g-dot">G</div>Ingresar con Google
       </button>
-      <p class="login-foot">¿No tenés cuenta? <strong>Pedila en el consultorio</strong></p>
+      <p class="login-foot">¿No tenés cuenta? <a href="https://wa.me/5493516167601?text=%C2%A1Quiero%20usar%20la%20app!" target="_blank" rel="noopener">Pedila en el consultorio</a></p>
     </div>
   </div>
   <div class="login-esp" aria-hidden="true">
@@ -638,6 +641,7 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
     <span><i style="--c:#2DBE45"></i>Neuro</span>
     <span><i style="--c:#F2C530"></i>Rehabilitación deportiva</span>
   </div>
+</div>
 </div>
 
 <!-- ═══ APP ═══ -->
