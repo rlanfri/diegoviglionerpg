@@ -6642,12 +6642,12 @@ const _origLogout = window.logout;
 window.logout = function() {
   if (!confirm('¿Salir de la sesión?')) return;
   if (window._fb) {
-    window._fb.signOut(window._fb.auth).then(() => {
+    window._fb.signOut(window._fb.auth).catch((e) => console.error('[LOGOUT]', e)).then(() => {
       if (window.parent !== window) {
         window.parent.postMessage({ type: 'logout' }, '*');
       } else {
-        document.getElementById('app').classList.remove('visible');
-        document.getElementById('s-login').classList.remove('hidden');
+        // Recargar limpio: en la app instalada de iPhone cambiar de pantalla a mano a veces no alcanza
+        window.location.replace('/rpg/index.html');
       }
     });
   } else {
