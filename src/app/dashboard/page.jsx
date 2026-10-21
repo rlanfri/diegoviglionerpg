@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
   if (loading || !perfil) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}><p style={{color:'#6b7280'}}>Cargando...</p></div>;
 
-  const appUrl = `/rpg/index.html?uid=${user.uid}&rol=${perfil.rol}&nombre=${encodeURIComponent((perfil.nombre||'')+' '+(perfil.apellido||''))}&photo=${encodeURIComponent(user.photoURL||'')}`;
+  const appUrl = `/rpg/index.html?uid=${user.uid}&rol=${perfil.rol}&nombre=${encodeURIComponent((perfil.nombre||'')+' '+(perfil.apellido||''))}&photo=${encodeURIComponent(user.photoURL||'')}&docid=${encodeURIComponent(perfil._docId||'')}&dn=${encodeURIComponent(perfil.nombre||'')}`;
 
   return (
     <iframe

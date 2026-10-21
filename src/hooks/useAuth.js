@@ -27,7 +27,7 @@ export function useAuth() {
           data = snap.data();
         }
         if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); setLoading(false); return; }
-        setUser(firebaseUser); setPerfil(data); setError(null);
+        setUser(firebaseUser); setPerfil({ ...data, _docId: snap.id }); setError(null);
       } catch(e) { setError('error'); }
       setLoading(false);
     });
