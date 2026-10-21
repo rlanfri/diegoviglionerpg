@@ -1,10 +1,28 @@
 'use client';
 import { useState } from 'react';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth, db, googleProvider } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+
+async function signInWithGoogle() {
+  if (Capacitor.isNativePlatform()) {
+    const { credential } = await FirebaseAuthentication.signInWithGoogle();
+    const authCredential = GoogleAuthProvider.credential(credential?.idToken, credential?.accessToken);
+    return signInWithCredential(auth, authCredential);
+  }
+  return signInWithPopup(auth, googleProvider);
+}
+
+async function signOutEverywhere() {
+  if (Capacitor.isNativePlatform()) {
+    await FirebaseAuthentication.signOut();
+  }
+  return signOut(auth);
+}
 
 export default function LoginButton() {
   const { user, perfil, loading } = useAuth();
@@ -14,7 +32,7 @@ export default function LoginButton() {
   async function handleLogin() {
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      const result = await signInWithGoogle();
       const uid = result.user.uid;
       const email = (result.user.email || '').trim().toLowerCase();
       console.log('[LOGIN] uid:', uid, '| email:', email);
@@ -66,13 +84,13 @@ export default function LoginButton() {
       // Si no se encontró de ninguna forma → no registrado
       if (!docRef) {
         console.warn('[LOGIN] Usuario NO encontrado. email:', email);
-        await signOut(auth);
+        await signOutEverywhere();
         setError('no-registrado');
         return;
       }
 
       const data = (snap.data ? snap.data() : snap);
-      if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); return; }
+      if (data.estado !== 'activo') { await signOutEverywhere(); setError('sin-acceso'); return; }
       router.push('/dashboard');
     } catch(e) {
       console.error('LOGIN ERROR completo:', e);
@@ -87,7 +105,7 @@ export default function LoginButton() {
     <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
       <span style={{fontSize:'0.85rem',color:'#374151'}}>Hola, {perfil.nombre}</span>
       <button onClick={() => router.push('/dashboard')} style={btn}>Ir al dashboard</button>
-      <button onClick={() => signOut(auth)} style={{...btn, background:'#6b7280'}}>Salir</button>
+      <button onClick={signOutEverywhere} style={{...btn, background:'#6b7280'}}>Salir</button>
     </div>
   );
 

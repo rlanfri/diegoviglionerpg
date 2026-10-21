@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 import Image from "next/image";
@@ -23,6 +23,64 @@ type ModalData = {
 
 export default function Home() {
   const [modalData, setModalData] = useState<ModalData | null>(null);
+  const [appModal, setAppModal] = useState<"ios" | "android" | null>(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [verFlotante, setVerFlotante] = useState(true);
+  // Evento de Chrome/Android para mostrar el cartel nativo de "Instalar"
+  const [eventoInstalar, setEventoInstalar] = useState<any>(null);
+  const [instalada, setInstalada] = useState(false);
+  const [esIOS, setEsIOS] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    setEsIOS(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1));
+    setInstalada(
+      window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true
+    );
+    const onPrompt = (e: Event) => { e.preventDefault(); setEventoInstalar(e); };
+    const onInstalada = () => { setInstalada(true); setEventoInstalar(null); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalada);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalada);
+    };
+  }, []);
+
+  const instalarApp = async () => {
+    if (eventoInstalar) {
+      eventoInstalar.prompt();
+      await eventoInstalar.userChoice;
+      setEventoInstalar(null);
+      return;
+    }
+    // Sin cartel nativo (iPhone o navegador que no lo ofrece): mostrar los pasos
+    setAppModal(esIOS ? "ios" : "android");
+  };
+
+  // Ocultar el botón flotante cuando ya se está viendo la sección de descarga
+  useEffect(() => {
+    const el = document.getElementById("descargar");
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(([e]) => setVerFlotante(!e.isIntersecting), { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // En iPhone solo Safari puede "Agregar a inicio" como app
+  const iosNoSafari =
+    typeof navigator !== "undefined" && /CriOS|FxiOS|EdgiOS|OPiOS|Instagram|FBAN|FBAV/i.test(navigator.userAgent);
+
+  const copiarLinkApp = async () => {
+    const url = window.location.origin + "/rpg/index.html";
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("Copiá este link y pegalo en Safari:", url);
+    }
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2500);
+  };
 
   return (
     <div>
@@ -204,6 +262,116 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Botón flotante: Descargá la app */}
+      <style>{`
+        @keyframes rpgPulso {
+          0%   { box-shadow: 0 6px 18px rgba(26,139,205,.45), 0 0 0 0 rgba(26,139,205,.55); }
+          70%  { box-shadow: 0 6px 18px rgba(26,139,205,.45), 0 0 0 16px rgba(26,139,205,0); }
+          100% { box-shadow: 0 6px 18px rgba(26,139,205,.45), 0 0 0 0 rgba(26,139,205,0); }
+        }
+        @keyframes rpgRebote {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-6px); }
+        }
+        .rpg-flotante {
+          position: fixed; right: 18px; bottom: 18px; z-index: 1500;
+          display: flex; align-items: center; gap: 8px;
+          background: #1A8BCD; color: #fff; text-decoration: none; font-weight: 700;
+          padding: 12px 20px; border-radius: 999px;
+          animation: rpgPulso 2s infinite, rpgRebote 2.4s ease-in-out infinite;
+          transition: opacity .25s;
+        }
+        .rpg-flotante:hover { color: #fff; filter: brightness(1.08); }
+        @media (prefers-reduced-motion: reduce) { .rpg-flotante { animation: none; } }
+      `}</style>
+      {verFlotante && !appModal && !instalada && (
+        <button type="button" onClick={instalarApp} className="rpg-flotante border-0" aria-label="Instalar la app">
+          <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: "7px", background: "#fff" }} />
+          Instalar la app
+        </button>
+      )}
+
+      {/* Descargá la app */}
+      <section id="descargar" className="py-5" style={{ background: "#eaf4fb" }}>
+        <div className="container text-center">
+          <img
+            src="/icon-192.png"
+            alt="Ícono de la app RPG & NEURO"
+            width={96}
+            height={96}
+            style={{ borderRadius: "22px", boxShadow: "0 6px 18px rgba(0,0,0,0.18)", background: "#fff" }}
+          />
+          <h2 className="fw-bold mt-3" style={{ color: "#1A8BCD" }}>Descargá la app</h2>
+          <p className="lead mb-4">
+            Tu plan de ejercicios, videos y mensajes con el profesional,
+            <br className="d-none d-md-block" /> siempre a mano en tu celular.
+          </p>
+          <div className="d-flex justify-content-center">
+            {instalada ? (
+              <a href="/rpg/index.html" className="btn btn-lg text-white px-4" style={{ background: "#1A8BCD" }}>
+                Abrir la app
+              </a>
+            ) : (
+              <button type="button" onClick={instalarApp} className="btn btn-lg text-white px-4" style={{ background: "#1A8BCD" }}>
+                📲 Instalar la app
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Modal instalación app */}
+      {appModal && (
+        <div
+          onClick={() => setAppModal(null)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: "16px",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#fff", borderRadius: "16px", maxWidth: "440px", width: "100%",
+              padding: "24px", maxHeight: "90vh", overflowY: "auto", color: "#222",
+            }}
+          >
+            {appModal === "ios" ? (
+              <>
+                <h4 className="fw-bold mb-3" style={{ color: "#1A8BCD" }}>Instalar en iPhone</h4>
+                <ol className="ps-3" style={{ lineHeight: 1.7 }}>
+                  <li>Tocá el botón <strong>Abrir la app</strong>.</li>
+                  <li>Tocá <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba; si no lo ves, tocá <strong>···</strong>) y elegí <strong>&quot;Agregar a inicio&quot;</strong>.</li>
+                </ol>
+                <a href="/rpg/index.html" className="btn btn-lg text-white w-100 mb-3" style={{ background: "#1A8BCD" }}>
+                  Abrir la app
+                </a>
+                {iosNoSafari && (
+                  <div className="alert alert-warning small">
+                    Estás en un navegador que no puede instalarla. Copiá el link y pegalo en <strong>Safari</strong>.
+                    <button type="button" className="btn btn-sm btn-dark w-100 mt-2" onClick={copiarLinkApp}>
+                      {linkCopiado ? "¡Link copiado!" : "Copiar link"}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h4 className="fw-bold mb-3" style={{ color: "#1A8BCD" }}>Instalar en Android</h4>
+                <ol className="ps-3" style={{ lineHeight: 1.7 }}>
+                  <li>Abrí esta página en <strong>Chrome</strong>.</li>
+                  <li>Tocá el menú <strong>⋮</strong> (arriba a la derecha) y elegí <strong>&quot;Instalar app&quot;</strong> o <strong>&quot;Agregar a pantalla principal&quot;</strong>.</li>
+                </ol>
+                <p className="small text-muted">Queda el ícono en tu pantalla, como cualquier app.</p>
+              </>
+            )}
+            <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setAppModal(null)}>
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <footer className="footer py-4 text-white" id="contacto">
         <div className="container">
@@ -222,6 +390,7 @@ export default function Home() {
                 <li><a href="#especializaciones" className="text-white text-decoration-none">Especializaciones</a></li>
                 <li><a href="#porque-elegirnos" className="text-white text-decoration-none">¿Por qué elegirnos?</a></li>
                 <li><a href="#rpg" className="text-white text-decoration-none">Sobre la RPG</a></li>
+                <li><a href="#descargar" className="text-white text-decoration-none">Descargá la app</a></li>
                 <li><a href="#contacto" className="text-white text-decoration-none">Contacto</a></li>
               </ul>
             </div>

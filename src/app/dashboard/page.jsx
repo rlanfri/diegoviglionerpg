@@ -11,7 +11,11 @@ export default function DashboardPage() {
   useEffect(() => { if (loading) return; if (!user || !perfil) router.replace('/'); }, [user, perfil, loading]);
 
   useEffect(() => {
-    const handler = (e) => { if (e.data?.type === 'logout') { logout(); router.replace('/'); } };
+    const handler = async (e) => {
+      if (e.data?.type !== 'logout') return;
+      try { await logout(); } catch (err) { console.error('[LOGOUT]', err); }
+      window.location.replace('/');
+    };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
