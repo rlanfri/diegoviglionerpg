@@ -465,9 +465,23 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
     import { getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
     import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 
+    const AUTH_DOMAIN = (function () {
+      var DEFAULT = 'rpg-viglione.firebaseapp.com';
+      try {
+        if (location.hostname !== 'licdiegoviglione.com') return DEFAULT;
+        var q = new URLSearchParams(location.search).get('authproxy');
+        if (q === '1') localStorage.setItem('rpg_authproxy', '1');
+        if (q === '0') localStorage.removeItem('rpg_authproxy');
+        return localStorage.getItem('rpg_authproxy') === '1' ? location.hostname : DEFAULT;
+      } catch (e) { return DEFAULT; }
+    })();
+
     const firebaseConfig = {
       apiKey: "AIzaSyAic3h0hrR2lAdZQ0mhEy10MeYDr0zjpGg",
-      authDomain: "rpg-viglione.firebaseapp.com",
+      // Login por dominio propio (evita el bloqueo de almacenamiento de terceros de Safari/iOS).
+      // Apagado por defecto: se activa en producción con ?authproxy=1 (queda guardado en este navegador).
+      // Para apagarlo en ese navegador: ?authproxy=0
+      authDomain: AUTH_DOMAIN,
       projectId: "rpg-viglione",
       storageBucket: "rpg-viglione.firebasestorage.app",
       messagingSenderId: "593794389470",
