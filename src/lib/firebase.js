@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 // Login por dominio propio (evita el bloqueo de almacenamiento de terceros de Safari/iOS).
 // Apagado por defecto: se activa en licdiegoviglione.com con ?authproxy=1 (queda guardado en ese navegador).
 // Para apagarlo en ese navegador: ?authproxy=0
@@ -24,7 +24,15 @@ const firebaseConfig = {
 };
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// En Safari/iPhone la conexión por streaming de Firestore a veces se cuelga: usamos long polling ahí.
+const esSafari = typeof navigator !== 'undefined' &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|Android/.test(navigator.userAgent)));
+function crearDb(app) {
+  try {
+    return initializeFirestore(app, esSafari ? { experimentalForceLongPolling: true } : { experimentalAutoDetectLongPolling: true });
+  } catch (e) { return getFirestore(app); }
+}
+export const db = crearDb(app);
 export const googleProvider = new GoogleAuthProvider();
 // Siempre mostrar el selector de cuentas (si no, Google entra solo con la última usada)
 googleProvider.setCustomParameters({ prompt: 'select_account' });
