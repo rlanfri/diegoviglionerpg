@@ -476,6 +476,7 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
 .nu-tipo-btn:active{transform:scale(.97)}
 </style>
 
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
@@ -543,6 +544,23 @@ body{font-family:'Barlow',sans-serif;color:var(--t);font-size:15px;font-weight:4
       // Came from Next.js — buscar el docId real en Firestore por uid o email
       window._fbUser = { uid: uidParam, rol: rolParam, nombre: decodeURIComponent(nombreParam || ''), photoURL: decodeURIComponent(photoParam || '') };
       window.addEventListener('DOMContentLoaded', async () => {
+        // Pantalla de carga: se quita cuando la app termina de iniciar (o a los 10 s por las dudas)
+        (function () {
+          var quitar = function () { var sp = document.getElementById('rpg-splash'); if (sp) sp.remove(); };
+          var orig = window._initAppWithUser;
+          if (orig && !orig._splash) {
+            var w = async function () { try { return await orig.apply(this, arguments); } finally { quitar(); } };
+            w._splash = true; window._initAppWithUser = w;
+          }
+          setTimeout(quitar, 10000);
+        })();
+        // Atajo: el dashboard ya conoce el id del documento, no hace falta buscarlo de nuevo en Firestore
+        var docidParam = params.get('docid');
+        if (docidParam) {
+          window._appInitialized = true;
+          window._initAppWithUser(docidParam, rolParam, params.get('dn') || decodeURIComponent(nombreParam || ''));
+          return;
+        }
         // Intentar resolver el docId real (el Google UID puede ser distinto al docId de Firestore)
         try {
           // Buscar por campo uid == uidParam
@@ -626,6 +644,11 @@ window._BARLOW_BOLD_B64 = 'AAEAAAASAQAABAAgRFNJRwAAAAEAAaa0AAAACEdERUY9zz7VAAABL
 </script>
 </head>
 <body>
+<div id="rpg-splash" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,sans-serif;color:#6b7280">
+  <img src="/icon-192.png" width="72" height="72" alt="" style="border-radius:16px">
+  <div style="font-size:15px">Cargando…</div>
+</div>
+<script>if (/[?&]uid=/.test(location.search)) document.getElementById('rpg-splash').style.display = 'flex';</script>
 <script>if(new URLSearchParams(window.location.search).get("uid")){document.write("<style>#s-login{display:none!important}</style>");}</script>
 
 <!-- ═══ LOGIN ═══ -->
