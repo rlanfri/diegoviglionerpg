@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.5.2",
+    "@capacitor/core": "^8.5.3",
     "bootstrap": "^5.3.8",
     "firebase": "^12.14.0",
     "next": "16.2.6",

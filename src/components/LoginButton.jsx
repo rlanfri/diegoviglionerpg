@@ -1,80 +1,113 @@
 'use client';
 import { useState } from 'react';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { auth, db, googleProvider } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+
+// Detecta si estamos corriendo dentro de la app nativa (Android/iOS) o en un navegador normal
+function isNativeApp() {
+  if (typeof window === 'undefined') return false;
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
 
 export default function LoginButton() {
   const { user, perfil, loading } = useAuth();
   const [error, setError] = useState(null);
   const router = useRouter();
 
+  // Busca el documento del usuario en Firestore (misma lógica de siempre)
+  async function buscarYVincularUsuario(uid, email) {
+    const emailNorm = (email || '').trim().toLowerCase();
+
+    // 1) Buscar por docId directo
+    let snap = await getDoc(doc(db, 'usuarios', uid));
+    let docRef = snap.exists() ? snap.ref : null;
+
+    // 2) Buscar por campo uid
+    if (!snap.exists()) {
+      const qUid = query(collection(db, 'usuarios'), where('uid', '==', uid));
+      const qsnapUid = await getDocs(qUid);
+      if (!qsnapUid.empty) {
+        snap = qsnapUid.docs[0];
+        docRef = qsnapUid.docs[0].ref;
+      }
+    }
+
+    // 3) Buscar por email exacto
+    if (!snap.exists() && !docRef) {
+      const q = query(collection(db, 'usuarios'), where('email', '==', emailNorm));
+      const qsnap = await getDocs(q);
+      if (!qsnap.empty) {
+        snap = qsnap.docs[0];
+        docRef = qsnap.docs[0].ref;
+        await updateDoc(docRef, { uid });
+      }
+    }
+
+    // 4) Buscar por email normalizado (case-insensitive) recorriendo todos
+    if (!snap.exists() && !docRef) {
+      const allSnap = await getDocs(collection(db, 'usuarios'));
+      let found = null;
+      allSnap.forEach((d) => {
+        const dEmail = (d.data().email || '').trim().toLowerCase();
+        if (dEmail === emailNorm) found = d;
+      });
+      if (found) {
+        snap = found;
+        docRef = found.ref;
+        await updateDoc(docRef, { uid });
+      }
+    }
+
+    return { snap, docRef };
+  }
+
   async function handleLogin() {
     setError(null);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const uid = result.user.uid;
-      const email = (result.user.email || '').trim().toLowerCase();
-      console.log('[LOGIN] uid:', uid, '| email:', email);
+      let firebaseUser;
 
-      // 1) Buscar por UID directo (docId == uid)
-      let snap = await getDoc(doc(db, 'usuarios', uid));
-      let docRef = snap.exists() ? snap.ref : null;
+      if (isNativeApp()) {
+        // ── LOGIN NATIVO (Android / iOS) ──
+        // El popup web de Google no funciona dentro de un WebView nativo.
+        // Usamos el plugin de Capacitor que abre el selector de cuentas nativo del sistema.
+        const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        const idToken = result.credential?.idToken;
+        if (!idToken) throw new Error('No se recibió el token de Google');
 
-      // 2) Buscar por campo uid == uid
-      if (!snap.exists()) {
-        const qUid = query(collection(db, 'usuarios'), where('uid', '==', uid));
-        const qsnapUid = await getDocs(qUid);
-        if (!qsnapUid.empty) {
-          snap = qsnapUid.docs[0];
-          docRef = qsnapUid.docs[0].ref;
-          console.log('[LOGIN] Encontrado por campo uid');
-        }
+        // Vincular esa sesión nativa con el SDK de Firebase Auth de JS,
+        // así el resto de la app (que usa `auth` normalmente) sigue funcionando igual
+        const credential = GoogleAuthProvider.credential(idToken);
+        const cred = await signInWithCredential(auth, credential);
+        firebaseUser = cred.user;
+      } else {
+        // ── LOGIN WEB (navegador normal) ──
+        const result = await signInWithPopup(auth, googleProvider);
+        firebaseUser = result.user;
       }
 
-      // 3) Buscar por email exacto
-      if (!snap.exists() && !docRef) {
-        const q = query(collection(db, 'usuarios'), where('email', '==', email));
-        const qsnap = await getDocs(q);
-        if (!qsnap.empty) {
-          snap = qsnap.docs[0];
-          docRef = qsnap.docs[0].ref;
-          await updateDoc(docRef, { uid });
-          console.log('[LOGIN] Encontrado por email exacto');
-        }
-      }
+      const uid = firebaseUser.uid;
+      const email = firebaseUser.email;
+      const { snap, docRef } = await buscarYVincularUsuario(uid, email);
 
-      // 4) Buscar recorriendo todos y comparando email normalizado (case-insensitive)
-      if (!snap.exists() && !docRef) {
-        console.log('[LOGIN] Buscando por email normalizado...');
-        const allSnap = await getDocs(collection(db, 'usuarios'));
-        let found = null;
-        allSnap.forEach((d) => {
-          const dEmail = (d.data().email || '').trim().toLowerCase();
-          if (dEmail === email) found = d;
-        });
-        if (found) {
-          snap = found;
-          docRef = found.ref;
-          await updateDoc(docRef, { uid });
-          console.log('[LOGIN] Encontrado por email normalizado');
-        }
-      }
-
-      // Si no se encontró de ninguna forma → no registrado
       if (!docRef) {
-        console.warn('[LOGIN] Usuario NO encontrado. email:', email);
         await signOut(auth);
         setError('no-registrado');
         return;
       }
 
-      const data = (snap.data ? snap.data() : snap);
-      if (data.estado !== 'activo') { await signOut(auth); setError('sin-acceso'); return; }
+      const data = snap.data();
+      if (data.estado !== 'activo') {
+        await signOut(auth);
+        setError('sin-acceso');
+        return;
+      }
+
       router.push('/dashboard');
-    } catch(e) {
+    } catch (e) {
       console.error('LOGIN ERROR completo:', e);
       console.error('codigo:', e.code);
       console.error('mensaje:', e.message);
