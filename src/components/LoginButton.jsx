@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { signInWithPopup, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
@@ -24,7 +25,7 @@ async function signOutEverywhere() {
   return signOut(auth);
 }
 
-export default function LoginButton() {
+function LoginButtonInner({ setIngresando }) {
   const { user, perfil, loading } = useAuth();
   const [error, setError] = useState(null);
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function LoginButton() {
     setError(null);
     try {
       const result = await signInWithGoogle();
+      setIngresando(true);
       const uid = result.user.uid;
       const email = (result.user.email || '').trim().toLowerCase();
       console.log('[LOGIN] uid:', uid, '| email:', email);
@@ -85,17 +87,19 @@ export default function LoginButton() {
       if (!docRef) {
         console.warn('[LOGIN] Usuario NO encontrado. email:', email);
         await signOutEverywhere();
+        setIngresando(false);
         setError('no-registrado');
         return;
       }
 
       const data = (snap.data ? snap.data() : snap);
-      if (data.estado !== 'activo') { await signOutEverywhere(); setError('sin-acceso'); return; }
+      if (data.estado !== 'activo') { await signOutEverywhere(); setIngresando(false); setError('sin-acceso'); return; }
       router.push('/dashboard');
     } catch(e) {
       console.error('LOGIN ERROR completo:', e);
       console.error('codigo:', e.code);
       console.error('mensaje:', e.message);
+      setIngresando(false);
       if (e.code !== 'auth/popup-closed-by-user') setError('error');
     }
   }
@@ -125,3 +129,25 @@ export default function LoginButton() {
 }
 
 const btn = {display:'flex',alignItems:'center',gap:'8px',background:'#1A8BCD',color:'#fff',border:'none',borderRadius:'8px',padding:'9px 18px',fontSize:'0.9rem',fontWeight:'500',cursor:'pointer',fontFamily:'inherit'};
+
+// Pantalla de carga (igual a la del dashboard y a la de la app): evita ver la landing entre el login y el dashboard
+function PantallaCarga() {
+  if (typeof document === 'undefined') return null;
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14, fontFamily: 'system-ui,-apple-system,sans-serif', color: '#6b7280' }}>
+      <img src="/icon-192.png" width={72} height={72} alt="" style={{ borderRadius: 16 }} />
+      <div style={{ fontSize: 15 }}>Cargando…</div>
+    </div>,
+    document.body
+  );
+}
+
+export default function LoginButton() {
+  const [ingresando, setIngresando] = useState(false);
+  return (
+    <>
+      <LoginButtonInner setIngresando={setIngresando} />
+      {ingresando && <PantallaCarga />}
+    </>
+  );
+}
