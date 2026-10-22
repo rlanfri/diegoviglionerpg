@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -7,6 +7,9 @@ export default function DashboardPage() {
   const { user, perfil, loading, logout } = useAuth();
   const router = useRouter();
   const iframeRef = useRef(null);
+  const [iframeListo, setIframeListo] = useState(false);
+  // Por las dudas: si el iframe tarda demasiado en avisar, sacamos la pantalla de carga igual
+  useEffect(() => { if (!perfil) return; const t = setTimeout(() => setIframeListo(true), 10000); return () => clearTimeout(t); }, [perfil]);
 
   useEffect(() => { if (loading) return; if (!user || !perfil) router.replace('/'); }, [user, perfil, loading]);
 
@@ -40,12 +43,21 @@ export default function DashboardPage() {
     };
   }, [perfil]);
 
-  if (loading || !perfil) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}><p style={{color:'#6b7280'}}>Cargando...</p></div>;
+  const pantallaCarga = (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14, fontFamily: 'system-ui,-apple-system,sans-serif', color: '#6b7280' }}>
+      <img src="/icon-192.png" width={72} height={72} alt="" style={{ borderRadius: 16 }} />
+      <div style={{ fontSize: 15 }}>Cargando…</div>
+    </div>
+  );
+  if (loading || !perfil) return pantallaCarga;
 
   const appUrl = `/rpg/index.html?uid=${user.uid}&rol=${perfil.rol}&nombre=${encodeURIComponent((perfil.nombre||'')+' '+(perfil.apellido||''))}&photo=${encodeURIComponent(user.photoURL||'')}&docid=${encodeURIComponent(perfil._docId||'')}&dn=${encodeURIComponent(perfil.nombre||'')}`;
 
   return (
+    <>
+    {!iframeListo && pantallaCarga}
     <iframe
+      onLoad={() => setIframeListo(true)}
       ref={iframeRef}
       src={appUrl}
       style={{
@@ -59,5 +71,6 @@ export default function DashboardPage() {
       }}
       title="RPG App"
     />
+    </>
   );
 }
