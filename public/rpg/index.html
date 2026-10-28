@@ -1848,6 +1848,11 @@ async function addVideo() {
   }
 
   if (!validarFormulario(reglas)) return;
+  if (_bloquesOn() && !_nvCats.length) {
+    var boxCats = document.getElementById('nv-cats'); if (boxCats) boxCats.classList.add('chips-err');
+    toast('Elegí al menos una categoría');
+    return;
+  }
 
   const titulo = document.getElementById('nv-titulo').value.trim();
   let url = nuevoTipo === 'video' ? document.getElementById('nv-url').value.trim() : '';
@@ -1902,6 +1907,8 @@ async function addVideo() {
     dur: document.getElementById('nv-dur').value,
     desc: desc,
   };
+  // Varias categorías: cats (array) + cat = cats[0] para que backups, listados y código viejo sigan andando
+  if (_bloquesOn()) { datosEj.cats = _nvCats.slice(); datosEj.cat = datosEj.cats[0]; }
   const { db, collection, addDoc, doc, updateDoc } = fb();
   try {
     if (editingBiblioId) {
@@ -1910,12 +1917,14 @@ async function addVideo() {
       var idx = videos.findIndex(function(v){ return v.id === editingBiblioId; });
       if (idx > -1) videos[idx] = Object.assign(videos[idx], datosEj);
       editingBiblioId = null;
+      if (_bloquesOn()) _nvCatsSet([]); // que las categorías del ejercicio editado no pasen al próximo nuevo
       var btn = document.querySelector('#d-videos .btn-prim');
       if (btn) btn.textContent = 'Guardar ejercicio';
       toast('Ejercicio actualizado ✓');
     } else {
       // Nuevo ejercicio
-      await addDoc(collection(db, 'ejercicios'), datosEj);
+      // creadoEn solo al crear (nunca al editar); los ejercicios viejos no lo tienen
+      await addDoc(collection(db, 'ejercicios'), _bloquesOn() ? Object.assign({ creadoEn: new Date().toISOString() }, datosEj) : datosEj);
       toast('Ejercicio guardado ✓');
     }
     limpiarErroresForm(['nv-titulo','nv-url','nv-foto-url','nv-desc']);
@@ -1977,6 +1986,13 @@ async function doAssign() {
             ejercicioId: vidSelId,
             fechaAsignado: new Date().toISOString()
         };
+        if (_bloquesOn()) {
+            // Solo se guardan los campos con valor
+            var bqSel = document.getElementById('as-bloque'), pesoEl = document.getElementById('as-peso'), rpeEl = document.getElementById('as-rpe');
+            if (bqSel && bqSel.value) item.bloque = bqSel.value;
+            if (pesoEl && pesoEl.value.trim()) item.peso = pesoEl.value.trim();
+            if (rpeEl && rpeEl.value.trim()) item.rpe = rpeEl.value.trim();
+        }
 
         const newRef = await addDoc(collection(db, `planes/${currentPacId}/items`), item);
 
@@ -2267,11 +2283,25 @@ function renderAccordion() {
     div.className = 'acc-month';
 
     var weeksHTML = '';
-    _ordenarSemanas(Object.keys(mesData)).forEach((sem, si) => {
+    var semKeys = _ordenarSemanas(Object.keys(mesData));
+    // Pestañas por Día: solo con la bandera y si el mes tiene 2+ Días. Se restaura el Día elegido.
+    var tabsOn = _bloquesOn() && semKeys.length >= 2;
+    var diaActivo = semKeys[0];
+    if (tabsOn && _diaSel[mes] && semKeys.indexOf(_diaSel[mes]) !== -1) diaActivo = _diaSel[mes];
+    var tabsHTML = tabsOn
+      ? '<div class="dia-tabs" data-mes="' + _bqEsc(mes) + '">' + semKeys.map(function(s) {
+          return '<button type="button" class="dia-tab' + (s === diaActivo ? ' on' : '') + '" data-sem="' + _bqEsc(s) + '" onclick="_selDia(this)">' + _bqEsc(s) + '</button>';
+        }).join('') + '</div>'
+      : '';
+    semKeys.forEach((sem, si) => {
       var items = _ordenarItemsPorCarga(mesData[sem]);
+      var bq = _bloquesPrep(items); // null si la bandera está apagada o el Día no tiene bloques
+      if (bq) items = bq.items;
+      var bqPrev = null;
       var seenW = items.filter(i=>seenSet.has(i.id || i.vid)).length;
       var exHTML = '';
       items.forEach((item, ei) => {
+        if (bq) { var bk = _bloqueId(item); if (bk !== bqPrev) { exHTML += _bloqueHeaderHTML(bk, bq.counts[bk]); bqPrev = bk; } }
         var itemId = item.id || item.vid; // nuevo o viejo formato
         var seen = seenSet.has(itemId);
         var tipo = item.tipo || 'video';
@@ -2314,6 +2344,7 @@ function renderAccordion() {
           var pill = p === 'video' ? '▶ Video' : p === 'foto' ? '📸 Foto' : p === 'indicacion' ? '📝 Indicación' : p;
           return `<span class="pill pill-g">${pill}</span>`;
         }).join('');
+        if (_bloquesOn()) pills += _cargaExtra(item).map(p => `<span class="pill pill-g">${p}</span>`).join('');
 
         var cmtLabel = msgsCount > 0
           ? '<svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" style="flex-shrink:0"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg> ' + msgsCount + ' comentario' + (msgsCount !== 1 ? 's' : '')
@@ -2352,9 +2383,10 @@ function renderAccordion() {
       });
 
       // Solo abrir la primera semana del mes más reciente
-      var weekOpen = (mi === lastMesIdx && si === 0);
+      var weekOpen = (mi === lastMesIdx && si === 0) || tabsOn; // con pestañas, cada Día queda abierto
+      var diaAttr = tabsOn ? ' data-dia="' + _bqEsc(sem) + '"' + (sem === diaActivo ? '' : ' style="display:none"') : '';
       weeksHTML += `
-      <div class="acc-week">
+      <div class="acc-week"${diaAttr}>
         <div class="acc-week-head" onclick="toggleWeek('wb-${mi}-${si}','wc-${mi}-${si}')">
           <div style="display:flex;align-items:center;gap:.55rem">
             <span style="background:var(--acc);color:#fff;border-radius:50%;width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700">${items.length}</span>
@@ -2384,7 +2416,7 @@ function renderAccordion() {
           '<span class="acc-chevron' + (isLast?' open':'') + '" id="mc-' + mi + '">▾</span>'+
         '</div>'+
       '</div>'+
-      '<div class="acc-month-body' + (isLast?' open':'') + '" id="mb-' + mi + '">' + weeksHTML + '</div>';
+      '<div class="acc-month-body' + (isLast?' open':'') + '" id="mb-' + mi + '">' + tabsHTML + weeksHTML + '</div>';
     container.appendChild(div);
   });
 
@@ -2554,12 +2586,14 @@ function saveComment() {
 function renderDocVideos() {
   var list = document.getElementById('d-video-list');
   list.innerHTML = '';
-  if (!videos.length) { list.innerHTML = '<div class="empty">Sin contenido cargado</div>'; return; }
+  if (_bloquesOn()) _bibActualizarCats();
+  if (!videos.length) { list.innerHTML = '<div class="empty">Sin contenido cargado</div>'; if (_bloquesOn()) _bibContador(0, 0); return; }
   var videosOrdenados = videos.slice().sort(function(a,b){
     return (a.title||'').toLowerCase().localeCompare((b.title||'').toLowerCase(), 'es');
   });
+  if (_bloquesOn()) videosOrdenados = _bibOrdenar(videosOrdenados);
   videosOrdenados.forEach(function(v) {
-    var pills = [v.cat,v.series,v.reps,v.dur].filter(Boolean).map(function(p){ return '<span class="pill pill-g">'+p+'</span>'; }).join('');
+    var pills = (_bloquesOn() ? _catsDe(v).map(_bqEsc) : [v.cat]).concat([v.series,v.reps,v.dur]).filter(Boolean).map(function(p){ return '<span class="pill pill-g">'+p+'</span>'; }).join('');
     var thumbBg, thumbContent;
     if (v.tipo === 'foto' && v.fotoUrl) {
       thumbBg = 'background:var(--warm);padding:0;overflow:hidden';
@@ -2581,7 +2615,7 @@ function renderDocVideos() {
     }
     var row = document.createElement('div');
     row.className = 'vrow';
-    row.setAttribute('data-search', ((v.title||'') + ' ' + (v.cat||'')).toLowerCase());
+    row.setAttribute('data-search', ((v.title||'') + ' ' + (_bloquesOn() ? _catsDe(v).join(' ') : (v.cat||''))).toLowerCase());
     row.innerHTML =
       '<div class="vrow-thumb" style="' + thumbBg + '">' + thumbContent + '</div>' +
       '<div class="vrow-info">' +
@@ -2593,8 +2627,17 @@ function renderDocVideos() {
         '<div class="ico-btn" onclick="editDocVideo(\'' + v.id + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>' +
         '<div class="ico-btn" onclick="deleteDocVideo(\'' + v.id + '\')"><svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></div>' +
       '</div>';
+    if (_bloquesOn()) {
+      var ts = _bibTs(v);
+      row.setAttribute('data-cats', JSON.stringify(_catsDe(v)));
+      row.setAttribute('data-tipo', v.tipo || 'video');
+      row.setAttribute('data-ts', String(ts));
+      var inf = row.querySelector('.vrow-info');
+      if (inf) inf.insertAdjacentHTML('beforeend', '<div class="vrow-meta">' + (ts ? 'Creado ' + new Date(ts).toLocaleDateString('es-AR') : 'Sin fecha') + '</div>');
+    }
     list.appendChild(row);
   });
+  if (_bloquesOn()) filtrarBiblioteca(_bibVal('bib-search')); // reaplica texto + filtros y actualiza "X de Y"
 }
 let nuevoTipo = 'video';
 
@@ -2620,6 +2663,7 @@ function editDocVideo(id) {
   document.getElementById('nv-url').value      = v.url || '';
   document.getElementById('nv-foto-url').value = v.fotoUrl || '';
   document.getElementById('nv-cat').value      = v.cat || 'General';
+  if (_bloquesOn()) _nvCatsSet(_catsDe(v).length ? _catsDe(v) : ['General']); // cats, o [cat] si es un ejercicio viejo
   document.getElementById('nv-series').value   = v.series || '';
   document.getElementById('nv-reps').value     = v.reps || '';
   document.getElementById('nv-dur').value      = v.dur || '';
@@ -4003,14 +4047,18 @@ function renderPacVideos() {
     var weeksHTML = '';
     _ordenarSemanas(Object.keys(semData)).forEach(function(sem, si) {
       var items = _ordenarItemsPorCarga(semData[sem]);
+      var bq = _bloquesPrep(items); // null si la bandera está apagada o el Día no tiene bloques
+      if (bq) items = bq.items;
+      var bqPrev = null;
       var isFirstWeekOfLast = isLastMes && si === 0;
 
       var itemsHTML = '';
       items.forEach(function(item, ei) {
+        if (bq) { var bk = _bloqueId(item); if (bk !== bqPrev) { itemsHTML += _bloqueHeaderHTML(bk, bq.counts[bk]); bqPrev = bk; } }
         var itemId = item.id || item.vid || '';
         var tipo   = item.tipo || 'video';
         var title  = item.title || '—';
-        var meta   = [item.series, item.reps, item.dur].filter(Boolean).join(' · ');
+        var meta   = [item.series, item.reps, item.dur].concat(_bloquesOn() ? _cargaExtra(item) : []).filter(Boolean).join(' · ');
         var bg     = tipo === 'video' ? 'var(--acc)' : tipo === 'foto' ? '#555' : '#444';
         var playerUid = 'doc-' + mi + '-' + si + '-' + ei;
 
@@ -4234,7 +4282,7 @@ function filtrarBibliotecaAsignar(query) {
   var q = (query || '').trim().toLowerCase();
   sel.innerHTML = '';
   var filtrados = !q ? videos : videos.filter(function(v) {
-    var texto = ((v.title||'') + ' ' + (v.cat||'')).toLowerCase();
+    var texto = ((v.title||'') + ' ' + _catsEtq(v)).toLowerCase();
     return texto.includes(q);
   });
   if (!filtrados.length) {
@@ -4245,7 +4293,7 @@ function filtrarBibliotecaAsignar(query) {
     var opt = document.createElement('option');
     opt.value = v.id;
     var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
-    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (v.cat ? ' [' + v.cat + ']' : '');
+    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (_catsEtq(v) ? ' [' + _catsEtq(v) + ']' : '');
     sel.appendChild(opt);
   });
 }
@@ -4267,7 +4315,7 @@ async function openAssignModal() {
     var opt = document.createElement('option');
     opt.value = v.id;
     var icon = v.tipo === 'foto' ? '📸' : v.tipo === 'indicacion' ? '📝' : '▶';
-    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (v.cat ? ' [' + v.cat + ']' : '');
+    opt.textContent = icon + ' ' + (v.title || 'Sin título') + (_catsEtq(v) ? ' [' + _catsEtq(v) + ']' : '');
     sel.appendChild(opt);
   });
 
@@ -4276,6 +4324,12 @@ async function openAssignModal() {
    'as-vid-series','as-vid-dur','as-vid-desc'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
+  if (_bloquesOn()) {
+    ['as-peso','as-rpe'].forEach(function(id) {
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    _bqSetBloque('as', '', false);
+  }
 
   document.getElementById('m-assign').classList.add('open');
 }
@@ -4289,6 +4343,16 @@ function onBibliotecaSel(sel) {
   document.getElementById('as-ind-reps').value = vid.reps || '';
   document.getElementById('as-ind-dur').value = vid.dur || '';
   document.getElementById('as-ind-texto').value = vid.desc || '';
+  if (_bloquesOn()) {
+    // Pre-selecciona el bloque si cat es Movilidad/Activación/Fuerza; no pisa una elección manual
+    var bq = document.getElementById('as-bloque');
+    if (bq) {
+      var bid = _catABloque(_catsDe(vid));
+      if (bid) _bqSetBloque('as', bid, true);
+      else if (bq.dataset.auto === '1') _bqSetBloque('as', '', false);
+    }
+    _bqPreview();
+  }
 }
 // doAssign local eliminada — usa versión Firestore
 
@@ -4301,6 +4365,12 @@ function openEditModal(itemId) {
   document.getElementById('me-reps').value   = item.reps || '';
   document.getElementById('me-dur').value    = item.dur || '';
   document.getElementById('me-desc').value   = item.desc || '';
+  if (_bloquesOn()) {
+    var mp = document.getElementById('me-peso'), mr = document.getElementById('me-rpe');
+    _bqSetBloque('me', _bloqueId(item), false);
+    if (mp) mp.value = item.peso == null ? '' : item.peso;
+    if (mr) mr.value = item.rpe == null ? '' : item.rpe;
+  }
   document.getElementById('m-edit').classList.add('open');
 }
 async function saveEdit() {
@@ -4310,12 +4380,21 @@ async function saveEdit() {
   item.reps   = document.getElementById('me-reps').value;
   item.dur    = document.getElementById('me-dur').value;
   item.desc   = document.getElementById('me-desc').value;
+  var cambios = { series: item.series, reps: item.reps, dur: item.dur, desc: item.desc };
+  if (_bloquesOn()) {
+    // Para quitar un valor se guarda '' ('' = sin bloque / sin peso / sin RPE). Solo se escribe
+    // el campo si tiene valor o si el item ya lo tenía, para no ensuciar items viejos.
+    [['bloque','me-bloque'], ['peso','me-peso'], ['rpe','me-rpe']].forEach(function(par) {
+      var el = document.getElementById(par[1]);
+      if (!el) return;
+      var val = el.value.trim();
+      if (val || item[par[0]] !== undefined) { item[par[0]] = val; cambios[par[0]] = val; }
+    });
+  }
   if (item.id && currentPacId) {
     try {
       const { db, doc, updateDoc } = fb();
-      await updateDoc(doc(db, 'planes/' + currentPacId + '/items/' + item.id), {
-        series: item.series, reps: item.reps, dur: item.dur, desc: item.desc
-      });
+      await updateDoc(doc(db, 'planes/' + currentPacId + '/items/' + item.id), cambios);
     } catch(e) { console.error('Error guardando edición:', e); }
   }
   closeM('m-edit');
@@ -5266,12 +5345,14 @@ function filtrarBiblioteca(q) {
   rows.forEach(function(row) {
     var texto = row.getAttribute('data-search') || '';
     var match = !q || texto.indexOf(q) !== -1;
+    if (match && _bloquesOn()) match = _bibFiltrosOk(row);
     row.style.display = match ? '' : 'none';
     if (match) visibles++;
   });
+  if (_bloquesOn()) _bibContador(visibles, rows.length);
   var noRes = document.getElementById('bib-no-results');
   var list = document.getElementById('d-video-list');
-  if (visibles === 0 && q) {
+  if (visibles === 0 && (q || (_bloquesOn() && _bibFiltrosActivos()))) {
     if (!noRes) {
       noRes = document.createElement('div');
       noRes.id = 'bib-no-results';
@@ -5346,6 +5427,341 @@ function _ordenarItemsPorCarga(items) {
     if (!fa && fb) return 1;
     return 0; // ninguno tiene fecha: mantener orden relativo original
   });
+}
+
+// ── BLOQUES, PESO/RPE Y FILTROS DE BIBLIOTECA ──
+// Todo esto va detrás de la bandera ?bloques=1 (se guarda en localStorage 'rpg_bloques';
+// ?bloques=0 la apaga). Con la bandera apagada la app se comporta como siempre.
+// Para renombrar un bloque (ej. "Fuerza" → "Desarrollo") se cambia su `nombre` y se deja el
+// nombre viejo en `alias: ['Fuerza']`: los ejercicios guardados con el nombre viejo se leen
+// como el nuevo (pre-selección, filtros y chips). No hace falta migrar nada en Firestore.
+var BLOQUES_CFG = [
+  { id: 'movilidad',  nombre: 'Movilidad',  bg: '#E3F4E8', fg: '#14532D', dot: '#2DA44E' },
+  { id: 'activacion', nombre: 'Activación', bg: '#FCF1CF', fg: '#713F12', dot: '#E3A008' },
+  { id: 'fuerza',     nombre: 'Fuerza',     bg: '#DDEEF9', fg: '#0B4F78', dot: '#1A8BCD' }
+];
+var BLOQUE_OTROS = { id: '', nombre: 'Otros ejercicios', bg: '#EEF2F6', fg: '#374151', dot: '#6b7280' };
+
+var _bloquesFlag = null;
+function _bloquesOn() {
+  if (_bloquesFlag !== null) return _bloquesFlag;
+  var q = null;
+  try { q = new URLSearchParams(location.search).get('bloques'); } catch (e) {}
+  // El parámetro de la URL manda; si localStorage no está disponible (modo privado, etc.) igual rige para esta sesión
+  try {
+    if (q === '1') localStorage.setItem('rpg_bloques', '1');
+    if (q === '0') localStorage.removeItem('rpg_bloques');
+  } catch (e) {}
+  if (q === '1') _bloquesFlag = true;
+  else if (q === '0') _bloquesFlag = false;
+  else { try { _bloquesFlag = localStorage.getItem('rpg_bloques') === '1'; } catch (e) { _bloquesFlag = false; } }
+  return _bloquesFlag;
+}
+
+function _bqEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+// Id de bloque válido del item; '' (o campo ausente/desconocido) = sin bloque
+function _bloqueId(item) {
+  var b = item && item.bloque;
+  for (var i = 0; i < BLOQUES_CFG.length; i++) if (BLOQUES_CFG[i].id === b) return b;
+  return '';
+}
+function _bloqueCfg(id) {
+  for (var i = 0; i < BLOQUES_CFG.length; i++) if (BLOQUES_CFG[i].id === id) return BLOQUES_CFG[i];
+  return BLOQUE_OTROS;
+}
+// Categorías del ejercicio (array, o texto de un ejercicio viejo) → id del primer bloque
+// que coincida en el orden Movilidad → Activación → Fuerza; '' si ninguna lo es
+function _catABloque(cats) {
+  if (!Array.isArray(cats)) cats = cats ? [cats] : [];
+  cats = cats.map(_catCanon);
+  for (var i = 0; i < BLOQUES_CFG.length; i++) if (cats.indexOf(BLOQUES_CFG[i].nombre) !== -1) return BLOQUES_CFG[i].id;
+  return '';
+}
+// Nombre vigente de una categoría: si coincide con el alias de un bloque, devuelve el nombre actual del bloque
+function _catCanon(c) {
+  for (var i = 0; i < BLOQUES_CFG.length; i++) {
+    var a = BLOQUES_CFG[i].alias;
+    if (Array.isArray(a) && a.indexOf(c) !== -1) return BLOQUES_CFG[i].nombre;
+  }
+  return c;
+}
+// Si el Día tiene algún bloque, devuelve {items (ordenados Movilidad→Activación→Fuerza→Otros), counts}; si no, null
+function _bloquesPrep(items) {
+  if (!_bloquesOn() || !items.some(function(i){ return _bloqueId(i); })) return null;
+  var orden = BLOQUES_CFG.map(function(c){ return c.id; }).concat(['']);
+  var out = [], counts = {};
+  orden.forEach(function(id) {
+    items.forEach(function(i) { if (_bloqueId(i) === id) { out.push(i); counts[id] = (counts[id] || 0) + 1; } });
+  });
+  return { items: out, counts: counts };
+}
+function _bloqueHeaderHTML(id, n) {
+  var c = _bloqueCfg(id);
+  return '<div class="bq-head" style="background:' + c.bg + ';color:' + c.fg + '">' +
+    '<span class="bq-dot" style="background:' + c.dot + '"></span>' +
+    '<span class="bq-nombre">' + _bqEsc(c.nombre) + '</span>' +
+    '<span class="bq-n">' + n + ' ejercicio' + (n !== 1 ? 's' : '') + '</span></div>';
+}
+// ["16 kg", "RPE 7"] — solo lo que esté cargado; si el peso ya trae letras no se repite "kg"
+function _cargaExtra(item) {
+  var out = [];
+  var peso = String(item.peso == null ? '' : item.peso).trim();
+  var rpe  = String(item.rpe  == null ? '' : item.rpe).trim();
+  if (peso) out.push(_bqEsc(/[a-z]/i.test(peso) ? peso : peso + ' kg'));
+  if (rpe)  out.push(_bqEsc(/^rpe/i.test(rpe) ? rpe : 'RPE ' + rpe));
+  return out;
+}
+
+// Pestañas por Día (vista del paciente): Día elegido por mes, se conserva entre renders
+var _diaSel = {};
+function _selDia(btn) {
+  var bar = btn.parentNode;
+  var mes = bar.getAttribute('data-mes'), sem = btn.getAttribute('data-sem');
+  _diaSel[mes] = sem;
+  bar.querySelectorAll('.dia-tab').forEach(function(b){ b.classList.toggle('on', b === btn); });
+  bar.parentNode.querySelectorAll('.acc-week[data-dia]').forEach(function(w){
+    w.style.display = (w.getAttribute('data-dia') === sem) ? '' : 'none';
+  });
+}
+
+// Categorías de un ejercicio: cats (array) o, en los viejos, [cat]
+function _catsDe(v) {
+  if (!v) return [];
+  var raw = Array.isArray(v.cats) ? v.cats : (typeof v.cats === 'string' ? [v.cats] : []);
+  var cs = [];
+  raw.forEach(function(c) {
+    if (typeof c !== 'string' || !c.trim()) return;
+    c = _catCanon(c);
+    if (cs.indexOf(c) === -1) cs.push(c);
+  });
+  if (cs.length) return cs;
+  return typeof v.cat === 'string' && v.cat ? [_catCanon(v.cat)] : [];
+}
+// Texto de categorías para listados: "RPG, Movilidad" (apagada: solo cat, como siempre)
+function _catsEtq(v) { return _bloquesOn() ? _catsDe(v).join(', ') : (v.cat || ''); }
+
+function _chipsHTML(lista, sel, fn) {
+  return lista.map(function(c) {
+    var on = sel.indexOf(c) !== -1;
+    return '<button type="button" class="chip' + (on ? ' on' : '') + '" aria-pressed="' + on + '" data-cat="' + _bqEsc(c) + '" onclick="' + fn + '(this)">' +
+      (on ? '✓ ' : '') + _bqEsc(c) + '</button>';
+  }).join('');
+}
+// Categorías disponibles: las del select #nv-cat (oculto) + cualquier otra que traigan los datos
+function _catsDisponibles(extra) {
+  var cats = [];
+  var nv = document.getElementById('nv-cat');
+  if (nv) Array.prototype.forEach.call(nv.options, function(o){ cats.push(o.value || o.text); });
+  (extra || []).forEach(function(c){ if (cats.indexOf(c) === -1) cats.push(c); });
+  return cats;
+}
+
+// Filtros de la biblioteca (página Ejercicios)
+var _bibCatsSel = [];       // categorías marcadas en el filtro
+var _bibCatsModo = 'todas'; // 'todas' = tiene TODAS las marcadas · 'alguna' = al menos una
+function _bibVal(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+function _bibFiltrosActivos() { return !!(_bibCatsSel.length || _bibVal('bib-f-fecha') || _bibVal('bib-f-tipo')); }
+function _bibIniMes() { var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).getTime(); }
+function _bibTs(v) { var t = v && v.creadoEn ? Date.parse(v.creadoEn) : 0; return isNaN(t) ? 0 : t; }
+function _bibFiltrosOk(row) {
+  var fe = _bibVal('bib-f-fecha'), tp = _bibVal('bib-f-tipo');
+  if (_bibCatsSel.length) {
+    var rc = [];
+    try { rc = JSON.parse(row.getAttribute('data-cats') || '[]'); } catch (e) {}
+    var tiene = function(c) { return rc.indexOf(c) !== -1; };
+    if (_bibCatsModo === 'alguna' ? !_bibCatsSel.some(tiene) : !_bibCatsSel.every(tiene)) return false;
+  }
+  if (tp && row.getAttribute('data-tipo') !== tp) return false;
+  if (fe) {
+    var ts = parseInt(row.getAttribute('data-ts'), 10) || 0;
+    if (fe === '7d'  && !(ts && ts >= Date.now() - 7 * 86400000)) return false;
+    if (fe === 'mes' && !(ts && ts >= _bibIniMes())) return false;
+    if (fe === 'ant' && ts >= _bibIniMes()) return false; // sin fecha (ts=0) también entra
+  }
+  return true;
+}
+function _bibOrdenar(arr) {
+  var o = _bibVal('bib-f-orden');
+  if (o !== 'nuevos' && o !== 'viejos') return arr; // A–Z: ya viene ordenado
+  var dir = o === 'nuevos' ? -1 : 1; // los sin fecha cuentan como los más viejos
+  return arr.slice().sort(function(a, b) { return dir * (_bibTs(a) - _bibTs(b)); });
+}
+function _bibContador(x, y) {
+  var el = document.getElementById('bib-contador');
+  if (el) el.textContent = x + ' de ' + y;
+}
+// Chips de categoría del filtro (las del formulario + las que existan en los datos)
+function _bibActualizarCats() {
+  var box = document.getElementById('bib-f-cats');
+  if (!box) return;
+  var extra = [];
+  videos.forEach(function(v){ _catsDe(v).forEach(function(c){ if (extra.indexOf(c) === -1) extra.push(c); }); });
+  box.innerHTML = _chipsHTML(_catsDisponibles(extra), _bibCatsSel, '_bibToggleCat');
+}
+function _bibToggleCat(btn) {
+  var c = btn.getAttribute('data-cat'), i = _bibCatsSel.indexOf(c);
+  if (i === -1) _bibCatsSel.push(c); else _bibCatsSel.splice(i, 1);
+  _bibActualizarCats();
+  _bibFiltroCambio();
+}
+function _bibSetModoSinFiltrar(m) {
+  _bibCatsModo = m;
+  ['todas', 'alguna'].forEach(function(k) {
+    var b = document.getElementById('bib-modo-' + k);
+    if (b) { b.setAttribute('aria-pressed', k === m ? 'true' : 'false'); b.classList.toggle('on', k === m); }
+  });
+}
+function _bibSetModo(m) { _bibSetModoSinFiltrar(m); _bibFiltroCambio(); }
+function _bibFiltroCambio() { filtrarBiblioteca(_bibVal('bib-search')); }
+function _bibLimpiar() {
+  _bibCatsSel = [];
+  ['bib-f-fecha','bib-f-tipo'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+  var o = document.getElementById('bib-f-orden'); if (o) o.value = 'az';
+  var s = document.getElementById('bib-search'); if (s) s.value = '';
+  _bibSetModoSinFiltrar('todas');
+  renderDocVideos();
+}
+
+// Chips de categoría del formulario de ejercicio (se pueden marcar varias; al menos una)
+var _nvCats = [];
+function _nvCatsRender() {
+  var box = document.getElementById('nv-cats');
+  if (box) box.innerHTML = _chipsHTML(_catsDisponibles(_nvCats), _nvCats, '_nvToggleCat');
+}
+function _nvToggleCat(btn) {
+  var c = btn.getAttribute('data-cat'), i = _nvCats.indexOf(c);
+  if (i === -1) _nvCats.push(c); else _nvCats.splice(i, 1);
+  var box = document.getElementById('nv-cats'); if (box) box.classList.remove('chips-err');
+  _nvCatsRender();
+}
+function _nvCatsSet(arr) { _nvCats = arr.slice(); _nvCatsRender(); }
+
+// Control de Bloque (4 botones) y vista previa "Así lo va a ver"
+function _bqSetBloque(p, id, auto) {
+  var inp = document.getElementById(p + '-bloque');
+  if (!inp) return;
+  inp.value = id || '';
+  inp.dataset.auto = auto ? '1' : '';
+  var grid = document.getElementById(p + '-bloque-grid');
+  if (grid) Array.prototype.forEach.call(grid.querySelectorAll('.bq-btn'), function(b) {
+    b.setAttribute('aria-pressed', b.getAttribute('data-bloque') === (id || '') ? 'true' : 'false');
+  });
+  if (p === 'as') _bqPreview();
+}
+function _bqPick(btn) { _bqSetBloque(btn.parentNode.getAttribute('data-p'), btn.getAttribute('data-bloque'), false); }
+function _bqPreview() {
+  var box = document.getElementById('as-preview-txt');
+  if (!box) return;
+  var g = function(id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  var bid = g('as-bloque');
+  var partes = [g('as-ind-series'), g('as-ind-reps'), g('as-ind-dur')].filter(Boolean).map(_bqEsc)
+    .concat(_cargaExtra({ peso: g('as-peso'), rpe: g('as-rpe') }));
+  box.innerHTML = _bqEsc(g('as-sem') || 'Día 1') + (bid ? ' · bloque ' + _bqEsc(_bloqueCfg(bid).nombre) : '') +
+    ': <b>' + _bqEsc(g('as-titulo') || 'Sin título') + '</b>' + (partes.length ? ', ' + partes.join(' · ') : '');
+}
+
+// Campos Bloque / Peso / RPE de los modales de asignar y editar
+function _bloqueCampoHTML(p) {
+  var btns = [{ id: '', nombre: 'Sin bloque', bg: '#fff', fg: '#374151' }].concat(BLOQUES_CFG).map(function(c) {
+    return '<button type="button" class="bq-btn" data-bloque="' + c.id + '" aria-pressed="' + (c.id === '' ? 'true' : 'false') + '" onclick="_bqPick(this)" ' +
+      'style="background:' + c.bg + ';color:' + c.fg + '"><span class="bq-ck" aria-hidden="true">✓</span>' + _bqEsc(c.nombre) + '</button>';
+  }).join('');
+  return '<div class="ff bq-campo"><label>Bloque</label>' +
+    '<div class="bq-grid" id="' + p + '-bloque-grid" data-p="' + p + '" role="group" aria-label="Bloque">' + btns + '</div>' +
+    '<input type="hidden" id="' + p + '-bloque" value="">' +
+    '<div class="bq-hint">Si no elegís bloque, el ejercicio se muestra como hasta ahora.</div></div>';
+}
+function _pesoRpeHTML(p) {
+  return '<div class="f2">' +
+    '<div class="ff"><label>Peso (kg)</label><input type="text" id="' + p + '-peso" placeholder="Ej: 16"></div>' +
+    '<div class="ff"><label>RPE</label><input type="text" id="' + p + '-rpe" placeholder="Ej: 7"></div>' +
+  '</div>';
+}
+function _bloquesInitUI() {
+  if (!_bloquesOn() || document.getElementById('bq-css')) return;
+  var st = document.createElement('style');
+  st.id = 'bq-css';
+  st.textContent =
+    '.bq-head{display:flex;align-items:center;gap:.45rem;padding:.35rem .6rem;border-radius:8px;margin:.55rem 0 .4rem;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase}' +
+    '.bq-head:first-child{margin-top:.1rem}' +
+    '.bq-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}' +
+    '.bq-nombre{flex:1}' +
+    '.bq-n{font-weight:500;text-transform:none;letter-spacing:0;opacity:.8}' +
+    '.dia-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin:.2rem 0 .7rem}' +
+    '.dia-tab{border:1.5px solid var(--bd);background:#fff;color:var(--t);border-radius:100px;padding:.35rem .85rem;font-size:.78rem;font-family:inherit;cursor:pointer}' +
+    '.dia-tab.on{background:var(--acc);border-color:var(--acc);color:#fff}' +
+    '.bq-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}' +
+    '.bq-btn{min-height:44px;border:3px solid #d8dee4;border-radius:10px;font-family:inherit;font-size:.87rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.4rem .5rem}' +
+    '.bq-btn[aria-pressed="true"]{border-color:#0F6EA3}' +
+    '.bq-ck{display:none;color:#0F6EA3;font-weight:700}' +
+    '.bq-btn[aria-pressed="true"] .bq-ck{display:inline}' +
+    '.bq-hint{font-size:.72rem;color:var(--mu);margin-top:.35rem}' +
+    '.bq-prev{background:#E8F4FD;border:1px solid #BCDDF3;color:#0B4F78;border-radius:10px;padding:.65rem .8rem;margin:.2rem 0 .9rem;font-size:.85rem;line-height:1.4}' +
+    '.bq-prev-t{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem}' +
+    '.chips{display:flex;flex-wrap:wrap;gap:.4rem}' +
+    '.chip{min-height:36px;border:1.5px solid var(--bd);background:#fff;color:var(--t);border-radius:100px;padding:.3rem .8rem;font-size:.78rem;font-family:inherit;cursor:pointer}' +
+    '.chip.on{border-color:#0F6EA3;background:#E8F4FD;color:#0B4F78;font-weight:600}' +
+    '.chips-err{outline:1.5px solid #c0392b;outline-offset:3px;border-radius:10px}' +
+    '.bib-filtros{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem}' +
+    '.bib-filtros select{padding:.4rem .5rem;border:1.5px solid var(--bd);border-radius:8px;font-size:.78rem;font-family:inherit;background:#fff;max-width:100%}' +
+    '.bib-modo{display:flex;align-items:center;gap:.3rem;flex:1 1 100%;font-size:.72rem;color:var(--mu)}' +
+    '.bib-modo .chip{min-height:28px;padding:.15rem .65rem;font-size:.72rem}' +
+    '.bib-filtros .bib-cnt{font-size:.75rem;color:var(--mu);margin-left:auto}' +
+    '.bib-filtros>button{border:none;background:none;color:var(--acc);font-size:.75rem;font-family:inherit;cursor:pointer;text-decoration:underline}' +
+    // Los botones Cancelar/Asignar quedan siempre a mano al scrollear dentro del modal
+    '#m-assign .msheet,#m-edit .msheet{max-height:88vh;max-height:88dvh}' +
+    '#m-assign .m-actions,#m-edit .m-actions{position:sticky;bottom:0;background:#fff;padding:.6rem 0 env(safe-area-inset-bottom,0);margin-top:.3rem;box-shadow:0 -8px 8px -8px rgba(0,0,0,.15)}';
+  document.head.appendChild(st);
+
+  // Categorías de la biblioteca: el select #nv-cat queda oculto (fuente de la lista) y se usan chips
+  var cat = document.getElementById('nv-cat');
+  if (cat) {
+    BLOQUES_CFG.forEach(function(c){ var o = document.createElement('option'); o.textContent = c.nombre; cat.appendChild(o); });
+    cat.style.display = 'none';
+    cat.insertAdjacentHTML('afterend', '<div class="chips" id="nv-cats" role="group" aria-label="Categorías"></div><div class="bq-hint">Podés marcar varias categorías.</div>');
+    _nvCatsRender();
+  }
+
+  // Modal de asignar: Ejercicio · Mes y Día · Bloque · Título · Series/Reps/Duración · Peso y RPE · vista previa
+  var tit = document.getElementById('as-titulo');
+  if (tit && tit.closest('.ff')) tit.closest('.ff').insertAdjacentHTML('beforebegin', _bloqueCampoHTML('as'));
+  var actsA = document.querySelector('#m-assign .m-actions');
+  if (actsA) actsA.insertAdjacentHTML('beforebegin', _pesoRpeHTML('as') +
+    '<div class="bq-prev" aria-live="polite"><div class="bq-prev-t">Así lo va a ver</div><div id="as-preview-txt"></div></div>');
+  var mA = document.getElementById('m-assign');
+  if (mA) { mA.addEventListener('input', _bqPreview); mA.addEventListener('change', _bqPreview); }
+  _bqPreview();
+
+  // Modal de editar
+  var actsE = document.querySelector('#m-edit .m-actions');
+  if (actsE) actsE.insertAdjacentHTML('beforebegin', _bloqueCampoHTML('me') + _pesoRpeHTML('me'));
+
+  // Barra de filtros debajo del buscador
+  var busc = document.getElementById('bib-search');
+  if (busc && busc.parentNode) {
+    var bar = document.createElement('div');
+    bar.className = 'bib-filtros';
+    bar.id = 'bib-filtros';
+    bar.innerHTML =
+      '<div class="chips" id="bib-f-cats" role="group" aria-label="Filtrar por categoría" style="flex:1 1 100%"></div>' +
+      '<div class="bib-modo" role="group" aria-label="Coincidencia de categorías"><span>Coincidir:</span>' +
+        '<button type="button" class="chip on" id="bib-modo-todas" aria-pressed="true" onclick="_bibSetModo(\'todas\')">Todas</button>' +
+        '<button type="button" class="chip" id="bib-modo-alguna" aria-pressed="false" onclick="_bibSetModo(\'alguna\')">Alguna</button></div>' +
+      '<select id="bib-f-fecha" onchange="_bibFiltroCambio()">' +
+        '<option value="">Cualquier fecha</option><option value="7d">Últimos 7 días</option>' +
+        '<option value="mes">Este mes</option><option value="ant">Sin fecha / anteriores</option></select>' +
+      '<select id="bib-f-tipo" onchange="_bibFiltroCambio()">' +
+        '<option value="">Todos los tipos</option><option value="video">Video</option>' +
+        '<option value="foto">Foto</option><option value="indicacion">Indicación</option></select>' +
+      '<select id="bib-f-orden" onchange="renderDocVideos()">' +
+        '<option value="az">A–Z</option><option value="nuevos">Más nuevos</option><option value="viejos">Más viejos</option></select>' +
+      '<span class="bib-cnt" id="bib-contador"></span>' +
+      '<button type="button" onclick="_bibLimpiar()">Limpiar</button>';
+    busc.parentNode.insertAdjacentElement('afterend', bar);
+    _bibActualizarCats();
+  }
 }
 
 // ── Cartel de instalación PWA en iPhone (solo Safari, solo si no está instalada) ──
@@ -6753,6 +7169,7 @@ document.addEventListener('change', function(e) {
   }
 });
 
+try { _bloquesInitUI(); } catch (e) { console.error('bloques: no se pudo iniciar la UI', e); } // no hace nada si la bandera ?bloques=1 está apagada
 </script>
 
 <!-- ═══ PERFIL OVERLAY ═══ -->
