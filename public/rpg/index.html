@@ -5430,8 +5430,8 @@ function _ordenarItemsPorCarga(items) {
 }
 
 // ── BLOQUES, PESO/RPE Y FILTROS DE BIBLIOTECA ──
-// Todo esto va detrás de la bandera ?bloques=1 (se guarda en localStorage 'rpg_bloques';
-// ?bloques=0 la apaga). Con la bandera apagada la app se comporta como siempre.
+// Encendido por defecto; ?bloques=0 es el interruptor de emergencia (guarda localStorage 'rpg_bloques'='0';
+// ?bloques=1 lo vuelve a encender). Apagado, la app se comporta como antes.
 // Para renombrar un bloque (ej. "Fuerza" → "Desarrollo") se cambia su `nombre` y se deja el
 // nombre viejo en `alias: ['Fuerza']`: los ejercicios guardados con el nombre viejo se leen
 // como el nuevo (pre-selección, filtros y chips). No hace falta migrar nada en Firestore.
@@ -5443,18 +5443,20 @@ var BLOQUES_CFG = [
 var BLOQUE_OTROS = { id: '', nombre: 'Otros ejercicios', bg: '#EEF2F6', fg: '#374151', dot: '#6b7280' };
 
 var _bloquesFlag = null;
+// Encendido por defecto. Interruptor de emergencia: ?bloques=0 lo apaga en ese navegador
+// (queda guardado en localStorage 'rpg_bloques' = '0'); ?bloques=1 lo vuelve a encender.
 function _bloquesOn() {
   if (_bloquesFlag !== null) return _bloquesFlag;
   var q = null;
   try { q = new URLSearchParams(location.search).get('bloques'); } catch (e) {}
   // El parámetro de la URL manda; si localStorage no está disponible (modo privado, etc.) igual rige para esta sesión
   try {
-    if (q === '1') localStorage.setItem('rpg_bloques', '1');
-    if (q === '0') localStorage.removeItem('rpg_bloques');
+    if (q === '0') localStorage.setItem('rpg_bloques', '0');
+    if (q === '1') localStorage.removeItem('rpg_bloques');
   } catch (e) {}
-  if (q === '1') _bloquesFlag = true;
-  else if (q === '0') _bloquesFlag = false;
-  else { try { _bloquesFlag = localStorage.getItem('rpg_bloques') === '1'; } catch (e) { _bloquesFlag = false; } }
+  if (q === '0') _bloquesFlag = false;
+  else if (q === '1') _bloquesFlag = true;
+  else { try { _bloquesFlag = localStorage.getItem('rpg_bloques') !== '0'; } catch (e) { _bloquesFlag = true; } }
   return _bloquesFlag;
 }
 
@@ -7169,7 +7171,7 @@ document.addEventListener('change', function(e) {
   }
 });
 
-try { _bloquesInitUI(); } catch (e) { console.error('bloques: no se pudo iniciar la UI', e); } // no hace nada si la bandera ?bloques=1 está apagada
+try { _bloquesInitUI(); } catch (e) { console.error('bloques: no se pudo iniciar la UI', e); } // no hace nada si se apagó con ?bloques=0
 </script>
 
 <!-- ═══ PERFIL OVERLAY ═══ -->
