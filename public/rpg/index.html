@@ -5432,7 +5432,9 @@ function _ordenarItemsPorCarga(items) {
 // ── BLOQUES, PESO/RPE Y FILTROS DE BIBLIOTECA ──
 // Todo esto va detrás de la bandera ?bloques=1 (se guarda en localStorage 'rpg_bloques';
 // ?bloques=0 la apaga). Con la bandera apagada la app se comporta como siempre.
-// Para renombrar un bloque (ej. "Fuerza" → "Desarrollo") alcanza con cambiar su `nombre`.
+// Para renombrar un bloque (ej. "Fuerza" → "Desarrollo") se cambia su `nombre` y se deja el
+// nombre viejo en `alias: ['Fuerza']`: los ejercicios guardados con el nombre viejo se leen
+// como el nuevo (pre-selección, filtros y chips). No hace falta migrar nada en Firestore.
 var BLOQUES_CFG = [
   { id: 'movilidad',  nombre: 'Movilidad',  bg: '#E3F4E8', fg: '#14532D', dot: '#2DA44E' },
   { id: 'activacion', nombre: 'Activación', bg: '#FCF1CF', fg: '#713F12', dot: '#E3A008' },
@@ -5473,8 +5475,17 @@ function _bloqueCfg(id) {
 // que coincida en el orden Movilidad → Activación → Fuerza; '' si ninguna lo es
 function _catABloque(cats) {
   if (!Array.isArray(cats)) cats = cats ? [cats] : [];
+  cats = cats.map(_catCanon);
   for (var i = 0; i < BLOQUES_CFG.length; i++) if (cats.indexOf(BLOQUES_CFG[i].nombre) !== -1) return BLOQUES_CFG[i].id;
   return '';
+}
+// Nombre vigente de una categoría: si coincide con el alias de un bloque, devuelve el nombre actual del bloque
+function _catCanon(c) {
+  for (var i = 0; i < BLOQUES_CFG.length; i++) {
+    var a = BLOQUES_CFG[i].alias;
+    if (Array.isArray(a) && a.indexOf(c) !== -1) return BLOQUES_CFG[i].nombre;
+  }
+  return c;
 }
 // Si el Día tiene algún bloque, devuelve {items (ordenados Movilidad→Activación→Fuerza→Otros), counts}; si no, null
 function _bloquesPrep(items) {
@@ -5520,9 +5531,13 @@ function _catsDe(v) {
   if (!v) return [];
   var raw = Array.isArray(v.cats) ? v.cats : (typeof v.cats === 'string' ? [v.cats] : []);
   var cs = [];
-  raw.forEach(function(c) { if (typeof c === 'string' && c.trim() && cs.indexOf(c) === -1) cs.push(c); });
+  raw.forEach(function(c) {
+    if (typeof c !== 'string' || !c.trim()) return;
+    c = _catCanon(c);
+    if (cs.indexOf(c) === -1) cs.push(c);
+  });
   if (cs.length) return cs;
-  return typeof v.cat === 'string' && v.cat ? [v.cat] : [];
+  return typeof v.cat === 'string' && v.cat ? [_catCanon(v.cat)] : [];
 }
 // Texto de categorías para listados: "RPG, Movilidad" (apagada: solo cat, como siempre)
 function _catsEtq(v) { return _bloquesOn() ? _catsDe(v).join(', ') : (v.cat || ''); }
